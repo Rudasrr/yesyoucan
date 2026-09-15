@@ -1,4 +1,4 @@
-# Robert – plán hubnutí · pravidla projektu (CLAUDE.md)
+# YesYouCan · plán hubnutí · pravidla projektu (CLAUDE.md)
 
 Webová aplikace pro jednoho klienta (Robert) a jednoho trenéra (vlastník projektu). Nahrazuje Excel `robert-plan_4_0.xlsx`.
 Piš česky, stručně, tykej. Aktuální zadání je v `ZADANI.md`, stav a historie rozhodnutí ve `STAV.md`, návod k nasazení a používání v `NAVOD.md`.

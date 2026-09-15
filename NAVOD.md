@@ -1,4 +1,4 @@
-# Robert – plán · návod
+# YesYouCan · návod
 
 Dvě části: **A** je pro tebe (trenér, vlastník) – jak je to nasazené a co dělat, když je potřeba něco změnit. **B** je pro Roberta – to mu můžeš poslat celé. Na konci je řešení problémů.
 

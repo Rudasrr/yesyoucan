@@ -1,4 +1,4 @@
-# Robert – plán hubnutí · stavový dokument (15. 9. 2026, po nasazení v5.3)
+# YesYouCan (dřív „Robert – plán“) · stavový dokument (15. 9. 2026, po nasazení v5.3)
 
 ## Kde to běží
 - **Appka:** https://rudasrr.github.io/yesyoucan/ (GitHub Pages, nasazuje Action při pushi na `main`)
@@ -9,8 +9,8 @@
 
 ## Jak navázat
 - **V Claude Code:** otevři repozitář (`yesyoucan`), pravidla jsou v `CLAUDE.md`, úkoly v `ZADANI.md`. Edituj jen `src/*`; `python3 build.py` složí `out/index.html`; testy v `tools/`.
-- **V chatu:** nahraj `STAV.md` a `out/index.html` (případně `src/` jako zip) a napiš: „Navazuji na projekt Robert – plán, stav je v STAV.md.“
-- Struktura repa: `src/` (moduly, pořadí skládání v CLAUDE.md, navíc `sw.js`, `icon.svg`, `icon-180.png`, `manifest.webmanifest`) · `build.py` (čte env `SUPABASE_URL`, `SUPABASE_KEY`; v cloudové verzi vyprázdní `LOCAL_USERS`, doplní hash cache do `sw.js`, kopíruje ikony a manifest do `out/`) · `tools/` (check.js, ftest.py, qa.py, shots.py, cloudtest.py) · `supabase-setup.sql` · `.github/workflows/deploy.yml`.
+- **V chatu:** nahraj `STAV.md` a `out/index.html` (případně `src/` jako zip) a napiš: „Navazuji na projekt YesYouCan, stav je v STAV.md.“
+- Struktura repa: `src/` (moduly, pořadí skládání v CLAUDE.md, navíc `sw.js`, `logo.png`, `icon-180/192/512.png`, `manifest.webmanifest`) · `build.py` (čte env `SUPABASE_URL`, `SUPABASE_KEY`; v cloudové verzi vyprázdní `LOCAL_USERS`, doplní hash cache do `sw.js`, kopíruje ikony a manifest do `out/`) · `tools/` (check.js, ftest.py, qa.py, shots.py, cloudtest.py) · `supabase-setup.sql` · `.github/workflows/deploy.yml`.
 
 ## Cíl
 Webová appka pro jednoho klienta (Robert, start 134,4 kg → 102 kg, 0,7 % váhy/týden) a jednoho trenéra (Ruda). Nahrazuje Excel `robert-plan_4_0.xlsx`; výpočty 1:1 podle sešitu. Robert musí být plánem veden, ne vymýšlet; trenér do 10 minut denně.
@@ -20,7 +20,7 @@ Webová appka pro jednoho klienta (Robert, start 134,4 kg → 102 kg, 0,7 % váh
 - Supabase: `CLOUD_CONFIG = { url, key }` plní build ze Secrets. Prázdné → režim „bez cloudu“ (localStorage) s lokálním přihlášením `LOCAL_USERS`; ten je jen pro vývoj, v nasazené verzi je `LOCAL_USERS = {}` a žádné heslo v souboru není.
 - Offline-first: localStorage + fronta + last-write-wins podle `updated_at`, soft-delete `deleted`. Tabulky (vše `id text, user_id uuid, data jsonb, updated_at text, deleted bool`): `profiles`, `settings`, `foods`, `recipes`, `measurements`, `days`, `week_plans`, `shopping`, `prefs`, `training`. Id záznamů obsahují uid (`d:<uid>:<date>`, `m:…`, `w:…`, `p:<uid>:main`, `tp:<uid>:<id>`, `to:<uid>:<date>`, `note:<uid>:<date>`).
 - **Service worker** (`src/sw.js`): cache-first na `./` a `./index.html`, network-first se zálohou v cache na ostatní vlastní soubory, cizí origin (CDN, Supabase API) se necachuje. Verze cache = hash `index.html`, staré cache mizí v `activate`. Nová verze ohlásí „Nová verze – obnovit“. Registruje se jen mimo `file:` (testy běží z file://).
-- PWA: `manifest.webmanifest` se `start_url`/`scope` = `./`, ikona `icon.svg` + `icon-180.png` pro iOS.
+- PWA: `manifest.webmanifest` se `start_url`/`scope` = `./`, ikony `icon-192.png` / `icon-512.png`, pro iOS `icon-180.png`. Logo (`logo.png`, průhledné) je v hlavičce a na přihlašovací obrazovce. Zdroj loga je rastr, proto ikony vznikly jednorázově a leží v `src/` – build je jen kopíruje.
 
 ## Schéma a RLS (supabase-setup.sql)
 - Idempotentní: tabulky `create if not exists`, politiky `drop + create`, seed `on conflict do nothing` (196 surovin, 200 receptů s **týmiž id jako lokální seed** – proto nevznikají duplicity).
