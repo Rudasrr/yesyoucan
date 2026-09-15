@@ -3,5 +3,5 @@ __pycache__/
 node_modules/
 shots/
 *.png
-!src/icon-180.png
+!src/*.png
 .DS_Store
