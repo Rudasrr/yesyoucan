@@ -3,7 +3,9 @@
 Dvě části: **A** je pro tebe (trenér, vlastník) – jak je to nasazené a co dělat, když je potřeba něco změnit. **B** je pro Roberta – to mu můžeš poslat celé. Na konci je řešení problémů.
 
 Adresa appky: **https://rudasrr.github.io/robert-plan/**
-Repozitář: **https://github.com/Rudasrr/robert-plan** · Supabase projekt: **robert-plan** (region eu-central-1)
+Repozitář: **https://github.com/Rudasrr/robert-plan** · Supabase projekt: **GPT-Codex-app-lab** (ref `reizexthhcyemkpplvmt`, eu-central-1)
+
+> Proč cizí název projektu: free plán Supabase pouští dva aktivní projekty na člověka a oba jsi měl obsazené. Appka proto sedí ve stávajícím projektu `GPT-Codex-app-lab`. Tabulky má vlastní, takže se s ničím nepotkají, ale **účty (`auth.users`) a API klíče jsou společné** s tou druhou appkou. Až budeš mít místo (pozastavíš jiný projekt nebo přejdeš na Pro), dá se to přestěhovat: založit projekt, pustit `supabase-setup.sql`, znovu založit dva účty a přepsat Secrets.
 
 ---
 
@@ -28,12 +30,14 @@ Supabase         Postgres (tabulky settings, foods, recipes, … ) + účty
 Potřeba jen při prvním nasazení nebo po vypršení tokenu (otevře prohlížeč):
 
 ```bash
-gh auth login              # GitHub
-gh auth refresh -s workflow  # dovolí měnit soubory v .github/workflows/
-npx supabase login         # Supabase
+gh auth login                    # GitHub (pokud ještě nejsi přihlášený)
+gh auth refresh -s workflow      # bez toho GitHub odmítne změny v .github/workflows/
+npx --yes supabase@latest login  # Supabase
 ```
 
-Ověření: `gh auth status` a `npx supabase projects list`.
+Ověření: `gh auth status` (musí být vidět scope `workflow`) a `npx --yes supabase@latest projects list`.
+
+`supabase` CLI není nainstalované napevno, jede přes `npx` – na tomhle Macu není Homebrew. Přístupový token si CLI drží v klíčence, ne v souboru.
 
 ## A3. Co se stalo při zakládání (pro případ, že to budeš dělat znovu)
 
@@ -43,13 +47,12 @@ git init -b main && git add -A && git commit -m "v5.3"
 gh repo create robert-plan --public --source=. --remote=origin --push
 gh api -X POST repos/Rudasrr/robert-plan/pages -f build_type=workflow
 
-# Supabase
-npx supabase orgs list
-npx supabase projects create robert-plan --org-id $ORG \
-    --region eu-central-1 --db-password "$(openssl rand -base64 24)"
-npx supabase projects list                       # počkat na ACTIVE_HEALTHY
-psql "$DB_URL" -f supabase-setup.sql             # schéma, RLS, 196 surovin, 200 receptů
-npx supabase projects api-keys --project-ref $REF   # URL a anon klíč
+# Supabase – SQL jede přes Management API, heslo k databázi není potřeba
+REF=reizexthhcyemkpplvmt
+npx --yes supabase@latest db query --linked --project-ref $REF -f supabase-setup.sql
+npx --yes supabase@latest db query --linked --project-ref $REF \
+    "select count(*) from public.foods"        # musí být 196, recipes 200
+npx --yes supabase@latest projects api-keys --project-ref $REF   # URL a anon klíč
 
 # propojení
 gh secret set SUPABASE_URL --body "https://$REF.supabase.co"
@@ -57,7 +60,20 @@ gh secret set SUPABASE_KEY --body "$ANON_KEY"
 gh workflow run deploy.yml && gh run watch
 ```
 
-Všechna hesla a klíče se ukládají do `~/.robert-plan.env`. Ten soubor **není** v repozitáři a nikdy tam nepatří – kdyby se ztratil, heslo k databázi jde resetovat v Supabase, klíče jde přečíst znovu přes `npx supabase projects api-keys`.
+`supabase-setup.sql` je idempotentní – suroviny a recepty se vkládají `on conflict do nothing`, takže opakované spuštění nepřepíše tvoje úpravy. Schéma i politiky se dají pustit znovu kdykoli.
+
+**Adresa pro obnovu hesla** musí být v seznamu povolených přesměrování. Protože projekt sdílí nastavení s druhou appkou, nepřepisuj ho celé – jen do něj přidej:
+
+```bash
+D=$(mktemp -d) && npx --yes supabase@latest init --workdir $D --yes
+npx --yes supabase@latest config pull --workdir $D --project-ref $REF
+# v $D/supabase/config.toml přidat adresu do additional_redirect_urls
+# a zakomentovat [auth.sms.twilio] (patří druhé appce, push by ho vypnul)
+npx --yes supabase@latest config diff --workdir $D --project-ref $REF   # musí hlásit jedinou změnu
+npx --yes supabase@latest config push --workdir $D --project-ref $REF
+```
+
+Všechna hesla a klíče jsou v `~/.robert-plan.env` (práva 600). Ten soubor **není** v repozitáři a nikdy tam nepatří. Service-role klíč se nikam nenahrává – slouží jen k zakládání účtů z tvého Macu. Kdyby se soubor ztratil, klíče přečteš znovu přes `npx supabase projects api-keys`.
 
 ## A4. Účty
 
@@ -68,7 +84,7 @@ Všechna hesla a klíče se ukládají do `~/.robert-plan.env`. Ten soubor **nen
 | ty (trenér) | rehor.rudolf@gmail.com | `coach` |
 | Robert | r.pesek24@gmail.com | `client`, `coach_id` = tvoje ID |
 
-Hesla byla vygenerována při zakládání a jsou v `~/.robert-plan.env`. Svoje si změň přes **Zapomenuté heslo** na přihlašovací obrazovce (e-mail ti přijde na gmail). Robertovi pošli to dočasné a ať si ho změní stejnou cestou.
+Hesla jsou v `~/.robert-plan.env` (`COACH_PW`, `ROBERT_PW`). Tvůj účet v tom projektu už existoval, takže dostal nové dočasné heslo – **změň si ho hned** přes „Zapomenuté heslo“ na přihlašovací obrazovce. Robertovi pošli to jeho a ať udělá totéž. Minimální délka hesla v projektu je 12 znaků.
 
 Kdyby bylo potřeba doplnit řádek v `profiles` ručně (například po znovuzaložení účtu), UID najdeš v Supabase v Authentication → Users:
 
@@ -99,7 +115,7 @@ Referenční čísla, na kterých `check.js` stojí, jsou v `CLAUDE.md`. Když s
 ## A6. Data a zálohy
 
 - Robert i ty máte v Účtu **Export** (XLSX) a **Zálohu** (JSON) – to je nejrychlejší záchrana.
-- Databázi zálohuješ `npx supabase db dump --project-ref $REF -f zaloha.sql`.
+- Databázi zálohuješ `npx --yes supabase@latest db dump --linked --project-ref reizexthhcyemkpplvmt -f zaloha.sql`.
 - Appka funguje offline: data se drží v prohlížeči a odešlou se, jakmile je signál. Poslední stav sync poznáš podle tečky vpravo nahoře.
 - Výchozí suroviny a recepty jsou „globální“ (společné). Když si je Robert upraví, vznikne jeho vlastní verze a tvoje původní zůstane. Ty měníš globální verzi v Databáze / Recepty / Suroviny.
 

@@ -60,7 +60,7 @@ def login(ctx, email, pw, who):
     pg = ctx.new_page()
     watch(pg, who)
     pg.goto(URL, wait_until='domcontentloaded')
-    pg.wait_for_function('window.Store && Store.sb', timeout=30000)
+    pg.wait_for_function('typeof Store !== "undefined" && !!Store.sb', timeout=30000)
     pg.evaluate('([e,p]) => Store.signIn(e,p).then(()=>afterLogin())', [email, pw])
     pg.wait_for_function('Store.profile && !Store.profile.missing', timeout=30000)
     role = pg.evaluate('Store.profile.role')
@@ -125,8 +125,12 @@ with sync_playwright() as p:
     sync(robert); sync(coach)
     seen = coach.evaluate(f"Store.rows('measurements').some(r=>r.id==='{mid}' && r.data.weight==={w})")
     check('vážení dorazilo trenérovi', seen)
-    check('trenér ho má v Dashboardu', coach.evaluate(
-        f"(()=>{{go('klient');return document.body.innerText.includes('{str(w).replace('.', ',')}')}})()"))
+    check('trenér má vážení ve svém pohledu na klienta',
+          coach.evaluate(f"Meas().some(m=>m.date===todayISO() && m.weight==={w})"))
+    # souhrn Dashboardu při jediném vážení hlásí „málo dat na trend“, číslo je až v Detailu
+    dash = coach.evaluate("(()=>{ go('klient'); App.dashDetail = true; render(); return document.querySelector('#main').innerText })()")
+    check('Dashboard (Detail) ho ukazuje', str(w).replace('.', ',') in dash, dash.replace('\n', ' · ')[:150])
+    coach.evaluate('App.dashDetail = false; render()')
 
     print('\n4 · trenér uloží Nastavení a Trénink → Robert je vidí')
     coach.evaluate("saveSettings({...S(), rate_pct: 0.75})")
@@ -156,12 +160,17 @@ with sync_playwright() as p:
 
     print('\n6 · trenér upraví globální recept → Robert ho vidí')
     newname = 'Cloudtest – přejmenovaný recept'
-    rid = coach.evaluate(f"""(()=>{{ const r = Store.rows('recipes').find(x=>x.user_id===null);
-        Store.put('recipes', r.id, {{...r.data, name: {json.dumps(newname)} }}, null); return r.id }})()""")
+    orig = coach.evaluate("(()=>{ const r = Store.rows('recipes').find(x=>x.user_id===null); return [r.id, r.data] })()")
+    rid, odata = orig[0], orig[1]
+    coach.evaluate(f"Store.put('recipes', {json.dumps(rid)}, {{...{json.dumps(odata)}, name: {json.dumps(newname)} }}, null)")
     sync(coach); sync(robert)
     check('Robert vidí změněný recept', robert.evaluate(
-        f"Store.rows('recipes').some(r=>r.id==='{rid}' && r.data.name==={json.dumps(newname)})"))
-    notes.append(f'globální recept {rid} byl přejmenován – vrátit zpět v úklidu')
+        f"Store.rows('recipes').some(r=>r.id==={json.dumps(rid)} && r.data.name==={json.dumps(newname)})"))
+    # globální recept se nemaže, jen vrátí do původního stavu
+    coach.evaluate(f"Store.put('recipes', {json.dumps(rid)}, {json.dumps(odata)}, null)")
+    sync(coach); sync(robert)
+    check(f'recept {rid} vrácen do původního stavu', robert.evaluate(
+        f"Store.rows('recipes').some(r=>r.id==={json.dumps(rid)} && r.data.name==={json.dumps(odata['name'])})"))
 
     print('\n7 · Robert si udělá vlastní verzi výchozí suroviny (nesmí přepsat globální)')
     ownid = robert.evaluate("""(()=>{ const f = Store.rows('foods').find(x=>x.user_id===null);

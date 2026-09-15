@@ -1,21 +1,34 @@
-# Robert – plán hubnutí · stavový dokument (15. 9. 2026)
+# Robert – plán hubnutí · stavový dokument (15. 9. 2026, po nasazení v5.3)
+
+## Kde to běží
+- **Appka:** https://rudasrr.github.io/robert-plan/ (GitHub Pages, nasazuje Action při pushi na `main`)
+- **Repozitář:** https://github.com/Rudasrr/robert-plan (veřejný; `out/` se negituje, vyrábí ho Action)
+- **Databáze a účty:** Supabase projekt `GPT-Codex-app-lab`, ref `reizexthhcyemkpplvmt`, eu-central-1
+- **Tajemství:** `~/.robert-plan.env` na Rudově Macu (hesla účtů, service-role klíč, UID). V repu nic z toho není, adresa a anon klíč jdou do buildu z GitHub Secrets `SUPABASE_URL` / `SUPABASE_KEY`.
+- Postup nasazení, účty a provoz jsou v `NAVOD.md` části A.
 
 ## Jak navázat
 - **V Claude Code:** otevři repozitář (`robert-plan`), pravidla jsou v `CLAUDE.md`, úkoly v `ZADANI.md`. Edituj jen `src/*`; `python3 build.py` složí `out/index.html`; testy v `tools/`.
 - **V chatu:** nahraj `STAV.md` a `out/index.html` (případně `src/` jako zip) a napiš: „Navazuji na projekt Robert – plán, stav je v STAV.md.“
-- Struktura repa: `src/` (moduly, pořadí skládání v CLAUDE.md) · `build.py` (čte env `SUPABASE_URL`, `SUPABASE_KEY`; v cloudové verzi vyprázdní `LOCAL_USERS`) · `tools/` (check.js, ftest.py, qa.py, shots.py) · `supabase-setup.sql` · `.github/workflows/deploy.yml` (build + GitHub Pages).
+- Struktura repa: `src/` (moduly, pořadí skládání v CLAUDE.md, navíc `sw.js`, `icon.svg`, `icon-180.png`, `manifest.webmanifest`) · `build.py` (čte env `SUPABASE_URL`, `SUPABASE_KEY`; v cloudové verzi vyprázdní `LOCAL_USERS`, doplní hash cache do `sw.js`, kopíruje ikony a manifest do `out/`) · `tools/` (check.js, ftest.py, qa.py, shots.py, cloudtest.py) · `supabase-setup.sql` · `.github/workflows/deploy.yml`.
 
 ## Cíl
-Webová appka pro jednoho klienta (Robert, start 134,4 kg → 102 kg, 0,7 % váhy/týden) a jednoho trenéra (Ruda). Nahrazuje Excel `robert-plan_4_0.xlsx`; výpočty 1:1 podle sešitu (ověřeno: středa vzorového týdne 2 511,75 kcal, prognóza 14. 5. 2027 atd.). Robert musí být plánem veden, ne vymýšlet; trenér do 10 minut denně.
+Webová appka pro jednoho klienta (Robert, start 134,4 kg → 102 kg, 0,7 % váhy/týden) a jednoho trenéra (Ruda). Nahrazuje Excel `robert-plan_4_0.xlsx`; výpočty 1:1 podle sešitu. Robert musí být plánem veden, ne vymýšlet; trenér do 10 minut denně.
 
 ## Technika (rozhodnuto, neměnit)
-- Jeden `index.html` (HTML+CSS+JS, bez buildu), GitHub Pages. Knihovny z CDN jen při potřebě (Supabase JS, SheetJS). Grafy vlastní SVG.
-- Supabase: `CLOUD_CONFIG = { url, key }` na začátku skriptu. Dokud prázdné → režim „bez cloudu“ (data v localStorage) s lokálním přihlášením `LOCAL_USERS`: Robert `r.pesek24@gmail.com / mamnato`, trenér `rehor.rudolf@gmail.com / 06392` (odkaz „Přihlásit se jako trenér“). Není to zabezpečení – v Supabase založit účty se stejnými e-maily.
-- Offline-first: localStorage + fronta + last-write-wins podle `updated_at`, soft-delete `deleted`. Tabulky (vše `id text, user_id uuid, data jsonb, updated_at, deleted`): `profiles`, `settings`, `foods`, `recipes`, `measurements`, `days`, `week_plans`, `shopping`, `prefs`, `training`. RLS: klient čte/píše své; trenér čte klienty (`coach_id`), píše `settings`, `training`, globální `foods`/`recipes` (user_id null). Id záznamů obsahují uid (`d:<uid>:<date>`, `m:…`, `w:…`, `p:<uid>:main`, `tp:<uid>:<id>`, `to:<uid>:<date>`, `note:<uid>:<date>`).
-- `supabase-setup.sql` je idempotentní; seed 196 surovin a 200 receptů; blok pro `profiles` s UUID; volitelný import 14 vážení.
+- Jeden `index.html` (HTML+CSS+JS, vanilla), GitHub Pages. Knihovny z CDN jen při potřebě (Supabase JS, SheetJS). Grafy vlastní SVG.
+- Supabase: `CLOUD_CONFIG = { url, key }` plní build ze Secrets. Prázdné → režim „bez cloudu“ (localStorage) s lokálním přihlášením `LOCAL_USERS`; ten je jen pro vývoj, v nasazené verzi je `LOCAL_USERS = {}` a žádné heslo v souboru není.
+- Offline-first: localStorage + fronta + last-write-wins podle `updated_at`, soft-delete `deleted`. Tabulky (vše `id text, user_id uuid, data jsonb, updated_at text, deleted bool`): `profiles`, `settings`, `foods`, `recipes`, `measurements`, `days`, `week_plans`, `shopping`, `prefs`, `training`. Id záznamů obsahují uid (`d:<uid>:<date>`, `m:…`, `w:…`, `p:<uid>:main`, `tp:<uid>:<id>`, `to:<uid>:<date>`, `note:<uid>:<date>`).
+- **Service worker** (`src/sw.js`): cache-first na `./` a `./index.html`, network-first se zálohou v cache na ostatní vlastní soubory, cizí origin (CDN, Supabase API) se necachuje. Verze cache = hash `index.html`, staré cache mizí v `activate`. Nová verze ohlásí „Nová verze – obnovit“. Registruje se jen mimo `file:` (testy běží z file://).
+- PWA: `manifest.webmanifest` se `start_url`/`scope` = `./`, ikona `icon.svg` + `icon-180.png` pro iOS.
+
+## Schéma a RLS (supabase-setup.sql)
+- Idempotentní: tabulky `create if not exists`, politiky `drop + create`, seed `on conflict do nothing` (196 surovin, 200 receptů s **týmiž id jako lokální seed** – proto nevznikají duplicity).
+- `updated_at` je **text** s ISO řetězcem z prohlížeče. Kdyby to byl `timestamptz`, PostgREST ho vrací jako `+00:00`, klient si ho lokálně drží jako `Z` a porovnává řetězcem – last-write-wins by se v rámci jedné sekundy pletl.
+- RLS: klient čte a píše svoje (`user_id = auth.uid()`); globální řádky (`user_id is null`) čtou všichni a píše je jen trenér; trenér čte řádky svých klientů a píše jim `settings` a `training`. Politiky nad `profiles` jdou přes `security definer` funkce `my_role()` / `is_my_client()` – jinak Postgres hlásí nekonečnou rekurzi. Appka nemaže natvrdo, takže stačí politiky select/insert/update (upsert potřebuje obě zápisové).
 
 ## Klíčové výpočty (calc.js)
-- BMR Mifflin–St Jeor; výdej = BMR × faktor aktivity (1,34) + chůze (MET podle km/h) + trénink (MET) ; deficit = váha × tempo % × 7700/7 (pevný); limit dne = výdej − deficit; **plánovací limit** dne = výdej s plánovanou chůzí a tréninkem − deficit.
+- BMR Mifflin–St Jeor; výdej = BMR × faktor aktivity (1,34) + chůze (MET podle km/h) + trénink (MET); deficit = váha × tempo % × 7700/7 (pevný); limit dne = výdej − deficit; **plánovací limit** dne = výdej s plánovanou chůzí a tréninkem − deficit.
 - **Pojistka bazálu** (odchylka od sešitu, rozhodnuto): limit nikdy pod BMR; appka řekne, kolik minut chůze chybí.
 - Cíl chodu = cíl z Nastavení × limit/2450; škáluje se jen příloha (flag), faktor 0,3–1,6, příloha zaokrouhlena na 10 g (sešit 5 g – odchylka). Pivo 205 kcal/0,5 l, smažené 2,9 kcal/g, min. 600 kcal na jídlo.
 - Průměr 7 vážení; plánovaná křivka; prognóza; plán proti realitě 75 %.
@@ -31,15 +44,20 @@ Den se ukládá průběžně, o půlnoci se uzavře sám; každá změna má hl�
 Nákup škálovaný na aktuální váhu · datované týdny · pojistka bazálu · příloha na 10 g · „kolik co stojí“ počítáno živě (statické hodnoty v sešitu si nesedí) · start 134,4 (texty říkaly 129) · tolerance „sedí“ ±60 kcal v UI.
 
 ## Rozhodnutí Rudy (platí)
-Robert edituje výchozí suroviny/recepty jako vlastní verzi · hlavní číslo dne = rezerva plánu · hvězdičky + záložka Oblíbené · pojistka bazálu ano · vláknina ne · trénink jako týdenní šablona + výjimky · Robert potvrzuje položky tréninku · tempo mění jen trenér · odměrky ano (nádoby: lžička 5, lžíce 15, hrnek 250, sklenice 300, naběračka 120 ml, odměrka 30 g) · rutina v generátoru výchozí zapnutá · žádný tmavý režim, žádné foto jídla, žádný přepis do frameworku.
+Robert edituje výchozí suroviny/recepty jako vlastní verzi · hlavní číslo dne = rezerva plánu · hvězdičky + záložka Oblíbené · pojistka bazálu ano · vláknina ne · trénink jako týdenní šablona + výjimky · Robert potvrzuje položky tréninku · tempo mění jen trenér · odměrky ano (nádoby: lžička 5, lžíce 15, hrnek 250, sklenice 300, naběračka 120 ml, odměrka 30 g) · rutina v generátoru výchozí zapnutá · žádný tmavý režim, žádné foto jídla, žádný přepis do frameworku · repozitář veřejný, klíče přes Secrets · push notifikace do Později.
 
 ## Kontrola kvality (jak testovat)
-`tools/qa.py` (3 šířky × všechny obrazovky: přetečení, prvky mimo viewport, kontrast, písmo <11 px, klikací průchod), `tools/ftest.py` (funkční scénáře) a `tools/check.js` (výpočty, referenční čísla v CLAUDE.md); princip: Playwright headless, `localLogin('client'|'coach')`, testovací data ze `SEED.sample_week` a `SEED.measurements`. Poslední stav (15. 9. 2026, tento sandbox): ftest bez chyby, qa 292 interakcí bez chyby, 0 přetečení.
+`tools/check.js` (výpočty, referenční čísla v CLAUDE.md) · `tools/ftest.py` (funkční scénáře) · `tools/qa.py` (3 šířky × všechny obrazovky: přetečení, prvky mimo viewport, kontrast, písmo <11 px, klikací průchod) · **`tools/cloudtest.py`** (dva prohlížeče proti nasazené adrese a ostré databázi; přihlášení čte z `~/.robert-plan.env`, testovací data po sobě maže). Princip zbytku: Playwright headless, `localLogin('client'|'coach')`, testovací data ze `SEED.sample_week` a `SEED.measurements`.
+
+**Poslední stav (15. 9. 2026):** check.js referenční čísla sedí · ftest bez chyby · qa 292 interakcí, 0 přetečení · cloudtest `errors: none` (7 scénářů, žádná chyba RLS) · service worker ověřen i na ostré adrese (offline otevření funguje) · nasazený soubor neobsahuje `mamnato` a `LOCAL_USERS` je prázdné.
+
+## Vyřešeno 15. 9. 2026
+- **Rozdíl 2 511,75 vs. 2 473,00 kcal (středa vzorového týdne)** je jen zaokrouhlení přílohy, nic jiného. Základ dne je v obou případech stejný (bazál 2 346,61 · výdej s plánovanou chůzí 3 534,84 · deficit 1 022,45 · plánovací limit 2 512,39; pojistka bazálu se nezapíná, trénink žádný). Při zaokrouhlení na 5 g (sešit) vyjde přesně 2 511,75, bez zaokrouhlení 2 503,34, na 10 g 2 473,00. Napříč vzorovým týdnem není 10 g systematicky níž (Po +7,75 · Út +12,00 · **St −38,75** · Čt −0,25 · Pá −10,75 · So +56,50 · Ne +56,50, týden celkem +83 kcal) – středa je nejhorší den ze sedmi. **Otevřené rozhodnutí pro Rudu:** nechat 10 g, vrátit 5 g, nebo zaokrouhlovat dolů.
 
 ## Otevřené věci / NEXT
-- **NEXT: nasazení podle ZADANI.md** (úkoly 0–6 v Claude Code): service worker pro offline otevření, ikona, GitHub Action se Secrets, produkční build bez hesel, první reálný sync proti Supabase. GitHub i Supabase zakládá a nastavuje Claude Code přes `gh`/`supabase` CLI a Management API; Ruda jen jednorázově potvrdí `gh auth login` a `supabase login` v prohlížeči a pak pošle Robertovi adresu a dočasné heslo.
-- **K ověření:** středa vzorového týdne dává v aktuálním buildu 2 473,00 kcal (příloha na 10 g), bez zaokrouhlení 2 503,34; tento dokument dříve uváděl 2 511,75. Rozdíl ~8 kcal má najít Claude Code (úkol 0). Prognóza 14. 5. 2027 a ohlédnutí 0,71/0,93 kg beze změny.
-- Rozhodnuto 15. 9.: repozitář veřejný, klíče přes GitHub Secrets; push notifikace do Později.
-- Po týdnu reálných dat od Roberta: zkontrolovat míry (plátek 20 g, hustoty), parser „co jsem snědl“, generátor.
-- Později: web push (Edge Function; iOS jen pro PWA, ~1 den) · onboarding při prvním otevření · zkrácená URL `#ted` · widget · fáze chůze auto-přepínání (hotové jako návrh).
+- **NEXT: týden reálných dat od Roberta, pak kontrola měr a parseru** (plátek 20 g, hustoty, „co jsem snědl“, generátor týdne).
+- **Čeká na Rudu:** poslat Robertovi adresu a dočasné heslo + tři věty z `NAVOD.md` A7; změnit si vlastní heslo přes „Zapomenuté heslo“.
+- **Sdílený Supabase projekt:** free plán pouští 2 aktivní projekty na člověka, oba byly obsazené, takže appka sedí ve stávajícím projektu `GPT-Codex-app-lab`. Tabulky jsou vlastní, ale účty a API klíče se sdílí s druhou appkou (a v projektu zůstává její tabulka `notes`). Až bude místo, jde to přestěhovat podle NAVOD A3.
+- Zvážit rozhodnutí o zaokrouhlení přílohy (viz výše).
+- Později: web push (Edge Function; iOS jen pro PWA, ~1 den) · onboarding při prvním otevření · zkrácená URL `#ted` · widget · fáze chůze auto-přepínání (hotové jako návrh) · více klientů (netestováno).
 - Emoji v sandboxových screenshotech jsou černobílé (chybí font) – na telefonu barevné.
