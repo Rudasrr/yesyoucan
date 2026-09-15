@@ -136,7 +136,7 @@ VIEWS.trenink = function () {
       <td>${isC ? `<span class="muted">MET ${itemMet(it)}</span>` : `<select style="width:auto;min-height:32px;padding:3px 6px" onchange="A.tpItem(${j},'intensity',this.value)">${Object.entries(INTENSITY_LABEL).map(([k, l]) => `<option value="${k}" ${(it.intensity || 'medium') === k ? 'selected' : ''}>${l}</option>`).join('')}</select>`}</td>
       <td class="n">${fmt0(itemKcal(it, w))}</td><td class="n"><button class="xbtn" onclick="A.tpItemDel(${j})">×</button></td></tr>`; }).join('')}
     <tr><td colspan="6" class="b">Trénink celkem · ${fmt0(ed.items.reduce((a, it) => a + itemMinutes(it), 0))} min</td><td class="n b">${fmt0(es.act.planKcal)}</td><td></td></tr></table>
-    <div class="row" style="margin-top:10px"><select id="tpex" style="width:auto;min-width:240px">${exOpts}</select><button class="btn sec sm" onclick="A.tpItemAdd()">+ přidat</button><input type="text" id="tpnote" placeholder="poznámka k tréninku (volitelně)" value="${esc(ed.note || '')}" style="flex:1;min-width:180px" onchange="A.tpDayField('note',this.value)"></div>
+    <div class="row" style="margin-top:10px"><button class="btn sec sm" onclick="A.tpPickEx()">+ přidat cvik</button><button class="btn sec sm" onclick="A.exLibrary()">🏋️ Knihovna cviků</button><input type="text" id="tpnote" placeholder="poznámka k tréninku (volitelně)" value="${esc(ed.note || '')}" style="flex:1;min-width:180px" onchange="A.tpDayField('note',this.value)"></div>
     <div class="row" style="margin-top:8px"><button class="btn sec sm" onclick="A.tpCopyDay()">Zkopírovat tento den na…</button><button class="btn sec sm" onclick="A.tpClearDay()">Vyprázdnit den</button></div></div>`;
   const summary = `<div class="card"><h2>Týden celkem</h2><div class="stats3 wk" style="margin-top:8px"><div><b>${fmt0(weekAct)}</b><span>kcal z aktivity za týden (min. týden reálně ${fmt0(lastWeekAct)})</span></div><div><b>${fmt0(weekDef / 7)}</b><span>průměrný deficit/den</span></div><div><b class="${weekDef / KG_KCAL >= w * s.rate_pct / 100 * 0.97 ? 'ok' : 'bad'}">−${fmt2(weekDef / KG_KCAL)} <small>kg</small></b><span>projektované tempo (cíl min. −${fmt2(w * s.rate_pct / 100)})</span></div><div><b>${pl.days.filter(d => d.items.length).length}×</b><span>tréninků v týdnu</span></div></div>
     ${warns.map(t => `<div class="alert a2" style="margin-top:8px">${esc(t)}</div>`).join('')}
@@ -149,8 +149,13 @@ A.tpNew = () => { const pl = newPlan('Plán ' + (trainingPlans().length + 1)); U
 A.tpCopy = () => { const src = trainingPlans().find(p => p.id === App.tpId); const pl = { ...JSON.parse(JSON.stringify(src)), id: oid('tp', Date.now()), name: src.name + ' (kopie)', active_from: null, created: new Date().toISOString() }; Undo.run('Plán zkopírován', () => saveTrainingPlan(pl)); App.tpId = pl.id; render(); };
 A.tpField = (f, v) => { const pl = trainingPlans().find(p => p.id === App.tpId); pl[f] = v; Undo.run(f === 'active_from' ? (v ? `Plán platí od ${czDate(v)}` : 'Plán odpojen') : 'Plán uložen', () => saveTrainingPlan(pl), f === 'active_from' && v ? 'Robertovi se přepočítal limit i recepty.' : ''); render(); };
 A.tpDayField = (f, v) => { const pl = trainingPlans().find(p => p.id === App.tpId); pl.days[App.tpDay][f] = f === 'note' ? v : (v === '' ? null : Number(v)); Undo.run('Den upraven', () => saveTrainingPlan(pl)); render(); };
-A.tpItemAdd = () => { let ex = $('#tpex').value; if (ex === '__custom') { ex = prompt('Název cviku:'); if (!ex) return; } const lib = EX_LIB.find(e => e.ex === ex); const it = lib && lib.type === 'cardio' ? { ex, type: 'cardio', min: 20 } : { ex, type: 'strength', sets: 3, reps: lib && lib.timed ? 30 : 12, intensity: 'medium', note: lib ? lib.note : '' };
-  const pl = trainingPlans().find(p => p.id === App.tpId); pl.days[App.tpDay].items.push(it); Undo.run(`Přidáno: ${ex}`, () => saveTrainingPlan(pl)); render(); };
+A.tpPickEx = () => openExPicker(e => { if (e) A.tpItemAdd(e.slug); });
+A.tpItemAdd = (key) => {
+  const e = key ? (exBySlug(key) || Exercises().find(x => x.ex === key)) : null;
+  if (!e) { UI.toast('Vyber cvik z knihovny.'); return; }
+  const it = e.type === 'cardio' ? { ex: e.ex, type: 'cardio', min: 20, met: e.met || null }
+    : { ex: e.ex, type: 'strength', sets: e.sets || 3, reps: e.reps || (e.timed ? 30 : 12), intensity: e.intensity || 'medium', note: e.note || '' };
+  const pl = trainingPlans().find(p => p.id === App.tpId); pl.days[App.tpDay].items.push(it); Undo.run(`Přidáno: ${e.ex}`, () => saveTrainingPlan(pl)); render(); };
 A.tpItem = (j, f, v) => { const pl = trainingPlans().find(p => p.id === App.tpId); const it = pl.days[App.tpDay].items[j]; it[f] = f === 'intensity' ? v : (v === '' ? null : Number(v)); Undo.run('Cvik upraven', () => saveTrainingPlan(pl)); render(); };
 A.tpItemDel = j => { const pl = trainingPlans().find(p => p.id === App.tpId); const it = pl.days[App.tpDay].items[j]; pl.days[App.tpDay].items.splice(j, 1); Undo.run(`Odebráno: ${it.ex}`, () => saveTrainingPlan(pl)); render(); };
 A.tpClearDay = () => { const pl = trainingPlans().find(p => p.id === App.tpId); pl.days[App.tpDay] = emptyDay(); Undo.run('Den vyprázdněn', () => saveTrainingPlan(pl)); render(); };
@@ -189,3 +194,109 @@ A.trainDoneAll = () => { const items = (effectiveDay(App.date).act || {}).items 
 /* ===== nápověda (i) ===== */
 function help(text) { return `<button class="ibtn" type="button" onclick="event.stopPropagation();UI.pop(this,${JSON.stringify(text).replace(/"/g, '&quot;')})" title="nápověda">i</button>`; }
 UI.pop = (el, text) => { document.querySelectorAll('.pop').forEach(p => p.remove()); const p = document.createElement('div'); p.className = 'pop'; p.innerHTML = `<div>${esc(text)}</div>`; document.body.appendChild(p); const r = el.getBoundingClientRect(); const w = Math.min(340, window.innerWidth - 24); p.style.width = w + 'px'; p.style.left = Math.max(12, Math.min(r.left, window.innerWidth - w - 12)) + 'px'; p.style.top = (r.bottom + 8 + window.scrollY) + 'px'; const close = e => { if (!p.contains(e.target)) { p.remove(); document.removeEventListener('click', close); } }; setTimeout(() => document.addEventListener('click', close), 0); };
+
+/* ===== Knihovna cviků =====
+   Výchozí cviky jsou v EX_LIB. Trenér je mění globálně (řádky `exg:<slug>`,
+   user_id null), klient si dělá vlastní (`ex:<uid>:<slug>`). Smazání se
+   zapíše jako soft-delete stejně jako u surovin. Oblíbené jsou v prefs. */
+const exSlug = n => String(n).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+const EX_TYPE_LABEL = { strength: 'silový', cardio: 'kardio' };
+
+function Exercises() {
+  const uid = Store.ownerId();
+  const out = new Map();
+  EX_LIB.forEach(e => out.set(exSlug(e.ex), { ...e, slug: exSlug(e.ex), seed: true }));
+  const apply = (rows, mark) => rows.forEach(r => {
+    const sl = r.id.startsWith('exg:') ? r.id.slice(4) : r.id.split(':').pop();
+    if (r.deleted) { out.delete(sl); return; }
+    const prev = out.get(sl) || {};
+    out.set(sl, { ...prev, ...r.data, slug: sl, seed: !!prev.seed, ...mark(r) });
+  });
+  apply(Store.db.training.filter(r => r.id.startsWith('exg:')), () => ({ global: true }));
+  apply(Store.db.training.filter(r => r.id.startsWith('ex:') && r.user_id === uid), r => ({ own: true, ownId: r.id }));
+  return [...out.values()].sort((a, b) => a.ex.localeCompare(b.ex, 'cs'));
+}
+function exBySlug(sl) { return Exercises().find(e => e.slug === sl); }
+function exFavs() { return Prefs().exFavs || []; }
+function isExFav(sl) { return exFavs().includes(sl); }
+
+function saveExercise(e, origSlug) {
+  const sl = exSlug(e.ex);
+  const data = { ex: e.ex, type: e.type || 'strength', met: e.met || null, timed: !!e.timed, sets: e.sets || null, reps: e.reps || null, intensity: e.intensity || null, note: e.note || '' };
+  if (isCoach()) Store.put('training', 'exg:' + sl, data, null);
+  else Store.put('training', oid('ex', sl), data);
+  if (origSlug && origSlug !== sl) deleteExercise(exBySlug(origSlug) || { slug: origSlug });   // přejmenování
+}
+function deleteExercise(e) {
+  if (e.own && e.ownId) { Store.remove('training', e.ownId); return; }
+  if (!isCoach()) { UI.toast('Výchozí cviky maže jen trenér. Můžeš si udělat vlastní.'); return; }
+  Store.put('training', 'exg:' + e.slug, { ex: e.ex, type: e.type }, null);
+  Store.remove('training', 'exg:' + e.slug);
+}
+
+A.exFav = sl => { const p = Prefs(); const f = (p.exFavs || []).slice(); const i = f.indexOf(sl); if (i < 0) f.push(sl); else f.splice(i, 1); savePrefs({ ...p, exFavs: f }); if (window._exdraw) window._exdraw(); };
+
+/* výběrový panel: hledat, filtrovat, oblíbené, upravit, smazat, přidat nový */
+const ExPick = { q: '', type: '', fav: false };
+function openExPicker(onPick) {
+  const m = UI.modal('');
+  const draw = () => {
+    let L = Exercises();
+    if (ExPick.q) { const q = ExPick.q.toLowerCase(); L = L.filter(e => e.ex.toLowerCase().includes(q) || (e.note || '').toLowerCase().includes(q)); }
+    if (ExPick.type) L = L.filter(e => (e.type || 'strength') === ExPick.type);
+    if (ExPick.fav) L = L.filter(e => isExFav(e.slug));
+    L.sort((a, b) => (isExFav(b.slug) - isExFav(a.slug)) || a.ex.localeCompare(b.ex, 'cs'));
+    m.querySelector('.box').innerHTML = `<div class="row between"><h2>🏋️ Cviky <span class="muted small" style="font-weight:600">${L.length} z ${Exercises().length}</span></h2><button class="xbtn" onclick="UI.closeModal()">×</button></div>
+      <div class="frow" style="margin-top:8px"><input type="text" id="exq" placeholder="hledat cvik…" value="${esc(ExPick.q)}" style="flex:1;min-width:160px"></div>
+      <div class="frow"><span class="flab">Filtr</span><div class="seg">${[['', 'vše'], ['strength', 'silové'], ['cardio', 'kardio']].map(([k, l]) => `<button class="${ExPick.type === k ? 'on' : ''}" onclick="ExPick.type='${k}';window._exdraw()">${l}</button>`).join('')}</div>
+        <button class="chip ${ExPick.fav ? 'on' : ''}" onclick="ExPick.fav=!ExPick.fav;window._exdraw()">★ oblíbené</button>
+        <button class="btn sec sm" onclick="A.exEdit(null)">+ nový cvik</button></div>
+      <div class="plist" style="margin-top:8px">${L.map(e => `<div class="pitem" ${onPick ? `onclick="window._expick('${e.slug}')"` : ''}>
+          <div style="flex:1;min-width:0"><div class="pn">${esc(e.ex)}${e.own ? ' <span class="pill">moje</span>' : ''}${e.seed ? '' : ' <span class="pill">nový</span>'}</div>
+            <div class="pi">${EX_TYPE_LABEL[e.type || 'strength']}${e.met ? ' · MET ' + e.met : ''}${e.note ? ' · ' + esc(e.note) : ''}</div></div>
+          <button class="star ${isExFav(e.slug) ? 'on' : ''}" onclick="event.stopPropagation();A.exFav('${e.slug}')" title="oblíbené">${isExFav(e.slug) ? '★' : '☆'}</button>
+          <button class="xbtn" title="upravit" onclick="event.stopPropagation();A.exEdit('${e.slug}')">✎</button></div>`).join('') || '<p class="muted small" style="margin-top:8px">Nic takového tu není. Zkus jiné slovo, nebo si cvik přidej.</p>'}</div>`;
+    const q = m.querySelector('#exq');
+    q.oninput = () => { ExPick.q = q.value; draw(); const n = m.querySelector('#exq'); n.focus(); n.setSelectionRange(n.value.length, n.value.length); };
+  };
+  window._exdraw = draw;
+  window._expick = sl => { m.remove(); if (onPick) onPick(exBySlug(sl)); };
+  draw();
+  return m;
+}
+A.exLibrary = () => openExPicker(null);
+
+/* editor cviku */
+A.exEdit = sl => {
+  const e = sl ? exBySlug(sl) : { ex: '', type: 'strength', sets: 3, reps: 12, intensity: 'medium', note: '' };
+  if (sl && !e) return;
+  const canDel = sl && (e.own || isCoach());
+  const m = UI.modal(`<div class="row between"><h2>${sl ? 'Upravit cvik' : 'Nový cvik'}</h2><button class="xbtn" onclick="UI.closeModal()">×</button></div>
+    <div class="in" style="margin-top:10px"><label class="f">Název</label><input type="text" id="exn" value="${esc(e.ex)}"></div>
+    <div class="row" style="margin-top:8px;align-items:flex-end">
+      <div class="in"><label class="f">Typ</label><select id="ext" style="width:auto">${Object.entries(EX_TYPE_LABEL).map(([k, l]) => `<option value="${k}" ${(e.type || 'strength') === k ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
+      <div class="in"><label class="f">MET (volitelně)</label><input type="number" id="exm" step="0.5" min="0" style="width:90px" value="${e.met || ''}"></div>
+      <div class="in"><label class="f">Série</label><input type="number" id="exs" min="1" style="width:80px" value="${e.sets || ''}"></div>
+      <div class="in"><label class="f">Opakování</label><input type="number" id="exr" min="1" style="width:100px" value="${e.reps || ''}"></div></div>
+    <div class="in" style="margin-top:8px"><label class="f">Poznámka k provedení</label><input type="text" id="exnote" value="${esc(e.note || '')}" placeholder="např. kolena ven, záda rovná"></div>
+    <p class="small muted" style="margin-top:8px">MET nech prázdné u běžných silových cviků – appka použije intenzitu z plánu. Série a opakování se předvyplní, až cvik vložíš do tréninku.</p>
+    <div class="row" style="margin-top:12px"><button class="btn" id="exok">Uložit</button><button class="btn sec" onclick="UI.closeModal()">Zavřít</button>${canDel ? '<span class="sp"></span><button class="btn danger sm" id="exdel">Smazat</button>' : ''}</div>
+    <div class="bad small" id="exerr" style="margin-top:8px"></div>`, { guardEdits: true });
+  m.querySelector('#exok').onclick = () => {
+    const name = m.querySelector('#exn').value.trim();
+    if (!name) { m.querySelector('#exerr').textContent = 'Cvik potřebuje název.'; return; }
+    const dup = Exercises().find(x => x.slug === exSlug(name) && x.slug !== sl);
+    if (dup) { m.querySelector('#exerr').textContent = 'Cvik s tímto názvem už v knihovně je.'; return; }
+    const data = { ex: name, type: m.querySelector('#ext').value, met: Number(m.querySelector('#exm').value) || null,
+      sets: Number(m.querySelector('#exs').value) || null, reps: Number(m.querySelector('#exr').value) || null,
+      intensity: e.intensity || 'medium', timed: !!e.timed, note: m.querySelector('#exnote').value.trim() };
+    m.remove();
+    Undo.run(sl ? 'Cvik upraven' : 'Cvik přidán', () => saveExercise(data, sl), `${name} je v knihovně. Najdeš ho přes hledání i filtr.`);
+    if (window._exdraw) window._exdraw();
+    render();
+  };
+  const del = m.querySelector('#exdel');
+  if (del) del.onclick = () => UI.confirm(`Smazat cvik ${e.ex}? Z už uložených tréninků nezmizí.`, () => {
+    m.remove(); Undo.run('Cvik smazán', () => deleteExercise(e)); if (window._exdraw) window._exdraw(); render();
+  }, 'Smazat');
+};

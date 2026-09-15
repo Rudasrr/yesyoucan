@@ -53,7 +53,17 @@ with sync_playwright() as p:
     # PIN
     pg.evaluate("Store.profile=null;LS.del('profile');render()"); pg.fill('#lem','r.pesek24@gmail.com'); pg.fill('#lpw','spatne'); pg.click('#lbtn'); pg.wait_for_timeout(100); print('login wrong:', pg.inner_text('#lerr'))
     pg.fill('#lem','rehor.rudolf@gmail.com'); pg.fill('#lpw','06392'); pg.click('#lbtn'); pg.wait_for_timeout(200); print('coach login role:', pg.evaluate("Store.profile.role"), pg.evaluate("App.view"))
-    pg.evaluate("go('trenink');A.tpNew()"); pg.evaluate("App.tpDay=0;document.querySelector('#tpex').value='Dřep';A.tpItemAdd();document.querySelector('#tpex').value='Kettlebell swing';A.tpItemAdd();document.querySelector('#tpex').value='Běh pomalý';A.tpItemAdd()")
+    pg.evaluate("go('trenink');A.tpNew()"); pg.evaluate("App.tpDay=0;A.tpItemAdd('Dřep');A.tpItemAdd('Kettlebell swing');A.tpItemAdd('Běh pomalý')")
+    # knihovna cviků: nový, oblíbený, hledání, přejmenování, smazání
+    pg.evaluate("A.exEdit(null)"); pg.fill('#exn','Testovací cvik'); pg.fill('#exr','15'); pg.click('#exok'); pg.wait_for_timeout(150)
+    print('nový cvik:', pg.evaluate("Exercises().filter(e=>!e.seed).map(e=>e.ex+':'+e.reps)"))
+    print('hledání:', pg.evaluate("Exercises().filter(e=>e.ex.toLowerCase().includes('testovac')).length"), 'z', pg.evaluate("Exercises().length"))
+    pg.evaluate("A.exFav('testovaci-cvik')"); print('oblíbené:', pg.evaluate("exFavs()"))
+    pg.evaluate("A.exEdit('testovaci-cvik')"); pg.fill('#exn','Testovací cvik 2'); pg.click('#exok'); pg.wait_for_timeout(150)
+    print('po přejmenování:', pg.evaluate("Exercises().filter(e=>!e.seed).map(e=>e.ex)"))
+    pg.evaluate("A.tpItemAdd('Testovací cvik 2')"); print('v plánu:', pg.evaluate("trainingPlans().find(p=>p.id===App.tpId).days[0].items.map(i=>i.ex)"))
+    pg.evaluate("A.exEdit('testovaci-cvik-2')"); pg.click('#exdel'); pg.wait_for_timeout(100); pg.click('.modal #cy'); pg.wait_for_timeout(150)
+    print('po smazání zbývá vlastních:', pg.evaluate("Exercises().filter(e=>!e.seed).length"))
     pg.evaluate("A.tpDayField('walk_min',45)"); pg.evaluate("A.tpField('active_from',mondayOf(todayISO()))"); pg.wait_for_timeout(100)
     print('plan:', pg.evaluate("(()=>{const p=trainingPlans()[0];return p.name+' d0 items='+p.days[0].items.length+' kcal='+Math.round(sessionKcal(p.days[0].items,currentWeight()))+' active='+p.active_from})()"))
     print('client act:', pg.evaluate("(()=>{localLogin('client');const d=effectiveDay(mondayOf(todayISO()));const c=calcDay(S(),Foods(),Recipes(),d,currentWeight());return JSON.stringify({planWalk:d.act.planWalk,planKcal:Math.round(d.act.planKcal),planLimit:Math.round(c.base.planLimit),maxIntake:Math.round(c.base.maxIntake),bmr:Math.round(c.base.bmr),belowBmr:c.base.belowBmr,tasks:dayTasks(mondayOf(todayISO())).map(t=>t.id).join(',')})})()"))
@@ -64,7 +74,7 @@ with sync_playwright() as p:
     pg.evaluate("A.saveNote(todayISO(),'bolelo koleno')"); print('note:', pg.evaluate("getDay(todayISO()).note"))
     pg.evaluate("generateWeek(App.week,'all')"); print('routine:', pg.evaluate("(()=>{const wk=getWeek(App.week);return new Set(wk.plan.map(d=>d[0])).size+' snídaní, '+new Set(wk.plan.map(d=>d[2])).size+' svačin'})()"))
     # mismatch after training change
-    pg.evaluate("localLogin('coach')"); pg.evaluate("go('trenink');App.tpDay=dayIndex(todayISO());render();document.querySelector('#tpex').value='Běh pomalý';A.tpItemAdd();A.tpItem(document.querySelectorAll('.items tr,table.small tr').length?0:0,'min',60)"); pg.wait_for_timeout(100)
+    pg.evaluate("localLogin('coach')"); pg.evaluate("go('trenink');App.tpDay=dayIndex(todayISO());render();A.tpItemAdd('Běh pomalý');A.tpItem(document.querySelectorAll('.items tr,table.small tr').length?0:0,'min',60)"); pg.wait_for_timeout(100)
     print('pace:', pg.evaluate("(()=>{const p=paceOverview();return JSON.stringify({target:+p.target.toFixed(2),proj:+p.projThis.toFixed(2),floor:p.floorThis.length,actual:p.actual})})()"))
     print('foodbox:', pg.evaluate("document.querry===undefined?[...document.querySelectorAll('.foodbox span')].map(s=>s.textContent).join(' | '):''"))
     pg.evaluate("localLogin('client')"); print('mismatch today:', pg.evaluate("JSON.stringify(dayMismatch(todayISO()))"))
