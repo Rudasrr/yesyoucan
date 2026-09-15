@@ -150,7 +150,7 @@ App.loginCoach = false;
 function renderLogin() {
   $('#app').classList.remove('on'); const L = $('#login'); L.classList.add('on');
   const coach = App.loginCoach;
-  L.innerHTML = `<div class="card"><div class="hero-logo">${coach ? '📊' : '🏃'}</div><h1>${coach ? 'Přihlášení trenéra' : 'Robert – plán'}</h1><p class="muted small" style="margin:6px 0 14px">${coach ? 'Trenérský účet – dashboard, nastavení, recepty a trénink.' : 'Přihlaš se e-mailem a heslem.'}</p>
+  L.innerHTML = `<div class="card"><div class="hero-logo${coach ? '' : ' pic'}">${coach ? '📊' : '<img src="logo.png" alt="">'}</div><h1>${coach ? 'Přihlášení trenéra' : 'YesYouCan'}</h1><p class="muted small" style="margin:6px 0 14px">${coach ? 'Trenérský účet – dashboard, nastavení, recepty a trénink.' : 'Přihlaš se e-mailem a heslem.'}</p>
     <div class="in"><label class="f">E-mail</label><input type="email" id="lem" autocomplete="username" value="${coach ? 'rehor.rudolf@gmail.com' : ''}"></div>
     <div class="in" style="margin-top:8px"><label class="f">Heslo</label><input type="password" id="lpw" autocomplete="current-password"></div>
     <div id="lerr" class="bad small" style="margin-top:8px"></div>

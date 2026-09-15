@@ -1,14 +1,14 @@
 # Robert – plán hubnutí · stavový dokument (15. 9. 2026, po nasazení v5.3)
 
 ## Kde to běží
-- **Appka:** https://rudasrr.github.io/robert-plan/ (GitHub Pages, nasazuje Action při pushi na `main`)
-- **Repozitář:** https://github.com/Rudasrr/robert-plan (veřejný; `out/` se negituje, vyrábí ho Action)
+- **Appka:** https://rudasrr.github.io/yesyoucan/ (GitHub Pages, nasazuje Action při pushi na `main`)
+- **Repozitář:** https://github.com/Rudasrr/yesyoucan (veřejný; `out/` se negituje, vyrábí ho Action)
 - **Databáze a účty:** Supabase projekt `GPT-Codex-app-lab`, ref `reizexthhcyemkpplvmt`, eu-central-1
-- **Tajemství:** `~/.robert-plan.env` na Rudově Macu (hesla účtů, service-role klíč, UID). V repu nic z toho není, adresa a anon klíč jdou do buildu z GitHub Secrets `SUPABASE_URL` / `SUPABASE_KEY`.
+- **Tajemství:** `~/.yesyoucan.env` na Rudově Macu (hesla účtů, service-role klíč, UID). V repu nic z toho není, adresa a anon klíč jdou do buildu z GitHub Secrets `SUPABASE_URL` / `SUPABASE_KEY`.
 - Postup nasazení, účty a provoz jsou v `NAVOD.md` části A.
 
 ## Jak navázat
-- **V Claude Code:** otevři repozitář (`robert-plan`), pravidla jsou v `CLAUDE.md`, úkoly v `ZADANI.md`. Edituj jen `src/*`; `python3 build.py` složí `out/index.html`; testy v `tools/`.
+- **V Claude Code:** otevři repozitář (`yesyoucan`), pravidla jsou v `CLAUDE.md`, úkoly v `ZADANI.md`. Edituj jen `src/*`; `python3 build.py` složí `out/index.html`; testy v `tools/`.
 - **V chatu:** nahraj `STAV.md` a `out/index.html` (případně `src/` jako zip) a napiš: „Navazuji na projekt Robert – plán, stav je v STAV.md.“
 - Struktura repa: `src/` (moduly, pořadí skládání v CLAUDE.md, navíc `sw.js`, `icon.svg`, `icon-180.png`, `manifest.webmanifest`) · `build.py` (čte env `SUPABASE_URL`, `SUPABASE_KEY`; v cloudové verzi vyprázdní `LOCAL_USERS`, doplní hash cache do `sw.js`, kopíruje ikony a manifest do `out/`) · `tools/` (check.js, ftest.py, qa.py, shots.py, cloudtest.py) · `supabase-setup.sql` · `.github/workflows/deploy.yml`.
 
@@ -47,7 +47,7 @@ Nákup škálovaný na aktuální váhu · datované týdny · pojistka bazálu 
 Robert edituje výchozí suroviny/recepty jako vlastní verzi · hlavní číslo dne = rezerva plánu · hvězdičky + záložka Oblíbené · pojistka bazálu ano · vláknina ne · trénink jako týdenní šablona + výjimky · Robert potvrzuje položky tréninku · tempo mění jen trenér · odměrky ano (nádoby: lžička 5, lžíce 15, hrnek 250, sklenice 300, naběračka 120 ml, odměrka 30 g) · rutina v generátoru výchozí zapnutá · žádný tmavý režim, žádné foto jídla, žádný přepis do frameworku · repozitář veřejný, klíče přes Secrets · push notifikace do Později.
 
 ## Kontrola kvality (jak testovat)
-`tools/check.js` (výpočty, referenční čísla v CLAUDE.md) · `tools/ftest.py` (funkční scénáře) · `tools/qa.py` (3 šířky × všechny obrazovky: přetečení, prvky mimo viewport, kontrast, písmo <11 px, klikací průchod) · **`tools/cloudtest.py`** (dva prohlížeče proti nasazené adrese a ostré databázi; přihlášení čte z `~/.robert-plan.env`, testovací data po sobě maže). Princip zbytku: Playwright headless, `localLogin('client'|'coach')`, testovací data ze `SEED.sample_week` a `SEED.measurements`.
+`tools/check.js` (výpočty, referenční čísla v CLAUDE.md) · `tools/ftest.py` (funkční scénáře) · `tools/qa.py` (3 šířky × všechny obrazovky: přetečení, prvky mimo viewport, kontrast, písmo <11 px, klikací průchod) · **`tools/cloudtest.py`** (dva prohlížeče proti nasazené adrese a ostré databázi; přihlášení čte z `~/.yesyoucan.env`, testovací data po sobě maže). Princip zbytku: Playwright headless, `localLogin('client'|'coach')`, testovací data ze `SEED.sample_week` a `SEED.measurements`.
 
 **Poslední stav (15. 9. 2026):** check.js referenční čísla sedí · ftest bez chyby · qa 292 interakcí, 0 přetečení · cloudtest `errors: none` (7 scénářů, žádná chyba RLS) · service worker ověřen i na ostré adrese (offline otevření funguje) · nasazený soubor neobsahuje `mamnato` a `LOCAL_USERS` je prázdné.
 

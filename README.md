@@ -1,4 +1,4 @@
-# Robert – plán hubnutí
+# YesYouCan · plán hubnutí
 
 Webová aplikace pro klienta a trenéra; nahrazuje Excel `robert-plan_4_0.xlsx`.
 Jeden `index.html` složený z `src/*` skriptem `build.py`, nasazený na GitHub Pages, data v Supabase (offline-first).

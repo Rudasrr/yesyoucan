@@ -252,7 +252,7 @@ A.exportJson = () => {
   const uid = Store.ownerId();
   const dump = { exported: new Date().toISOString(), tables: {} };
   TABLES.forEach(t => { dump.tables[t] = Store.db[t].filter(r => r.user_id === uid || r.user_id == null); });
-  downloadBlob(new Blob([JSON.stringify(dump, null, 1)], { type: 'application/json' }), `robert-plan-zaloha-${todayISO()}.json`);
+  downloadBlob(new Blob([JSON.stringify(dump, null, 1)], { type: 'application/json' }), `yesyoucan-zaloha-${todayISO()}.json`);
 };
 A.importJson = async file => {
   if (!file) return; const txt = await file.text(); let dump; try { dump = JSON.parse(txt); } catch (e) { UI.toast('Soubor není platný JSON'); return; }
@@ -277,7 +277,7 @@ A.exportXlsx = async () => {
   XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(wkRows), 'Týdny');
   XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(recipes.filter(r => !r.deleted).map(r => ({ Chod: r.course, Název: r.name, Vlastní: r.own ? 'ano' : '', Suroviny: r.items.map(it => `${it.food} ${it.g} g${it.scale ? ' (příloha)' : ''}`).join(' · ') }))), 'Recepty');
   XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(foods.map(f => ({ Kategorie: f.cat, Surovina: f.name, kcal: f.kcal, Bílkoviny: f.p, Sacharidy: f.c, Tuky: f.f }))), 'Suroviny');
-  XLSX.writeFile(wb, `robert-plan-export-${todayISO()}.xlsx`);
+  XLSX.writeFile(wb, `yesyoucan-export-${todayISO()}.xlsx`);
 };
 function weightAt(s, date) { const rows = calcMeasurements(s, Meas()).filter(r => r.date <= date); return rows.length ? rows[rows.length - 1].avg : s.start_weight; }
 function downloadBlob(blob, name) { const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500); }

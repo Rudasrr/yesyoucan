@@ -20,6 +20,7 @@ header.top{background:rgba(255,255,255,.55);backdrop-filter:blur(20px) saturate(
 .top .wrap{display:flex;align-items:center;gap:14px;padding:8px 14px}
 .brand{font-weight:800;font-size:17px;display:flex;align-items:center;gap:8px}
 .brand .logo{width:28px;height:28px;border-radius:9px;background:var(--grad);display:inline-flex;align-items:center;justify-content:center;color:#fff;font-size:15px}
+.brand img.logo{background:none;border-radius:0;object-fit:contain}
 .brand span.who{color:var(--ink2);font-weight:600;font-size:12px;background:var(--line2);padding:2px 8px;border-radius:999px}
 nav.desk{display:none;gap:2px;flex:1;flex-wrap:wrap}
 nav.desk button,nav.mob button{background:none;border:0;padding:8px 12px;border-radius:999px;color:var(--ink2);cursor:pointer;font-weight:700;letter-spacing:0}
@@ -125,6 +126,8 @@ tr.today td{background:var(--p-bg)}
 .login{max-width:400px;margin:40px auto;padding:0 14px}
 .login .card{padding:24px}
 .login .hero-logo{width:64px;height:64px;border-radius:20px;background:var(--grad);display:flex;align-items:center;justify-content:center;color:#fff;font-size:30px;margin-bottom:12px}
+.login .hero-logo.pic{width:96px;height:96px;background:none;border-radius:0}
+.login .hero-logo.pic img{width:100%;height:100%;object-fit:contain;display:block}
 .rules li{margin-bottom:6px}
 ol.rules{padding-left:20px}
 svg.chart{width:100%;height:auto;display:block}

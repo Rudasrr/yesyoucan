@@ -1,8 +1,8 @@
 /* ===== Service worker – appka se otevře i bez signálu =====
    Verzi cache doplní build.py podle obsahu index.html (__BUILD_HASH__).
    Cachuje jen vlastní soubory; CDN (Supabase, SheetJS) a volání API jdou vždy ze sítě. */
-const CACHE = 'robert-plan-__BUILD_HASH__';
-const SHELL = ['./', './index.html', './manifest.webmanifest', './icon.svg', './icon-180.png'];
+const CACHE = 'yesyoucan-__BUILD_HASH__';
+const SHELL = ['./', './index.html', './manifest.webmanifest', './logo.png', './icon-180.png', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', e => {
   // appshell musí být v cache celý; ikony a manifest ať build nepoloží celou instalaci
@@ -13,7 +13,7 @@ self.addEventListener('install', e => {
 
 self.addEventListener('activate', e => {
   e.waitUntil(caches.keys()
-    .then(ks => Promise.all(ks.filter(k => k !== CACHE && k.startsWith('robert-plan-')).map(k => caches.delete(k))))
+    .then(ks => Promise.all(ks.filter(k => k !== CACHE && k.startsWith('yesyoucan-')).map(k => caches.delete(k))))
     .then(() => self.clients.claim()));
 });
 

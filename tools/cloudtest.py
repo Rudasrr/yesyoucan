@@ -1,8 +1,8 @@
 """První reálný sync proti nasazené appce a skutečné Supabase.
 
-Přihlášení a adresu čte z ~/.robert-plan.env (nikdy z repozitáře):
+Přihlášení a adresu čte z ~/.yesyoucan.env (nikdy z repozitáře):
 
-    APP_URL=https://rudasrr.github.io/robert-plan/
+    APP_URL=https://rudasrr.github.io/yesyoucan/
     COACH_EMAIL=...        COACH_PW=...
     ROBERT_EMAIL=...       ROBERT_PW=...
     SUPABASE_URL=...       SUPABASE_SERVICE_KEY=...   # jen pro úklid testovacích dat
@@ -15,7 +15,7 @@ Každá chyba zápisu nebo čtení se vypíše jako:  CHYBA <tabulka> <operace> 
 import os, sys, json, pathlib, urllib.request, urllib.parse, datetime
 from playwright.sync_api import sync_playwright
 
-ENV = pathlib.Path.home() / '.robert-plan.env'
+ENV = pathlib.Path.home() / '.yesyoucan.env'
 cfg = {}
 if ENV.exists():
     for line in ENV.read_text(encoding='utf-8').splitlines():
@@ -28,7 +28,7 @@ cfg.update({k: v for k, v in os.environ.items() if k in (
 
 missing = [k for k in ('APP_URL', 'COACH_EMAIL', 'COACH_PW', 'ROBERT_EMAIL', 'ROBERT_PW') if not cfg.get(k)]
 if missing:
-    sys.exit('Chybí v ~/.robert-plan.env: ' + ', '.join(missing))
+    sys.exit('Chybí v ~/.yesyoucan.env: ' + ', '.join(missing))
 
 URL = cfg['APP_URL']
 KEEP = '--keep' in sys.argv

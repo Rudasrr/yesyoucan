@@ -9,19 +9,19 @@ html=f'''<!DOCTYPE html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0ea5a4">
-<title>Robert – plán</title>
+<title>YesYouCan</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800;900&display=swap" rel="stylesheet">
 <link rel="manifest" href="manifest.webmanifest">
-<link rel="icon" type="image/svg+xml" href="icon.svg">
+<link rel="icon" type="image/png" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-180.png">
-<meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="Robert">
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="YesYouCan">
 <style>
 {src('style.css')}
 </style>
 </head>
 <body>
-<header class="top"><div class="wrap"><div class="brand"><span class="logo">🏃</span>Robert – plán <span class="who" id="who"></span></div><nav class="desk" id="nav-desk"></nav><div class="syncb" id="syncb"></div></div></header>
+<header class="top"><div class="wrap"><div class="brand"><img class="logo" src="logo.png" alt="" width="28" height="28">YesYouCan <span class="who" id="who"></span></div><nav class="desk" id="nav-desk"></nav><div class="syncb" id="syncb"></div></div></header>
 <div id="login" class="login sheet"></div>
 <div id="app" class="sheet"><main id="main" class="wrap"></main></div>
 <nav class="mob" id="nav-mob"></nav>
@@ -61,6 +61,6 @@ open(os.path.join(OUT,'index.html'),'w',encoding='utf-8').write(html)
 # service worker: verze cache = hash obsahu index.html, aby nová verze přepsala starou
 sw=src('sw.js').replace('__BUILD_HASH__', hashlib.sha256(html.encode('utf-8')).hexdigest()[:12])
 open(os.path.join(OUT,'sw.js'),'w',encoding='utf-8').write(sw)
-for f in ('manifest.webmanifest','icon.svg','icon-180.png'):
+for f in ('manifest.webmanifest','logo.png','icon-180.png','icon-192.png','icon-512.png'):
     shutil.copyfile(os.path.join(ROOT,'src',f), os.path.join(OUT,f))
 print(len(html)//1024,'kB', 'cloud' if CLOUD else 'lokální režim', '+ sw.js, manifest, ikony')

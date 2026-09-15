@@ -2,8 +2,8 @@
 
 Dvě části: **A** je pro tebe (trenér, vlastník) – jak je to nasazené a co dělat, když je potřeba něco změnit. **B** je pro Roberta – to mu můžeš poslat celé. Na konci je řešení problémů.
 
-Adresa appky: **https://rudasrr.github.io/robert-plan/**
-Repozitář: **https://github.com/Rudasrr/robert-plan** · Supabase projekt: **GPT-Codex-app-lab** (ref `reizexthhcyemkpplvmt`, eu-central-1)
+Adresa appky: **https://rudasrr.github.io/yesyoucan/**
+Repozitář: **https://github.com/Rudasrr/yesyoucan** · Supabase projekt: **GPT-Codex-app-lab** (ref `reizexthhcyemkpplvmt`, eu-central-1)
 
 > Proč cizí název projektu: free plán Supabase pouští dva aktivní projekty na člověka a oba jsi měl obsazené. Appka proto sedí ve stávajícím projektu `GPT-Codex-app-lab`. Tabulky má vlastní, takže se s ničím nepotkají, ale **účty (`auth.users`) a API klíče jsou společné** s tou druhou appkou. Až budeš mít místo (pozastavíš jiný projekt nebo přejdeš na Pro), dá se to přestěhovat: založit projekt, pustit `supabase-setup.sql`, znovu založit dva účty a přepsat Secrets.
 
@@ -18,12 +18,12 @@ src/*            zdrojové části appky (CSS + JS moduly)
    ↓ python3 build.py   (doplní klíče k Supabase z proměnných prostředí)
 out/index.html   jeden soubor s celou appkou  + sw.js, manifest, ikony
    ↓ push na main → GitHub Action
-GitHub Pages     https://rudasrr.github.io/robert-plan/
+GitHub Pages     https://rudasrr.github.io/yesyoucan/
    ↕ přihlášení a data
 Supabase         Postgres (tabulky settings, foods, recipes, … ) + účty
 ```
 
-`out/` se do repozitáře nedává – vyrábí ho Action při každém pushi na `main`. Adresa Supabase a veřejný klíč jsou v **GitHub Secrets** (`SUPABASE_URL`, `SUPABASE_KEY`), ne v kódu. Heslo k databázi a service-role klíč jsou jen v `~/.robert-plan.env` na tvém Macu.
+`out/` se do repozitáře nedává – vyrábí ho Action při každém pushi na `main`. Adresa Supabase a veřejný klíč jsou v **GitHub Secrets** (`SUPABASE_URL`, `SUPABASE_KEY`), ne v kódu. Heslo k databázi a service-role klíč jsou jen v `~/.yesyoucan.env` na tvém Macu.
 
 ## A2. Jednorázová přihlášení
 
@@ -44,8 +44,8 @@ Ověření: `gh auth status` (musí být vidět scope `workflow`) a `npx --yes s
 ```bash
 # GitHub
 git init -b main && git add -A && git commit -m "v5.3"
-gh repo create robert-plan --public --source=. --remote=origin --push
-gh api -X POST repos/Rudasrr/robert-plan/pages -f build_type=workflow
+gh repo create yesyoucan --public --source=. --remote=origin --push
+gh api -X POST repos/Rudasrr/yesyoucan/pages -f build_type=workflow
 
 # Supabase – SQL jede přes Management API, heslo k databázi není potřeba
 REF=reizexthhcyemkpplvmt
@@ -73,7 +73,7 @@ npx --yes supabase@latest config diff --workdir $D --project-ref $REF   # musí 
 npx --yes supabase@latest config push --workdir $D --project-ref $REF
 ```
 
-Všechna hesla a klíče jsou v `~/.robert-plan.env` (práva 600). Ten soubor **není** v repozitáři a nikdy tam nepatří. Service-role klíč se nikam nenahrává – slouží jen k zakládání účtů z tvého Macu. Kdyby se soubor ztratil, klíče přečteš znovu přes `npx supabase projects api-keys`.
+Všechna hesla a klíče jsou v `~/.yesyoucan.env` (práva 600). Ten soubor **není** v repozitáři a nikdy tam nepatří. Service-role klíč se nikam nenahrává – slouží jen k zakládání účtů z tvého Macu. Kdyby se soubor ztratil, klíče přečteš znovu přes `npx supabase projects api-keys`.
 
 ## A4. Účty
 
@@ -84,7 +84,7 @@ Všechna hesla a klíče jsou v `~/.robert-plan.env` (práva 600). Ten soubor **
 | ty (trenér) | rehor.rudolf@gmail.com | `coach` |
 | Robert | r.pesek24@gmail.com | `client`, `coach_id` = tvoje ID |
 
-Hesla jsou v `~/.robert-plan.env` (`COACH_PW`, `ROBERT_PW`). Tvůj účet v tom projektu už existoval, takže dostal nové dočasné heslo – **změň si ho hned** přes „Zapomenuté heslo“ na přihlašovací obrazovce. Robertovi pošli to jeho a ať udělá totéž. Minimální délka hesla v projektu je 12 znaků.
+Hesla jsou v `~/.yesyoucan.env` (`COACH_PW`, `ROBERT_PW`). Tvůj účet v tom projektu už existoval, takže dostal nové dočasné heslo – **změň si ho hned** přes „Zapomenuté heslo“ na přihlašovací obrazovce. Robertovi pošli to jeho a ať udělá totéž. Minimální délka hesla v projektu je 12 znaků.
 
 Kdyby bylo potřeba doplnit řádek v `profiles` ručně (například po znovuzaložení účtu), UID najdeš v Supabase v Authentication → Users:
 
@@ -123,7 +123,7 @@ Referenční čísla, na kterých `check.js` stojí, jsou v `CLAUDE.md`. Když s
 
 Tři věty a dva údaje:
 
-> Tady je tvoje appka: **https://rudasrr.github.io/robert-plan/** – otevři to v telefonu a přidej si to na plochu (Safari: Sdílet → Přidat na plochu; Chrome: ⋮ → Přidat na plochu).
+> Tady je tvoje appka: **https://rudasrr.github.io/yesyoucan/** – otevři to v telefonu a přidej si to na plochu (Safari: Sdílet → Přidat na plochu; Chrome: ⋮ → Přidat na plochu).
 > Přihlásíš se e-mailem **r.pesek24@gmail.com** a heslem, které ti posílám zvlášť – hned si ho změň přes „Zapomenuté heslo“.
 > Nic nevymýšlej: otevři **Dnes**, nahoře ti řekne jeden krok, co máš udělat. Ráno se zvaž, přes den odškrtávej jídla a zapiš chůzi. Zbytek dopočítám já.
 
@@ -133,7 +133,7 @@ Tři věty a dva údaje:
 
 ## B1. Instalace na plochu
 
-Otevři **https://rudasrr.github.io/robert-plan/** v telefonu a přidej si appku na plochu – pak se otevírá jako normální aplikace a funguje i bez signálu.
+Otevři **https://rudasrr.github.io/yesyoucan/** v telefonu a přidej si appku na plochu – pak se otevírá jako normální aplikace a funguje i bez signálu.
 
 - **iPhone (Safari):** Sdílet (čtvereček se šipkou) → Přidat na plochu.
 - **Android (Chrome):** ⋮ vpravo nahoře → Přidat na plochu / Nainstalovat aplikaci.

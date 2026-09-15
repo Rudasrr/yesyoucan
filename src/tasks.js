@@ -100,7 +100,7 @@ const Remind = {
     const el = document.createElement('div'); el.className = 'remind';
     el.innerHTML = `<span class="em">${t.em}</span><div><div class="tx">${esc(t.tx)}</div><div class="sub">${esc(t.sub || '')}</div></div><button class="btn sm" onclick="this.closest('.remind').remove();${t.week ? `App.week='${t.week}';` : ''}go('${t.view}')">Otevřít</button>`;
     document.body.appendChild(el); setTimeout(() => el.remove(), 60000);
-    if ('Notification' in window && Notification.permission === 'granted' && document.visibilityState !== 'visible') { try { new Notification('Robert – plán', { body: `${t.em} ${t.tx}` }); } catch (e) { } }
+    if ('Notification' in window && Notification.permission === 'granted' && document.visibilityState !== 'visible') { try { new Notification('YesYouCan', { body: `${t.em} ${t.tx}` }); } catch (e) { } }
   },
   async enable() {
     if (!('Notification' in window)) { UI.toast('Tento prohlížeč notifikace neumí'); return; }
@@ -113,15 +113,15 @@ setInterval(() => Remind.tick(), 60000);
 A.exportIcs = () => {
   const s = S(); const url = location.href.split('#')[0];
   const ev = (uid, summary, hhmm, rrule, desc) => { const [h, m] = hhmm.split(':').map(Number); const dt = `20260914T${String(h).padStart(2, '0')}${String(m || 0).padStart(2, '0')}00`;
-    return `BEGIN:VEVENT\r\nUID:${uid}@robert-plan\r\nDTSTAMP:20260914T000000Z\r\nDTSTART;TZID=Europe/Prague:${dt}\r\nDURATION:PT15M\r\nRRULE:${rrule}\r\nSUMMARY:${summary}\r\nDESCRIPTION:${desc} ${url}\r\nURL:${url}\r\nBEGIN:VALARM\r\nTRIGGER:PT0M\r\nACTION:DISPLAY\r\nDESCRIPTION:${summary}\r\nEND:VALARM\r\nEND:VEVENT\r\n`; };
-  let ics = 'BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Robert plan//CZ\r\nCALSCALE:GREGORIAN\r\nX-WR-CALNAME:Robert – plán\r\n';
+    return `BEGIN:VEVENT\r\nUID:${uid}@yesyoucan\r\nDTSTAMP:20260914T000000Z\r\nDTSTART;TZID=Europe/Prague:${dt}\r\nDURATION:PT15M\r\nRRULE:${rrule}\r\nSUMMARY:${summary}\r\nDESCRIPTION:${desc} ${url}\r\nURL:${url}\r\nBEGIN:VALARM\r\nTRIGGER:PT0M\r\nACTION:DISPLAY\r\nDESCRIPTION:${summary}\r\nEND:VALARM\r\nEND:VEVENT\r\n`; };
+  let ics = 'BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//YesYouCan//CZ\r\nCALSCALE:GREGORIAN\r\nX-WR-CALNAME:YesYouCan\r\n';
   ics += ev('weigh', '⚖️ Zvaž se a zapiš', WEIGH_TIME, 'FREQ=DAILY', 'Ráno po WC, nalačno. Otevři appku:');
   s.courses.forEach(c => { ics += ev('meal-' + c.key, `${COURSE_EMOJI[c.key]} ${c.name}`, c.time, 'FREQ=DAILY', 'Sněz, co máš v plánu, a odklikni v appce:'); });
   ics += ev('walk', '🚶 Chůze – zapiš minuty', '17:00', 'FREQ=DAILY', `${s.walk_min} minut denně. Zapiš do appky:`);
   ics += ev('close', '🌙 Shrnutí dne', CLOSE_TIME, 'FREQ=DAILY', 'Mrkni, jak den dopadl:');
   ics += ev('plan', '🗓️ Naplánuj příští týden + nákup', PLAN_TIME, 'FREQ=WEEKLY;BYDAY=SU', 'Neděle: změř obvody, naplánuj týden, dojdi na nákup:');
   ics += 'END:VCALENDAR\r\n';
-  downloadBlob(new Blob([ics], { type: 'text/calendar' }), 'robert-plan-pripominky.ics');
+  downloadBlob(new Blob([ics], { type: 'text/calendar' }), 'yesyoucan-pripominky.ics');
 };
 
 /* Neděle 18:00: příští týden bez plánu → appka ho navrhne a řekne to */
