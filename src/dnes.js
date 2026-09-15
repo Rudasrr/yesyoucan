@@ -65,8 +65,8 @@ VIEWS.dnes = function () {
       <div class="bar2" style="margin-top:14px"><i class="e" style="width:${pctE}%"></i><i class="p" style="width:${pctP}%"></i></div>
       <div class="row between small" style="margin-top:6px"><span>■ snědeno ${fmt0(prog.eaten)} · ▢ naplánováno ${fmt0(prog.planned)}${d.base.drinkKcal ? ` · pití ${fmt0(d.base.drinkKcal)}` : ''}</span><span>limit ${fmt0(d.base.maxIntake)}</span></div></div>
     <div class="stats3">
-      <div><b>${fmt0(d.intake)} <small>/ ${fmt0(d.base.maxIntake)}</small></b><span>naplánováno kcal</span></div>
-      <div><b class="${d.tot.p > 0 ? (d.tot.p >= d.protTarget ? 'ok' : 'bad') : ''}">${fmt0(d.tot.p)} <small>/ ${d.protTarget || s.protein_min}</small></b><span>bílkoviny (g)</span></div>
+      <div><b>${fmt0(d.intake)} <small>/ ${fmt0(d.base.maxIntake)}</small></b><span><span class="mdot kcal"></span>naplánováno kcal</span></div>
+      <div><b class="${d.tot.p > 0 ? (d.tot.p >= d.protTarget ? 'ok' : 'bad') : ''}">${fmt0(d.tot.p)} <small>/ ${d.protTarget || s.protein_min}</small></b><span><span class="mdot prot"></span>bílkoviny (g)</span></div>
       <div><b>${planned ? fmt0(d.dayDeficit) : '–'}</b><span>${planned ? `deficit → ${fmt2(d.dayDeficit * 7 / KG_KCAL)} kg/týden` : 'deficit dne'}</span></div>
     </div>
    </div>
@@ -80,7 +80,7 @@ VIEWS.dnes = function () {
 
   <div class="grid g2" style="margin-top:12px">
    <div class="card"><h2>Kontrola dne</h2>
-    <div class="checks" style="margin-top:6px">${d.checks.map(ch => `<div><span class="nm">${ch.name}</span><span class="s${ch.state}">${esc(ch.text)}</span></div>`).join('')}</div>
+    <div class="checks" style="margin-top:6px">${d.checks.map(ch => `<div><span class="nm ${ch.name === 'Kalorie' ? 'm-kcal' : (ch.name === 'Bílkoviny' ? 'm-prot' : '')}">${ch.name}</span><span class="s${ch.state}">${esc(ch.text)}</span></div>`).join('')}</div>
     <div class="status st${d.ok ? 2 : (planned ? 1 : 0)}" style="margin-top:10px">${esc(d.summary)}</div>
     <details style="margin-top:10px"><summary class="small muted" style="cursor:pointer">Jak se limit počítá</summary>
     <table class="small" style="margin-top:6px"><tr><td>Aktuální váha (průměr 7 vážení)</td><td class="n">${fmt1(w)} kg</td></tr>
@@ -91,7 +91,7 @@ VIEWS.dnes = function () {
       <tr><td>Cílový deficit (${String(s.rate_pct).replace('.', ',')} % váhy/týden)</td><td class="n">− ${fmt0(d.base.deficit)} kcal</td></tr>
       <tr><td class="b">Maximální příjem</td><td class="n b">${fmt0(d.base.maxIntake)} kcal</td></tr>
       <tr><td>Plánovací limit (s cílovou chůzí)</td><td class="n">${fmt0(d.base.planLimit)} kcal</td></tr>
-      <tr><td>Sacharidy / tuky</td><td class="n">${fmt0(d.tot.c)} g / ${fmt0(d.tot.f)} g</td></tr></table></details>
+      <tr><td><span class="mdot carb"></span>Sacharidy / <span class="mdot fat"></span>tuky</td><td class="n"><b class="m-carb">${fmt0(d.tot.c)} g</b> / <b class="m-fat">${fmt0(d.tot.f)} g</b></td></tr></table></details>
    </div>
   </div>
   <div id="meals" class="row between" style="margin:8px 0 8px"><h2>🍽️ Jídla dne <span class="muted small" style="font-weight:600">${s.courses.some(c => day.meals[c.key].planned) ? `plán na ${dn.toLowerCase()}` : 'bez plánu z Týdne'}</span></h2>
@@ -134,7 +134,7 @@ function renderCourse(s, foods, recipes, day, c, i, d) {
   const pickBtn = `<button class="pickbtn ${cur ? '' : 'empty'}" onclick="openPicker({courseKey:'${cs.key}',current:${JSON.stringify(cur || '').replace(/"/g, '&quot;')},remaining:${Math.round(remaining)},protGap:${Math.round(protGap)},onPick:n=>A.selMeal('${cs.key}',n)})"><span>${esc(label)}</span><em>změnit ›</em></button>`;
   let body = '';
   if (c.active) {
-    body = `<div class="tbl"><table class="items"><tr><th>Surovina</th><th class="n">g</th><th class="n">kcal</th><th class="n">bílk.</th><th></th></tr>` +
+    body = `<div class="tbl"><table class="items"><tr><th>Surovina</th><th class="n">g</th><th class="n m-kcal">kcal</th><th class="n m-prot">bílk.</th><th></th></tr>` +
       c.items.map(it => it.extra ? `<tr><td><select class="sw edit" onchange="A.extraFood('${cs.key}',${String(it.idx).slice(1)},this.value)">${foodOpts(it.food)}</select><div class="tiny muted">přidáno</div></td>
         <td class="n"><input class="g edit" type="number" min="0" step="5" value="${it.g}" onchange="A.extraG('${cs.key}',${String(it.idx).slice(1)},this.value)"></td><td class="n">${fmt0(it.kcal)}</td><td class="n">${fmt1(it.p)}</td><td class="n"><button class="xbtn write" title="odebrat" onclick="A.extraDel('${cs.key}',${String(it.idx).slice(1)})">×</button></td></tr>`
       : `<tr><td>${modeBadge(it.food)}<select class="sw ${it.swapped ? 'edit' : ''}" style="width:calc(100% - 26px)" onchange="A.swap('${cs.key}',${it.idx},this.value)">${foodOpts(it.food)}</select>${it.swapped ? `<div class="tiny muted">recept: ${esc(it.origFood)}</div>` : ''}</td>

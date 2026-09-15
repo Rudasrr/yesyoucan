@@ -4,6 +4,8 @@
   --p:#1478d4;--p2:#1478d4;--p-bg:#e8f1fc;--p-ink:#0d5ca8;
   --o:#e0452f;--o-bg:#fdeceb;--y:#d98324;--y-bg:#fdf3e2;--v:#2b4c9b;--v-bg:#e9edf8;
   --ok:#15803d;--ok-bg:#e6f7ec;--bad:#c81f2b;--bad-bg:#fdecec;--warn:#b45309;--warn-bg:#fff4dd;
+  /* makroživiny mají po celé appce stejnou barvu */
+  --kcal:#7c3aed;--kcal-bg:#f1ebff;--prot:#d6246e;--prot-bg:#fdeaf2;--carb:#1d64d8;--carb-bg:#e7eefc;--fat:#a86612;--fat-bg:#fdf3df;
   --edit:#fff7d6;--r:16px;--r2:12px;--sh:0 10px 30px -18px rgba(16,24,40,.25);
   --grad:#1478d4;--grad2:#c81f2b;--grad3:#101828;
   --font:-apple-system,BlinkMacSystemFont,"SF Pro Text","Inter",system-ui,"Segoe UI",Roboto,sans-serif;
@@ -265,3 +267,11 @@ tr.cath td{background:rgba(28,35,64,.05);font-weight:800;cursor:pointer;padding:
 .course .csum.muted{font-style:italic}
 .course .cotog{color:var(--ink2);font-size:13px;margin-left:6px;flex:none}
 .course.open .csum{display:none}
+
+/* makroživiny: kalorie fialová · bílkoviny růžová · sacharidy modrá · tuky žlutá */
+.m-kcal{color:var(--kcal)}.m-prot{color:var(--prot)}.m-carb{color:var(--carb)}.m-fat{color:var(--fat)}
+.mdot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px;vertical-align:baseline;flex:none}
+.mdot.kcal{background:var(--kcal)}.mdot.prot{background:var(--prot)}.mdot.carb{background:var(--carb)}.mdot.fat{background:var(--fat)}
+.items th.m-kcal,.items th.m-prot,.items th.m-carb,.items th.m-fat{font-weight:800}
+.checks .nm.m-kcal,.checks .nm.m-prot{font-weight:800}
+.stats3 .m-kcal b,.stats3 .m-prot b{color:inherit}
