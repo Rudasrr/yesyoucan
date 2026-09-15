@@ -51,6 +51,8 @@ Robert edituje výchozí suroviny/recepty jako vlastní verzi · hlavní číslo
 
 **Poslední stav (15. 9. 2026):** check.js referenční čísla sedí · ftest bez chyby · qa 292 interakcí, 0 přetečení · cloudtest `errors: none` (7 scénářů, žádná chyba RLS) · service worker ověřen i na ostré adrese (offline otevření funguje) · nasazený soubor neobsahuje `mamnato` a `LOCAL_USERS` je prázdné.
 
+**Robertovo první otevření ověřeno** (telefonní šířka, čistý prohlížeč, prázdná databáze): přistane na Dnes, karta „Teď“ ho pošle na váhu, jídla dne jsou předvybraná z globálních receptů, všech 10 obrazovek se vykreslí, žádná chyba ani hláška ze syncu. Databáze je po všech testech čistá: 196 surovin, 200 receptů, 2 profily, nic jiného.
+
 ## Vyřešeno 15. 9. 2026
 - **Rozdíl 2 511,75 vs. 2 473,00 kcal (středa vzorového týdne)** je jen zaokrouhlení přílohy, nic jiného. Základ dne je v obou případech stejný (bazál 2 346,61 · výdej s plánovanou chůzí 3 534,84 · deficit 1 022,45 · plánovací limit 2 512,39; pojistka bazálu se nezapíná, trénink žádný). Při zaokrouhlení na 5 g (sešit) vyjde přesně 2 511,75, bez zaokrouhlení 2 503,34, na 10 g 2 473,00. Napříč vzorovým týdnem není 10 g systematicky níž (Po +7,75 · Út +12,00 · **St −38,75** · Čt −0,25 · Pá −10,75 · So +56,50 · Ne +56,50, týden celkem +83 kcal) – středa je nejhorší den ze sedmi. **Otevřené rozhodnutí pro Rudu:** nechat 10 g, vrátit 5 g, nebo zaokrouhlovat dolů.
 
