@@ -84,7 +84,9 @@ Všechna hesla a klíče jsou v `~/.yesyoucan.env` (práva 600). Ten soubor **ne
 | ty (trenér) | rehor.rudolf@gmail.com | `coach` |
 | Robert | r.pesek24@gmail.com | `client`, `coach_id` = tvoje ID |
 
-Hesla jsou v `~/.yesyoucan.env` (`COACH_PW`, `ROBERT_PW`). Tvůj účet v tom projektu už existoval, takže dostal nové dočasné heslo – **změň si ho hned** přes „Zapomenuté heslo“ na přihlašovací obrazovce. Robertovi pošli to jeho a ať udělá totéž. Minimální délka hesla v projektu je 12 znaků.
+Hesla jsou v `~/.yesyoucan.env` (`COACH_PW`, `ROBERT_PW`). Minimální délka hesla v projektu je **6 znaků** – míň Supabase nedovolí ani nastavit. Heslo si kdokoli změní přes „Zapomenuté heslo“ na přihlašovací obrazovce (odkaz vede zpátky do appky).
+
+Přihlašovací obrazovka je **jedna pro oba**: e-mail a heslo. Jestli se otevře trenérský pohled nebo Robertův, rozhoduje řádek v `profiles`, ne to, kam klikneš. Až budeš mít pod sebou víc cvičenců (další řádek v `profiles` s `coach_id` = tvoje ID), objeví se ti nahoře přepínač klienta sám.
 
 Kdyby bylo potřeba doplnit řádek v `profiles` ručně (například po znovuzaložení účtu), UID najdeš v Supabase v Authentication → Users:
 
