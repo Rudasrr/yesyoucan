@@ -258,3 +258,10 @@ tr.cath td{background:rgba(28,35,64,.05);font-weight:800;cursor:pointer;padding:
 .pace{display:flex;gap:14px;flex-wrap:wrap;align-items:center;margin-top:10px;font-size:13px;color:var(--ink2);font-weight:600}.pace b{font-size:15px;color:var(--ink)}.pace b.ok{color:var(--ok)}.pace b.bad{color:var(--bad)}
 .foodbox{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;background:#f5f6fa;border-radius:14px;padding:12px 14px;margin:10px 0}.foodbox b{display:block;font-size:20px;font-weight:800}.foodbox span{font-size:12px;color:var(--ink2)}
 .alert .btn{flex:none;white-space:nowrap;align-self:center}.alert{align-items:center}
+
+/* sbalená jídla dne */
+.course .hd{cursor:pointer}
+.course .csum{font-size:13px;color:var(--ink2);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:45%}
+.course .csum.muted{font-style:italic}
+.course .cotog{color:var(--ink2);font-size:13px;margin-left:6px;flex:none}
+.course.open .csum{display:none}

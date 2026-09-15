@@ -58,6 +58,7 @@ VIEWS.dnes = function () {
   ${isToday ? mismatchAlert(App.date) : ''}
   ${now}
   ${note ? `<div class="note"><span class="em">💬</span><div><div class="tiny muted" style="font-weight:700">Vzkaz od trenéra${noteAt ? ' · ' + czDateShort(noteAt) : ''}</div><div>${esc(note)}</div></div></div>` : ''}
+  ${noteCard(App.date, day)}
   <div class="dgrid"><div class="colL">
    <div class="card ga-hero" style="padding:0;overflow:hidden">
     <div class="herob ${tone}"><div class="tiny" style="opacity:.9;font-weight:700;letter-spacing:.04em;text-transform:uppercase">Plán dne proti limitu <button class="ibtn" style="border-color:rgba(255,255,255,.6);background:transparent;color:#fff" onclick="event.stopPropagation();UI.pop(this,'Hlavní číslo = rezerva naplánovaných jídel proti dnešnímu limitu. Limit = výdej (bazál × 1,34 + chůze + trénink) − cílový deficit. Ukazatel: plná část snědeno, světlá naplánováno. Snědené značíš u jídla nebo v úkolech.')">i</button></div><div class="big">${big}</div><div class="lbl">${lbl}</div>
@@ -77,12 +78,6 @@ VIEWS.dnes = function () {
       <span class="ck">${t.done ? '✓' : ''}</span><span style="font-size:18px">${t.em}</span><div><div class="tx">${esc(t.tx)}</div>${t.sub ? `<div class="sub">${esc(t.sub)}</div>` : ''}</div><span class="go">${t.done ? '' : (t.meal ? (t.chosen ? 'snědl jsem' : 'vybrat') : 'otevřít')}${t.at && !t.done ? ` · ${t.at}` : ''}</span></div>`).join('')}</div></div>
   </div></div>
 
-  <div id="meals" class="row between" style="margin:8px 0 8px"><h2>🍽️ Jídla dne <span class="muted small" style="font-weight:600">${s.courses.some(c => day.meals[c.key].planned) ? `plán na ${dn.toLowerCase()}` : 'bez plánu z Týdne'}</span></h2>
-    <div class="row noprint">${prog.missing.length ? `<button class="btn sm write" onclick="A.suggestDay()">💡 Navrhnout ${prog.missing.length === 5 ? 'den' : 'chybějící'}</button>` : ''}<button class="btn sec sm write" onclick="A.resetDay()">Vrátit plán z Týdne</button></div></div>
-  <p class="small muted" style="margin-bottom:10px">Tady se den upravuje: změnit jídlo, vyměnit, odebrat nebo přidat surovinu, upravit gramy, nechat si navrhnout jinou variantu. Co jsi snědl, označ nahoře v úkolech nebo tlačítkem u jídla.</p>
-  ${d.courses.map((c, i) => renderCourse(s, foods, recipes, day, c, i, d)).join('')}
-
-  ${noteCard(App.date, day)}
   <div class="grid g2" style="margin-top:12px">
    <div class="card"><h2>Kontrola dne</h2>
     <div class="checks" style="margin-top:6px">${d.checks.map(ch => `<div><span class="nm">${ch.name}</span><span class="s${ch.state}">${esc(ch.text)}</span></div>`).join('')}</div>
@@ -98,7 +93,12 @@ VIEWS.dnes = function () {
       <tr><td>Plánovací limit (s cílovou chůzí)</td><td class="n">${fmt0(d.base.planLimit)} kcal</td></tr>
       <tr><td>Sacharidy / tuky</td><td class="n">${fmt0(d.tot.c)} g / ${fmt0(d.tot.f)} g</td></tr></table></details>
    </div>
-  </div>`;
+  </div>
+  <div id="meals" class="row between" style="margin:8px 0 8px"><h2>🍽️ Jídla dne <span class="muted small" style="font-weight:600">${s.courses.some(c => day.meals[c.key].planned) ? `plán na ${dn.toLowerCase()}` : 'bez plánu z Týdne'}</span></h2>
+    <div class="row noprint">${prog.missing.length ? `<button class="btn sm write" onclick="A.suggestDay()">💡 Navrhnout ${prog.missing.length === 5 ? 'den' : 'chybějící'}</button>` : ''}<button class="btn sec sm write" onclick="A.resetDay()">Vrátit plán z Týdne</button></div></div>
+  <p class="small muted" style="margin-bottom:10px">Tady se den upravuje: změnit jídlo, vyměnit, odebrat nebo přidat surovinu, upravit gramy, nechat si navrhnout jinou variantu. Co jsi snědl, označ nahoře v úkolech nebo tlačítkem u jídla.</p>
+  ${d.courses.map((c, i) => renderCourse(s, foods, recipes, day, c, i, d)).join('')}`;
+
 };
 
 /* Karta „Teď“ – jeden krok, jedno tlačítko */
@@ -149,13 +149,18 @@ function renderCourse(s, foods, recipes, day, c, i, d) {
   else if (c.skipped) body = `<p class="small muted">Vynecháno.</p>`;
   const st = c.active ? (Math.abs(c.kcal - c.target) <= 30 ? 'ok' : (c.kcal > c.target ? 'bad' : 'warn')) : '';
   const eaten = !!m.eaten;
-  return `<div class="course ${eaten ? 'eaten' : ''}" id="c-${cs.key}"><div class="hd"><span style="font-size:18px">${COURSE_EMOJI[cs.key]}</span><span class="t">${esc(cs.name)}</span><span class="time">${cs.time}</span>
-      ${cur && cur !== VYNECHAT ? `<button class="eat ${eaten ? 'on' : ''} write" onclick="A.eaten('${cs.key}',${!eaten})">${eaten ? '✓ snědeno' : 'snědl jsem'}</button>` : ''}${cur && cur !== SITUACE && cur !== VYNECHAT ? `<button class="star ${isFav(cur) ? 'on' : ''}" onclick="A.favInPlace(this,${JSON.stringify(cur).replace(/"/g, '&quot;')})" title="oblíbené">${isFav(cur) ? '★' : '☆'}</button>` : ''}
-      <span class="k ${st}">${c.active || c.situace ? fmt0(c.kcal) + ' kcal' : ''}</span></div>
-    <div class="bd"><div class="row" style="gap:6px"><div style="flex:1;min-width:0">${pickBtn}</div><button class="btn sec sm write" title="navrhnout jinou variantu, která se vejde" onclick="A.suggestOne('${cs.key}')">💡 jiné</button></div>
+  const open = App.openCourse === cs.key;   // jídla jsou sbalená, rozkliknutím se otevře editace
+  const sum = !cur ? 'nevybráno' : (cur === VYNECHAT ? 'vynecháno' : cur);
+  return `<div class="course ${eaten ? 'eaten' : ''} ${open ? 'open' : ''}" id="c-${cs.key}"><div class="hd" onclick="A.toggleCourse('${cs.key}')" title="${open ? 'sbalit' : 'rozbalit a upravit'}"><span style="font-size:18px">${COURSE_EMOJI[cs.key]}</span><span class="t">${esc(cs.name)}</span><span class="time">${cs.time}</span>
+      <span class="csum ${cur ? '' : 'muted'}">${esc(sum)}</span>
+      ${cur && cur !== VYNECHAT ? `<button class="eat ${eaten ? 'on' : ''} write" onclick="event.stopPropagation();A.eaten('${cs.key}',${!eaten})">${eaten ? '✓ snědeno' : 'snědl jsem'}</button>` : ''}${cur && cur !== SITUACE && cur !== VYNECHAT ? `<button class="star ${isFav(cur) ? 'on' : ''}" onclick="event.stopPropagation();A.favInPlace(this,${JSON.stringify(cur).replace(/"/g, '&quot;')})" title="oblíbené">${isFav(cur) ? '★' : '☆'}</button>` : ''}
+      <span class="k ${st}">${c.active || c.situace ? fmt0(c.kcal) + ' kcal' : ''}</span><span class="cotog">${open ? '▴' : '▾'}</span></div>
+    ${!open ? '' : `<div class="bd"><div class="row" style="gap:6px"><div style="flex:1;min-width:0">${pickBtn}</div><button class="btn sec sm write" title="navrhnout jinou variantu, která se vejde" onclick="A.suggestOne('${cs.key}')">💡 jiné</button></div>
     <div class="hint">${c.active ? (() => { const t = toleranceText(c.kcal, c.target); return `<b class="${t.ok ? 'ok' : 'warn'}">${t.text}</b> · cíl ${fmt0(c.target)} kcal`; })() : esc(c.hint)}${m.sel && m.planned && m.sel !== m.planned ? ` · místo plánu (${esc(m.planned)})` : ''}${m.auto ? ' · navrženo appkou' : ''}</div>
-    <div style="margin-top:8px">${body}</div></div></div>`;
+    <div style="margin-top:8px">${body}</div></div>`}</div>`;
 }
+
+A.toggleCourse = key => { App.openCourse = App.openCourse === key ? null : key; render(); };
 
 /* ---- akce Dnes (vše se Zpět a hláškou) ---- */
 const dayMsg = (lead) => () => { const d = calcDay(S(), Foods(), Recipes(), effectiveDay(App.date), currentWeight()); const st = d.tot.kcal === 0 ? '' : (d.remaining < -30 ? ` Den je ${fmt0(-d.remaining)} kcal přes limit.` : ` Den sedí, rezerva ${fmt0(Math.max(0, d.remaining))} kcal.`); return lead + st; };

@@ -1,7 +1,7 @@
 /* ===== Jádro ===== */
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const $ = sel => document.querySelector(sel);
-const App = { view: 'dnes', date: todayISO(), week: mondayOf(todayISO()), ro: false, moreOpen: false };
+const App = { view: 'dnes', date: todayISO(), week: mondayOf(todayISO()), ro: false, moreOpen: false, preview: false, coachPlan: false, openCourse: null };
 const A = {};  // akce
 const oid = (p, k) => `${p}:${Store.ownerId()}:${k}`;  // id unikátní napříč uživateli
 
@@ -88,9 +88,24 @@ const UI = {
     if (Store.syncing || Store.outbox.length) { el.innerHTML = `<span class="dot busy"></span>ukládám…`; return; }
     el.innerHTML = '<span class="dot"></span>uloženo';
   },
-  modal(html) { const m = document.createElement('div'); m.className = 'modal'; m.innerHTML = `<div class="box">${html}</div>`; m.addEventListener('click', e => { if (e.target === m) m.remove(); }); document.body.appendChild(m); return m; },
-  closeModal() { document.querySelectorAll('.modal').forEach(m => m.remove()); },
-  confirm(text, onYes) { const m = this.modal(`<p>${esc(text)}</p><div class="row"><button class="btn danger" id="cy">Ano</button><button class="btn sec" onclick="UI.closeModal()">Zpět</button></div>`); m.querySelector('#cy').onclick = () => { m.remove(); onYes(); }; }
+  modal(html, opts) {
+    const m = document.createElement('div'); m.className = 'modal'; m.innerHTML = `<div class="box">${html}</div>`;
+    if (opts && opts.guardEdits) {   // editor: nezavírat rozdělanou práci bez zeptání
+      const dirty = () => { m._dirty = true; };
+      m.addEventListener('input', dirty); m.addEventListener('change', dirty);
+      m._guard = () => !!m._dirty;
+    }
+    m.addEventListener('click', e => { if (e.target === m) UI.tryClose(m); });
+    document.body.appendChild(m); return m;
+  },
+  /* zavřít okno – s otázkou, pokud v něm něco rozdělaného zůstalo */
+  tryClose(m) {
+    if (!m) return;
+    if (m._guard && m._guard()) { m._guard = null; UI.confirm('Zavřít bez uložení? Rozdělané změny se ztratí.', () => m.remove(), 'Zavřít a zahodit'); return; }
+    m.remove();
+  },
+  closeModal() { const all = document.querySelectorAll('.modal'); UI.tryClose(all[all.length - 1]); },
+  confirm(text, onYes, yesLabel) { const m = this.modal(`<p>${esc(text)}</p><div class="row"><button class="btn danger" id="cy">${esc(yesLabel || 'Ano')}</button><button class="btn sec" onclick="UI.closeModal()">Zpět</button></div>`); m.querySelector('#cy').onclick = () => { m.remove(); onYes(); }; }
 };
 
 const NAV_CLIENT = [['dnes', 'Dnes'], ['tyden', 'Týden'], ['prehled', 'Přehled'], ['mereni', 'Měření'], ['nakup', 'Nákup'], ['vareni', 'Vaření'], ['recepty', 'Recepty'], ['suroviny', 'Suroviny'], ['navod', 'Návod']];
@@ -112,7 +127,9 @@ const ICONS = {
 
 function realCoach() { return Store.profile && Store.profile.role === 'coach'; }
 function isCoach() { return realCoach() && !App.preview; }
-A.togglePreview = () => { App.preview = !App.preview; App.view = App.preview ? 'dnes' : 'klient'; render(); UI.toast(App.preview ? 'Vidíš appku Robertovými očima – jen náhled, nic se neuloží.' : 'Zpět v trenérském pohledu.'); };
+A.togglePreview = () => { App.preview = !App.preview; App.coachPlan = false; App.view = App.preview ? 'dnes' : 'klient'; render(); UI.toast(App.preview ? 'Vidíš appku Robertovými očima – jen náhled, nic se neuloží.' : 'Zpět v trenérském pohledu.'); };
+/* Plánování za klienta: primárně si den skládá sám, tohle je pojistka pro trenéra. */
+A.toggleCoachPlan = () => { App.coachPlan = !App.coachPlan; render(); UI.toast(App.coachPlan ? 'Plánuješ za Roberta – co uložíš, uvidí u sebe.' : 'Zpátky jen na koukání.'); };
 function nav() { return isCoach() ? NAV_COACH : NAV_CLIENT; }
 function go(v) { App.view = v; App.moreOpen = false; UI.closeModal(); render(); window.scrollTo(0, 0); }
 
@@ -132,13 +149,15 @@ function renderShell() {
 function render() {
   if (!Store.profile) { renderLogin(); return; }
   $('#login').classList.remove('on'); $('#app').classList.add('on');
-  App.ro = realCoach() && (App.preview || !['klient', 'zprava', 'trenink', 'nastaveni', 'databaze', 'suroviny', 'recepty', 'more', 'ucet'].includes(App.view));
+  App.ro = realCoach() && ((App.preview && !App.coachPlan) || (!App.preview && !['klient', 'zprava', 'trenink', 'nastaveni', 'databaze', 'suroviny', 'recepty', 'more', 'ucet'].includes(App.view)));
   renderShell();
   const el = $('#main'); el.className = App.ro ? 'wrap ro' : 'wrap';
   const V = VIEWS[App.view] || VIEWS.dnes;
   let head = '';
   if (isCoach() && Store.clients.length > 1 && App.view !== 'databaze') head = `<div class="row small muted" style="margin-bottom:8px">Klient: <select style="width:auto;min-height:30px;padding:3px 8px" onchange="Store.clientId=this.value;LS.set('clientId',this.value);render()">${Store.clients.map(c => `<option value="${c.id}" ${c.id === Store.clientId ? 'selected' : ''}>${esc(c.display_name || c.name || c.email || c.id.slice(0, 8))}</option>`).join('')}</select></div>`;
-  if (App.ro) head += `<div class="notice row between" style="margin-bottom:10px"><span>${App.preview ? '👁️ Robertův pohled – přesně to, co vidí on. Jen náhled, nic se neuloží.' : 'Náhled na Robertova data – jen ke čtení.'}</span>${App.preview ? '<button class="btn sm" style="pointer-events:auto" onclick="A.togglePreview()">Zpět do trenéra</button>' : ''}</div>`;
+  const planBtns = `<span class="row" style="gap:6px"><button class="btn sec sm" style="pointer-events:auto" onclick="A.toggleCoachPlan()">${App.coachPlan ? '👁️ Jen koukat' : '✏️ Plánovat za Roberta'}</button><button class="btn sm" style="pointer-events:auto" onclick="A.togglePreview()">Zpět do trenéra</button></span>`;
+  if (App.ro) head += `<div class="notice row between" style="margin-bottom:10px"><span>${App.preview ? '👁️ Robertův pohled – přesně to, co vidí on. Jen náhled, nic se neuloží.' : 'Náhled na Robertova data – jen ke čtení.'}</span>${App.preview ? planBtns : ''}</div>`;
+  else if (App.preview && App.coachPlan) head += `<div class="notice warn row between" style="margin-bottom:10px"><span>✏️ Plánuješ za Roberta – co tu uložíš, uvidí u sebe. Normálně si den skládá sám.</span>${planBtns}</div>`;
   el.innerHTML = head + V();
 }
 

@@ -164,7 +164,8 @@ A.tpOverride = date => { const cur = trainingOverride(date) || { ...dayActivityP
     <div class="row" style="margin-top:10px"><button class="btn" id="ovok">Uložit změnu</button><button class="btn sec" onclick="UI.closeModal()">Zpět</button>${trainingOverride(date) ? '<button class="btn danger sm" id="ovdel">Zrušit výjimku</button>' : ''}</div>`);
   let items = cur.items || []; m.querySelector('#ovclr').onclick = () => { items = []; m.querySelector('#ovclr').textContent = '✓ bez cviků'; };
   m.querySelector('#ovok').onclick = () => { const data = { walk_min: Number(m.querySelector('#ovw').value) || 0, walk_kmh: cur.walk_kmh, items, note: m.querySelector('#ovn').value }; m.remove(); Undo.run('Výjimka uložena', () => Store.put('training', oid('to', date), data)); render(); };
-  const del = m.querySelector('#ovdel'); if (del) del.onclick = () => { m.remove(); Undo.run('Výjimka zrušena', () => Store.remove('training', oid('to', date))); render(); }; };
+  const del = m.querySelector('#ovdel'); if (del) del.onclick = () => UI.confirm('Zrušit výjimku a vrátit se k plánu?', () => { m.remove(); Undo.run('Výjimka zrušena', () => Store.remove('training', oid('to', date))); render(); }, 'Zrušit výjimku');
+}
 
 /* ===== Robert: karta Aktivita dne ===== */
 function renderActivityCard(date, day, d) {

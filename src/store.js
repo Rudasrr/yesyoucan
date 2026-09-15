@@ -8,6 +8,15 @@ const LS = {
   del(k) { localStorage.removeItem('rp:' + k); }
 };
 
+/* Náhled Robertova rozhraní je jen ke koukání. Trenér, který chce psát,
+   si musí zapnout „Plánovat za Roberta“ – jinak se zápis zahodí tady,
+   ne až u jednotlivých tlačítek (těch je moc a jedno by se vždycky zapomnělo). */
+function previewOnly() {
+  if (typeof App === 'undefined' || !App.preview || App.coachPlan) return false;
+  UI.toast('Jen náhled – nic se neuloží. Psát můžeš přes „Plánovat za Roberta“.');
+  return true;
+}
+
 const Store = {
   db: {}, outbox: [], sb: null, session: null, profile: null, clients: [], clientId: null, online: navigator.onLine, syncing: false, lastSync: null, timer: null,
   localMode() { return !CLOUD_CONFIG.url || !CLOUD_CONFIG.key; },
@@ -22,6 +31,7 @@ const Store = {
   ownerId() { return this.profile && this.profile.role === 'coach' ? this.clientId : this.uid(); },
   uid() { return this.session ? this.session.user.id : (this.profile ? this.profile.id : null); },
   put(t, id, data, userId) {
+    if (previewOnly()) return null;
     const now = new Date().toISOString();
     const rec = { id, user_id: userId === undefined ? this.ownerId() : userId, data, updated_at: now, deleted: false };
     const i = this.db[t].findIndex(r => r.id === id);
@@ -29,6 +39,7 @@ const Store = {
     this.save(t); this.queue(t, rec); return rec;
   },
   remove(t, id) {
+    if (previewOnly()) return;
     const i = this.db[t].findIndex(r => r.id === id); if (i < 0) return;
     this.db[t][i] = { ...this.db[t][i], deleted: true, updated_at: new Date().toISOString() };
     this.save(t); this.queue(t, this.db[t][i]);

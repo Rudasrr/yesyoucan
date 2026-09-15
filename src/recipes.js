@@ -48,7 +48,7 @@ function openRecipeEditor(id, mode) {
   const saveId = mode === 'override' ? (src.ovId || oid('rov', src.id)) : (mode === 'own' ? (src ? src.id : oid('own', Date.now())) : (src ? src.id : 'r:' + Date.now()));
   const owner = mode === 'global' ? null : Store.ownerId();
   const targets = Object.fromEntries(SEED.settings.courses.map(c => [c.name, c]));
-  const m = UI.modal('');
+  const m = UI.modal('', { guardEdits: true });
   const draw = () => {
     const fmap = Object.fromEntries(Foods().map(f => [f.name, f])); const t = recipeTotals(draft, fmap);
     const course = s.courses.find(c => c.name === draft.course) || s.courses[0]; const pmin = targets[draft.course] ? targets[draft.course].prot_min : 0;
@@ -80,7 +80,7 @@ function openRecipeEditor(id, mode) {
       m.remove(); Undo.run(mode === 'override' ? `Uložena tvoje verze: ${src.name}` : `Recept uložen: ${draft.name}`, () => Store.put('recipes', saveId, data, owner), `${fmt0(t.kcal)} kcal · ${fmt0(t.p)} g bílkovin. Najdeš ho v panelu výběru${mode !== 'global' ? ' pod 📖 moje' : ''}.`); render();
     };
     const del = m.querySelector('#re-del'); if (del) del.onclick = () => UI.confirm('Smazat recept? Zůstane v historii dnů, zmizí z nabídek.', () => { m.remove(); Undo.run(`Recept smazán: ${src.name}`, () => { if (mode === 'global' && src.seed) Store.put('recipes', src.id, { name: src.name, course: src.course, num: src.num, items: src.items }, null); Store.remove('recipes', saveId); }); render(); });
-    const rs = m.querySelector('#re-reset'); if (rs) rs.onclick = () => { m.remove(); Undo.run('Vráceno na původní recept', () => Store.remove('recipes', src.ovId)); render(); };
+    const rs = m.querySelector('#re-reset'); if (rs) rs.onclick = () => UI.confirm('Zahodit svoji verzi receptu a vrátit se k trenérově?', () => { m.remove(); Undo.run('Vráceno na původní recept', () => Store.remove('recipes', src.ovId)); render(); }, 'Vrátit původní');
   };
   window._reFood = i => openFoodPicker(name => { draft.items[i].food = name; const lib = Foods().find(f => f.name === name); if (lib && !draft.items[i].g) draft.items[i].g = ['Obiloviny a přílohy', 'Pečivo', 'Ovoce'].includes(lib.cat) ? 100 : 100; if (lib && ['Obiloviny a přílohy', 'Pečivo', 'Ovoce'].includes(lib.cat)) draft.items[i].scale = 1; draw(); }, draft.items[i].food);
   window._reG = (i, v) => { draft.items[i].g = Number(v); draw(); }; window._reS = (i, v) => { draft.items[i].scale = v ? 1 : 0; draw(); }; window._reDel = i => { draft.items.splice(i, 1); draw(); };

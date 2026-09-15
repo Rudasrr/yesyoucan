@@ -52,7 +52,8 @@ A.saveMeas = () => {
   if (!pl.ok && !A._forceMeas) { const mm = UI.modal(`<h2>Sedí to?</h2><p class="muted" style="margin-top:8px">Zapisuješ <b>${fmt1(m.weight)} kg</b>, ale průměr posledních dnů je <b>${fmt1(pl.prev.avg)} kg</b> (rozdíl ${(pl.diff > 0 ? '+' : '−') + fmt1(Math.abs(pl.diff))} kg je nezvyklý). Překlep, nebo jiná váha?</p><div class="row" style="margin-top:12px"><button class="btn sec" onclick="UI.closeModal()">Opravím</button><button class="btn" id="mfy">Je to správně, ulož</button></div>`); mm.querySelector('#mfy').onclick = () => { mm.remove(); A._forceMeas = true; A.saveMeas(); A._forceMeas = false; }; return; }
   Undo.run('Zápis měření', () => { saveMeas(m); render(); }, () => { const ov = calcOverview(S(), Meas()); return `Zápis uložen. Průměr 7 dní ${fmt1(ov.cur)} kg${ov.dev != null ? (ov.dev >= 0 ? `, ${fmt2(ov.dev)} kg před plánem.` : `, ${fmt2(-ov.dev)} kg za plánem.`) : '.'}`; });
 };
-A.delMeas = d => Undo.run('Smazat zápis', () => { Store.remove('measurements', oid('m', d)); render(); }, `Zápis z ${czDate(d)} smazán.`);
+A.delMeas = d => UI.confirm(`Smazat zápis z ${czDate(d)}?`, () => A.delMeas0(d), 'Smazat');
+A.delMeas0 = d => Undo.run('Smazat zápis', () => { Store.remove('measurements', oid('m', d)); render(); }, `Zápis z ${czDate(d)} smazán.`);
 
 /* ---------- PŘEHLED ---------- */
 VIEWS.prehled = function () {

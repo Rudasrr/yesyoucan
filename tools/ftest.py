@@ -14,6 +14,7 @@ with sync_playwright() as p:
     pg.evaluate("A.copyWeek()") ; 
     # dnes – změnit jídlo, vyměnit surovinu, upravit gramy, pátek piva
     pg.evaluate("App.date=addDays(App.week,0);go('dnes')")
+    pg.evaluate("A.toggleCourse('snidane')"); pg.wait_for_timeout(100)   # jídla jsou sbalená, editace až po rozkliknutí
     pg.evaluate("document.querySelector('.course .pickbtn').click()"); pg.wait_for_timeout(100); pg.fill('#pkq','míchaná'); pg.wait_for_timeout(100); print('picker hits:', pg.evaluate("document.querySelectorAll('.pitem').length")); pg.evaluate("window._pick('Míchaná vejce se šunkou a chlebem')"); pg.wait_for_timeout(100)
     print('sel:', pg.evaluate("getDay(App.date).meals.snidane"))
     pg.select_option('.course >> nth=0 >> .items select >> nth=0','Tofu'); pg.wait_for_timeout(100)
@@ -45,7 +46,7 @@ with sync_playwright() as p:
     pg.evaluate("A.suggestOne('obed')"); print('suggestOne:', pg.evaluate("getDay(todayISO()).meals.obed.sel"), 'toast:', pg.evaluate("document.querySelector('#toast span').textContent"))
     pg.evaluate("Undo.undo()"); print('after undo:', pg.evaluate("getDay(todayISO()).meals.obed.sel"))
     pg.evaluate("A.editFood('f1','override')"); pg.fill('#fk','999'); pg.click('#fsave'); pg.wait_for_timeout(100); print('override:', pg.evaluate("JSON.stringify(Foods().filter(f=>f.id==='f1').map(f=>[f.name,f.kcal,!!f.overridden]))"))
-    pg.evaluate("A.editFood('f1','override')"); pg.click('#fdel'); pg.wait_for_timeout(100); print('override removed:', pg.evaluate("Foods().find(f=>f.id==='f1').kcal"))
+    pg.evaluate("A.editFood('f1','override')"); pg.click('#fdel'); pg.wait_for_timeout(100); pg.click('.modal #cy'); pg.wait_for_timeout(100); print('override removed:', pg.evaluate("Foods().find(f=>f.id==='f1').kcal"))
     pg.evaluate("A.addWalk(30)"); print('walk toast:', pg.evaluate("document.querySelector('#toast span').textContent"))
     print('praise:', pg.evaluate("praise(todayISO()).map(p=>p.text)"))
     print('ics len:', pg.evaluate("(()=>{let n=0;const o=downloadBlob;window.downloadBlob=(b)=>{n=b.size};A.exportIcs();window.downloadBlob=o;return n})()"))
