@@ -68,7 +68,7 @@ function praise(date) {
   if (ov.dev != null && ov.dev >= 0.3) out.push({ tone: 'good', em: '🏆', text: `Jsi ${fmt2(ov.dev)} kg před plánovanou křivkou. Náskok, ne důvod ubrat.` });
   if (ov.lost >= 1) { const milestone = Math.floor(ov.lost); if (milestone >= 1 && ov.lost - milestone < 0.3) out.push({ tone: 'good', em: '🎯', text: `${milestone} kg dole od startu. ${fmt0(milestone * KG_KCAL)} kcal, které už nikdy nezvedáš.` }); }
   // den
-  const fixes = { Kalorie: 'zůstat pod limitem (lehčí příloha, nebo víc chůze)', Bílkoviny: 'dostat bílkoviny na cíl – přidej tvaroh, maso nebo protein', Chůze: `dojít celých ${(ev.day.act && ev.day.act.planWalk) || s.walk_min} minut`, Trénink: 'udělat trénink podle plánu', Bazál: 'víc chůze, ať limit není na bazálu' };
+  const fixes = { Kalorie: 'zůstat pod limitem (lehčí příloha, nebo víc chůze)', Bílkoviny: 'dostat bílkoviny na cíl – přidej tvaroh, maso nebo protein', Chůze: `dojít celých ${(ev.day.act && ev.day.act.planWalk) || s.walk_min} minut`, Trénink: 'udělat trénink podle plánu', 'Spodní hranice': 'přidat chůzi, ať limit nedrží spodní hranice' };
   const fails = ev.d.checks.filter(c => c.state === 1).map(c => fixes[c.name]).filter(Boolean);
   if (!isToday) out.push(ev.ok ? { tone: 'good', em: '✅', text: `Tenhle den byl v pořádku. Deficit ${fmt0(ev.d.dayDeficit)} kcal.` } : { tone: 'push', em: '📌', text: ev.d.tot.kcal === 0 ? 'Bez zapsaných jídel.' : 'Den nesedl: ' + fails.join('; ') + '.' });
   else if (isToday && ev.ok) out.push({ tone: 'good', em: '💪', text: 'Dnešek sedí ve všem – kalorie, bílkoviny i chůze. Večer to jen uzavři.' });

@@ -161,7 +161,7 @@ function paceOverview() {
   const actual = ov.weekBack && ov.weekBack.lostW != null ? ov.weekBack.lostW : null;
   return { target, projThis: proj(thisW), projNext: proj(nextW), floorThis: floorDays(thisW), floorNext: floorDays(nextW), actual, ok: proj(thisW) >= target * 0.97 };
 }
-function paceLine() { const p = paceOverview(); return `<div class="pace"><span>🎯 cíl <b>−${fmt2(p.target)} kg</b>/týden</span><span>📐 plán <b class="${p.ok ? 'ok' : 'bad'}">−${fmt2(p.projThis)}</b></span><span>📈 realita <b class="${p.actual == null ? '' : p.actual >= p.target * 0.9 ? 'ok' : 'bad'}">${p.actual == null ? '–' : (p.actual >= 0 ? '−' : '+') + fmt2(Math.abs(p.actual))}</b></span>${p.floorThis.length ? `<span class="bad small">pojistka bazálu ${p.floorThis.map(x => DAY_SHORT[dayIndex(x.dt)]).join(', ')} – deficit nižší o ${fmt0(p.floorThis.reduce((a, x) => a + x.floorLoss, 0))} kcal/týden</span>` : ''}</div>`; }
+function paceLine() { const p = paceOverview(); return `<div class="pace"><span>🎯 cíl <b>−${fmt2(p.target)} kg</b>/týden</span><span>📐 plán <b class="${p.ok ? 'ok' : 'bad'}">−${fmt2(p.projThis)}</b></span><span>📈 realita <b class="${p.actual == null ? '' : p.actual >= p.target * 0.9 ? 'ok' : 'bad'}">${p.actual == null ? '–' : (p.actual >= 0 ? '−' : '+') + fmt2(Math.abs(p.actual))}</b></span>${p.floorThis.length ? `<span class="bad small">spodní hranice jídla ${p.floorThis.map(x => DAY_SHORT[dayIndex(x.dt)]).join(', ')} – deficit nižší o ${fmt0(p.floorThis.reduce((a, x) => a + x.floorLoss, 0))} kcal/týden</span>` : ''}</div>`; }
 
 /* ===== Nesoulad plánu jídla a limitu dne (po změně tréninku) ===== */
 function dayMismatch(date) {
@@ -216,15 +216,15 @@ function settingsAdvice() {
   if (s.protein_min < pMin) A_.push({ field: 'protein_min', lv: 2, text: `Minimum bílkovin ${s.protein_min} g je pod doporučením ${pMin}–${pMax} g (1,6–2 g na kg cílové váhy) – při deficitu chrání sval.`, apply: { protein_min: pMin }, label: `Nastavit ${pMin} g` });
   else if (s.protein_min > pMax + 20) A_.push({ field: 'protein_min', lv: 2, text: `Minimum bílkovin ${s.protein_min} g je zbytečně vysoké (doporučení ${pMin}–${pMax} g) – zvedá cenu jídla a ubírá místo příloze.` });
   // chůze
-  if (s.walk_min < 30) A_.push({ field: 'walk_min', lv: 2, text: `Denní cíl chůze ${s.walk_min} min je málo – bez ní padá limit k bazálu. Sešit počítá se 60.` });
+  if (s.walk_min < 30) A_.push({ field: 'walk_min', lv: 2, text: `Denní cíl chůze ${s.walk_min} min je málo – bez pohybu limit padá na spodní hranici (klidový výdej) a deficit vyjde menší, než má. Sešit počítá se 60.` });
   if (s.walk_min > 120) A_.push({ field: 'walk_min', lv: 2, text: `Cíl ${s.walk_min} min denně je hodně; nad 90 min klesá plnění. Raději trénink navíc než delší chůze.` });
   // pas, cíl
   if (Math.abs(s.goal_waist - s.height / 2) > 4) A_.push({ field: 'goal_waist', lv: 3, text: `Cílový pas ${s.goal_waist} cm; zdravotní práh je polovina výšky = ${Math.round(s.height / 2)} cm.` });
   const bmiGoal = s.goal_weight / Math.pow(s.height / 100, 2); if (bmiGoal < 20 || bmiGoal > 30) A_.push({ field: 'goal_weight', lv: 2, text: `Cílová váha ${s.goal_weight} kg = BMI ${fmt1(bmiGoal)}. ${bmiGoal > 30 ? 'Stále obezita – po dosažení zvaž další cíl.' : 'Pod 20 – příliš nízký cíl.'}` });
   // chody vs limit
   const sum = courseTargetSum(s); if (Math.abs(sum - 2450) > 300) A_.push({ field: 'courses', lv: 2, text: `Součet cílů chodů ${sum} kcal se výrazně liší od základny sešitu 2 450 – poměr chodů řídí jen dělení limitu, součet sám limit nemění; nech blízko 2 450.` });
-  // bazál
-  if (b.planBelowBmr) A_.push({ field: 'walk_min', lv: 1, text: `S nastavenou chůzí ${s.walk_min} min by limit byl pod bazálem (${fmt0(b.bmr)}) – pojistka ho drží, deficit je menší než cíl. Přidej chůzi nebo sniž tempo.` });
+  // spodní hranice jídla
+  if (b.planBelowBmr) A_.push({ field: 'walk_min', lv: 1, text: `S nastavenou chůzí ${s.walk_min} min by limit vyšel pod klidový výdej (${fmt0(b.bmr)} kcal) – spodní hranice ho drží nahoře, takže deficit vyjde menší než cíl. Přidej chůzi nebo sniž tempo.` });
   return A_;
 }
 A.applyAdvice = (json) => { const s = S(); const d = { ...s }; delete d.met; delete d.phase_thresholds; delete d.phases; Object.assign(d, JSON.parse(json)); Undo.run('Nastavení upraveno podle doporučení', () => saveSettings(d), 'Robertův limit i plány se přepočítaly.'); render(); };

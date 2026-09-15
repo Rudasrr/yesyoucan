@@ -46,8 +46,8 @@ VIEWS.dnes = function () {
   const reserve = d.remaining; const planned = d.tot.kcal > 0;
   let big, lbl, tone;
   if (!planned) { big = fmt0(d.base.maxIntake); lbl = 'kcal je dnešní limit – zatím nic naplánováno'; tone = 'grad3'; }
-  else if (reserve < -30) { const pend = (d.base.planKcal || 0) - (d.base.doneKcal || 0); const walkPend = Math.max(0, d.base.planWalk - (day.walk_min || 0)) * d.base.walkPerMin; big = signed0(reserve); lbl = pend + walkPend >= -reserve ? `kcal nad limit teď – po plánované aktivitě (${fmt0(pend + walkPend)} kcal) bude sedět` : 'kcal nad limit – plán dne nesedí'; tone = pend + walkPend >= -reserve ? 'grad3' : 'grad2'; }
-  else { big = (reserve >= 0 ? '+' : '') + fmt0(reserve); lbl = prog.missing.length ? `kcal rezerva · chybí naplánovat ${prog.missing.map(c => c.name.toLowerCase()).join(', ')}` : 'kcal rezerva – plán dne sedí'; tone = 'grad'; }
+  else if (reserve < -30) { const pend = (d.base.planKcal || 0) - (d.base.doneKcal || 0); const walkPend = Math.max(0, d.base.planWalk - (day.walk_min || 0)) * d.base.walkPerMin; big = fmt0(-reserve); lbl = pend + walkPend >= -reserve ? `kcal nad limit teď – po plánované aktivitě (${fmt0(pend + walkPend)} kcal) bude sedět` : 'kcal nad limit – plán dne nesedí'; tone = pend + walkPend >= -reserve ? 'grad3' : 'grad2'; }
+  else { big = fmt0(Math.max(0, reserve)); lbl = prog.missing.length ? `kcal ti ještě zbývá do limitu · chybí naplánovat ${prog.missing.map(c => c.name.toLowerCase()).join(', ')}` : 'kcal ti ještě zbývá do limitu – plán dne sedí'; tone = 'grad'; }
   const pctE = clamp(prog.eaten / d.base.maxIntake * 100, 0, 100), pctP = clamp(prog.planned / d.base.maxIntake * 100, 0, 100 - pctE);
   // karta Teď
   const now = renderNow(cl, d, day, tasks, s);
@@ -61,13 +61,13 @@ VIEWS.dnes = function () {
   ${noteCard(App.date, day)}
   <div class="dgrid"><div class="colL">
    <div class="card ga-hero" style="padding:0;overflow:hidden">
-    <div class="herob ${tone}"><div class="tiny" style="opacity:.9;font-weight:700;letter-spacing:.04em;text-transform:uppercase">Plán dne proti limitu <button class="ibtn" style="border-color:rgba(255,255,255,.6);background:transparent;color:#fff" onclick="event.stopPropagation();UI.pop(this,'Hlavní číslo = rezerva naplánovaných jídel proti dnešnímu limitu. Limit = výdej (bazál × 1,34 + chůze + trénink) − cílový deficit. Ukazatel: plná část snědeno, světlá naplánováno. Snědené značíš u jídla nebo v úkolech.')">i</button></div><div class="big">${big}</div><div class="lbl">${lbl}</div>
+    <div class="herob ${tone}"><div class="tiny" style="opacity:.9;font-weight:700;letter-spacing:.04em;text-transform:uppercase">${planned ? (reserve < -30 ? 'O kolik jsi nad limitem' : 'Kolik ti zbývá do limitu') : 'Limit dne'} <button class="ibtn" style="border-color:rgba(255,255,255,.6);background:transparent;color:#fff" onclick="event.stopPropagation();UI.pop(this,'Hlavní číslo = rezerva naplánovaných jídel proti limitu dne. Limit dne = celkový výdej (klidový výdej × 1,34 + cílený pohyb) − plánovaný deficit. Ukazatel: plná část snědeno, světlá naplánováno. Snědené značíš u jídla nebo v úkolech.')">i</button></div><div class="big">${big}</div><div class="lbl">${lbl}</div>
       <div class="bar2" style="margin-top:14px"><i class="e" style="width:${pctE}%"></i><i class="p" style="width:${pctP}%"></i></div>
       <div class="row between small" style="margin-top:6px"><span>■ snědeno ${fmt0(prog.eaten)} · ▢ naplánováno ${fmt0(prog.planned)}${d.base.drinkKcal ? ` · pití ${fmt0(d.base.drinkKcal)}` : ''}</span><span>limit ${fmt0(d.base.maxIntake)}</span></div></div>
     <div class="stats3">
       <div><b>${fmt0(d.intake)} <small>/ ${fmt0(d.base.maxIntake)}</small></b><span><span class="mdot kcal"></span>naplánováno kcal</span></div>
       <div><b class="${d.tot.p > 0 ? (d.tot.p >= d.protTarget ? 'ok' : 'bad') : ''}">${fmt0(d.tot.p)} <small>/ ${d.protTarget || s.protein_min}</small></b><span><span class="mdot prot"></span>bílkoviny (g)</span></div>
-      <div><b>${planned ? fmt0(d.dayDeficit) : '–'}</b><span>${planned ? `deficit → ${fmt2(d.dayDeficit * 7 / KG_KCAL)} kg/týden` : 'deficit dne'}</span></div>
+      <div><b class="${planned ? (d.dayDeficit >= d.base.deficit * 0.9 ? 'ok' : 'warn') : ''}">${planned ? fmt0(d.dayDeficit) : '–'}</b><span>${planned ? `dnešní deficit · ${fmt2(d.dayDeficit * 7 / KG_KCAL)} kg/týden, plán ${fmt2(w * s.rate_pct / 100)}` : 'dnešní deficit'}</span></div>
     </div>
    </div>
    ${renderActivityCard(App.date, day, d)}
@@ -84,13 +84,13 @@ VIEWS.dnes = function () {
     <div class="status st${d.ok ? 2 : (planned ? 1 : 0)}" style="margin-top:10px">${esc(d.summary)}</div>
     <details style="margin-top:10px"><summary class="small muted" style="cursor:pointer">Jak se limit počítá</summary>
     <table class="small" style="margin-top:6px"><tr><td>Aktuální váha (průměr 7 vážení)</td><td class="n">${fmt1(w)} kg</td></tr>
-      <tr><td>Klidový výdej BMR (Mifflin–St Jeor)</td><td class="n">${fmt0(d.base.bmr)} kcal</td></tr>
-      <tr><td>Základní výdej (× ${String(s.activity).replace('.', ',')})</td><td class="n">${fmt0(d.base.baseOut)} kcal</td></tr>
-      <tr><td>Chůze ${day.walk_min || 0} min${day.exercise_min ? ` + cvičení ${day.exercise_min} min` : ''}</td><td class="n">${fmt0(d.base.totalOut - d.base.baseOut)} kcal</td></tr>
+      <tr><td>Klidový výdej (Mifflin–St Jeor)</td><td class="n">${fmt0(d.base.bmr)} kcal</td></tr>
+      <tr><td>Běžný výdej (klidový × ${String(s.activity).replace('.', ',')})</td><td class="n">${fmt0(d.base.baseOut)} kcal</td></tr>
+      <tr><td>Cílený pohyb – chůze ${day.walk_min || 0} min${day.exercise_min ? ` + cvičení ${day.exercise_min} min` : ''}</td><td class="n">${fmt0(d.base.totalOut - d.base.baseOut)} kcal</td></tr>
       <tr><td>Celkový výdej</td><td class="n">${fmt0(d.base.totalOut)} kcal</td></tr>
-      <tr><td>Cílový deficit (${String(s.rate_pct).replace('.', ',')} % váhy/týden)</td><td class="n">− ${fmt0(d.base.deficit)} kcal</td></tr>
-      <tr><td class="b">Maximální příjem</td><td class="n b">${fmt0(d.base.maxIntake)} kcal</td></tr>
-      <tr><td>Plánovací limit (s cílovou chůzí)</td><td class="n">${fmt0(d.base.planLimit)} kcal</td></tr>
+      <tr><td>Plánovaný deficit (${String(s.rate_pct).replace('.', ',')} % váhy/týden)</td><td class="n">− ${fmt0(d.base.deficit)} kcal</td></tr>
+      <tr><td class="b">Limit dne</td><td class="n b">${fmt0(d.base.maxIntake)} kcal</td></tr>
+      <tr><td>Limit podle plánu (s cílem chůze a tréninkem)</td><td class="n">${fmt0(d.base.planLimit)} kcal</td></tr>
       <tr><td><span class="mdot carb"></span>Sacharidy / <span class="mdot fat"></span>tuky</td><td class="n"><b class="m-carb">${fmt0(d.tot.c)} g</b> / <b class="m-fat">${fmt0(d.tot.f)} g</b></td></tr></table></details>
    </div>
   </div>
@@ -143,9 +143,9 @@ function renderCourse(s, foods, recipes, day, c, i, d) {
       (c.removedItems || []).map(r => `<tr class="muted"><td colspan="4" style="text-decoration:line-through">${esc(r.food)} ${r.g} g</td><td class="n"><button class="xbtn write" title="vrátit" onclick="A.unremoveItem('${cs.key}',${r.idx})">↺</button></td></tr>`).join('') +
       `<tr><td class="b">celkem</td><td></td><td class="n b">${fmt0(c.kcal)}</td><td class="n b">${fmt1(c.p)}</td><td></td></tr></table></div>` +
       `<div class="row" style="margin-top:8px"><button class="btn sec sm write" onclick="A.extraAdd('${cs.key}')">+ přidat surovinu</button>${c.edited ? `<button class="btn sec sm write" onclick="A.resetCourse('${cs.key}')">Vrátit recept beze změn</button>` : ''}</div>`;
-  } else if (c.situace) body = `<p class="small muted">Vyřešíš na místě – cíl chodu ${fmt0(cs.kcal)} kcal, min. ${SEED.settings.courses[i].prot_min} g bílkovin. Napiš, co jsi snědl – appka rozpozná suroviny, gramy dolaď.</p>
+  } else if (c.situace) body = `<p class="small muted">Vyřešíš na místě – cíl jídla ${fmt0(cs.kcal)} kcal, min. ${SEED.settings.courses[i].prot_min} g bílkovin. Napiš, co jsi snědl – appka rozpozná suroviny, gramy dolaď.</p>
       <div class="row"><input type="text" id="ate-${cs.key}" value="${esc(m.ate_text || '')}" placeholder="např. 2 rohlíky se šunkou a sýrem, jablko" style="flex:1;min-width:200px"><button class="btn sec sm write" onclick="A.ateText('${cs.key}',document.getElementById('ate-${cs.key}').value)">Rozpoznat</button></div>
-      ${(m.extra || []).length ? `<div class="tbl"><table class="items" style="margin-top:8px"><tr><th>Surovina</th><th class="n">g</th><th class="n">kcal</th><th></th></tr>${(m.extra || []).map((ex, j) => { const f = foods.find(x => x.name === ex.food); return `<tr><td>${modeBadge(ex.food)}<select class="sw edit" style="width:calc(100% - 26px)" onchange="A.extraFood('${cs.key}',${j},this.value)">${foodOpts(ex.food)}</select><div class="tiny muted">${measureText(ex.food, ex.g)}</div></td><td class="n"><input class="g edit" type="number" min="0" step="5" value="${ex.g}" onchange="A.extraG('${cs.key}',${j},this.value)"></td><td class="n">${f ? fmt0(f.kcal * ex.g / 100) : ''}</td><td class="n"><button class="xbtn write" onclick="A.extraDel('${cs.key}',${j})">×</button></td></tr>`; }).join('')}<tr><td class="b">celkem</td><td></td><td class="n b">${fmt0((m.extra || []).reduce((a, ex) => { const f = foods.find(x => x.name === ex.food); return a + (f ? f.kcal * ex.g / 100 : 0); }, 0))}</td><td></td></tr></table></div><p class="hint">Do součtu dne se počítá cíl chodu; tvůj zápis je pro tebe a trenéra.</p>` : ''}`;
+      ${(m.extra || []).length ? `<div class="tbl"><table class="items" style="margin-top:8px"><tr><th>Surovina</th><th class="n">g</th><th class="n">kcal</th><th></th></tr>${(m.extra || []).map((ex, j) => { const f = foods.find(x => x.name === ex.food); return `<tr><td>${modeBadge(ex.food)}<select class="sw edit" style="width:calc(100% - 26px)" onchange="A.extraFood('${cs.key}',${j},this.value)">${foodOpts(ex.food)}</select><div class="tiny muted">${measureText(ex.food, ex.g)}</div></td><td class="n"><input class="g edit" type="number" min="0" step="5" value="${ex.g}" onchange="A.extraG('${cs.key}',${j},this.value)"></td><td class="n">${f ? fmt0(f.kcal * ex.g / 100) : ''}</td><td class="n"><button class="xbtn write" onclick="A.extraDel('${cs.key}',${j})">×</button></td></tr>`; }).join('')}<tr><td class="b">celkem</td><td></td><td class="n b">${fmt0((m.extra || []).reduce((a, ex) => { const f = foods.find(x => x.name === ex.food); return a + (f ? f.kcal * ex.g / 100 : 0); }, 0))}</td><td></td></tr></table></div><p class="hint">Do součtu dne se počítá cíl jídla; tvůj zápis je pro tebe a trenéra.</p>` : ''}`;
   else if (c.skipped) body = `<p class="small muted">Vynecháno.</p>`;
   const st = c.active ? (Math.abs(c.kcal - c.target) <= 30 ? 'ok' : (c.kcal > c.target ? 'bad' : 'warn')) : '';
   const eaten = !!m.eaten;

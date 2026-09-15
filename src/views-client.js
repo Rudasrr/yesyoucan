@@ -124,7 +124,7 @@ function weekMessages(days, s, filled, w) {
   else if (bad.length) M.push({ tone: 'push', em: '🎯', text: `${bad.length === 1 ? 'Jeden den' : bad.length + ' dny'} (${bad.map(d => DAY_NAMES[d.i]).join(', ')}) ${bad.length === 1 ? 'nesedí' : 'nesedí'}. Vyměň jednu variantu za lehčí a je to.` });
   else M.push({ tone: 'good', em: '👍', text: 'Týden je naplánovaný a sedí. Teď nákup, ať to není jen plán.' });
   if (sit >= 5) M.push({ tone: 'push', em: '🎲', text: `${sit}× „vyřeším podle situace“ – to je ${sit} loterií. Zkus aspoň polovinu nahradit konkrétním jídlem.` });
-  else if (sit > 0 && filled === 35) M.push({ tone: 'neutral', em: '🎲', text: `${sit}× „podle situace“ – v pořádku, drž u nich cíl chodu a bílkovinu.` });
+  else if (sit > 0 && filled === 35) M.push({ tone: 'neutral', em: '🎲', text: `${sit}× „podle situace“ – v pořádku, drž u nich cíl jídla a bílkovinu.` });
   const ws = weighStreak(), st = streakOk();
   if (st >= 3) M.push({ tone: 'good', em: '🔥', text: `${st} dnů v řadě v pořádku. Plán je jen papír – ty ho plníš.` });
   return M;
@@ -204,6 +204,21 @@ VIEWS.navod = function () {
   ${sec('food', '🍳', 'Vlastní a upravená jídla', 'Recepty jde upravit, složit vlastní i vyměnit surovinu v konkrétní den.', steps(T.navod.custom.map(r => [r[0], r[1] + ' (' + r[2].replace('list ', '') + ')'])))}
   ${sec('vahy', '🥄', 'Jak jíst bez váhy', 'Zvaž jen bílkovinu. Přílohu odměř hrnkem nebo lžící, zeleninu od oka.', `<p class="small" style="margin-bottom:10px">⚖️ maso, ryba, sýr, tvaroh – tady se chyba počítá, važ. 🥄 příloha, mléko, vločky, ořechy, oleje – odměř nádobou. ✋ zelenina, koření – od oka, hrst je hrst. Míry v receptech vychází z tvých nádob:</p>` + containersCard())}
   ${sec('measure', '📏', 'Kdy měřit a co zapisovat', 'Váha denně, obvody v neděli.', tiles(T.navod.measure.map(r => [r[0], r[1], r[2]])) + `<p class="hint">${esc(T.navod.measure_notes[0])}</p><p class="hint">${esc(T.navod.measure_notes[1])}</p>`)}
+  ${sec('slovnik', '📖', 'Slovníček – co které číslo znamená', 'Appka používá pořád stejná slova. Tady je, co za nimi je.', tiles([
+    ['Klidový výdej', `${fmt0(b.bmr)} kcal`, 'Kolik tělo spotřebuje za den, i kdybys celý den ležel. Chůzí se nezvedá – mění se s váhou, výškou a věkem.'],
+    ['Běžný výdej', `${fmt0(b.baseOut)} kcal`, `Klidový výdej plus obyčejný den: práce, schody, nákup (× ${String(s.activity).replace('.', ',')}). Bez cíleného pohybu.`],
+    ['Cílený pohyb', `${fmt0(s.walk_min * b.walkPerMin)} kcal při ${s.walk_min} min chůze`, 'Co spálíš navíc tím, že se hýbeš schválně – chůze a trénink. Jediné číslo, se kterým dnes něco naděláš.'],
+    ['Celkový výdej', `${fmt0(b.minOut)} kcal`, 'Běžný výdej + cílený pohyb. Kolik dnes spálíš dohromady.'],
+    ['Plánovaný deficit', `${fmt0(b.deficit)} kcal`, `Kolik má na konci dne chybět, aby váha šla dolů o ${String(s.rate_pct).replace('.', ',')} % týdně. Tohle číslo appka nesnižuje.`],
+    ['Dnešní deficit', 'celkový výdej − příjem', 'Kolik ti dnes doopravdy chybí. Když je menší než plánovaný, hubnutí se zpomalí.'],
+    ['Limit dne', `${fmt0(b.maxIntake)} kcal`, 'Kolik můžeš dnes sníst, aby deficit vyšel. Roste s tím, kolik se dnes pohybuješ.'],
+    ['Limit podle plánu', `${fmt0(b.planLimit)} kcal`, 'Totéž, ale počítá s chůzí a tréninkem, které máš na den naplánované. Podle něj ti appka dopředu nakrájí porce.'],
+    ['Rezerva', 'limit dne − příjem', 'Kolik ti ještě zbývá do limitu. Velké číslo nahoře na Dnes.'],
+    ['Spodní hranice jídla', `${fmt0(b.bmr)} kcal`, 'Limit nikdy nespadne pod klidový výdej. Když na ní limit drží, znamená to málo pohybu – a menší deficit, než má být.'],
+    ['Cíl jídla', 'např. snídaně 620 kcal', 'Kolik má mít jedno jídlo. Appka podle toho škáluje přílohu.'],
+    ['Cíl chůze', `${s.walk_min} min denně`, 'Kolik minut chůze máš denně ujít. Pozor, neplést s cílem jídla.'],
+    ['Tempo hubnutí', `${String(s.rate_pct).replace('.', ',')} % váhy týdně`, 'Jak rychle má váha klesat. Mění ho jen trenér.'],
+  ]))}
   ${sec('why', '🧠', 'O plánu – proč je postavený takhle', 'Cíl, klíčová čísla a rozhodnutí.', tiles(T.o_planu.goal.map(r => [r[0], r[1]])) + '<h3 style="margin:12px 0 6px">Klíčová čísla</h3>' + tiles(T.o_planu.numbers.map(r => [r[0], r[1]])) + '<h3 style="margin:12px 0 6px">Rozhodnutí</h3>' + tiles(T.o_planu.decisions.map(r => [r[0], r[1]])))}`;
 };
 

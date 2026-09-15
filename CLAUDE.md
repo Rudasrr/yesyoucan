@@ -19,6 +19,7 @@ Pořadí skládání (neměnit): style.css → seed.js → calc.js → store.js 
 ## Pevná rozhodnutí (neměnit bez výslovného souhlasu vlastníka)
 
 - Jeden `index.html` (HTML+CSS+JS, vanilla), žádný framework, žádný bundler. Knihovny z CDN jen při potřebě (Supabase JS, SheetJS). Grafy vlastní SVG.
+- Terminologie je sjednocená (15. 9. 2026): klidový výdej · běžný výdej · cílený pohyb · celkový výdej · plánovaný deficit · dnešní deficit · limit dne · limit podle plánu · rezerva · spodní hranice jídla · cíl jídla · cíl chůze · tempo hubnutí. Slovník je ve `STAV.md` a v appce v Návodu. Nepiš „bazál“, „pojistka bazálu“, „cílový deficit“, „maximální příjem“, „plánovací limit“ ani „cíl chodu“ – pletly se.
 - Výpočty v `calc.js` jsou 1:1 podle sešitu, kromě zdokumentovaných odchylek (STAV.md → „Odchylky od sešitu“). Změna výpočtu = změna zadání, nikdy vedlejší efekt.
 - Offline-first: localStorage + fronta `outbox` + last-write-wins podle `updated_at`, soft-delete `deleted`. Id záznamů obsahují uid.
 - Robert edituje výchozí suroviny/recepty jako vlastní verzi; trenér globálně. Tempo hubnutí mění jen trenér.

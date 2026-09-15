@@ -32,6 +32,7 @@ Webová appka pro jednoho klienta (Robert, start 134,4 kg → 102 kg, 0,7 % váh
 
 ## Klíčové výpočty (calc.js)
 - BMR Mifflin–St Jeor; výdej = BMR × faktor aktivity (1,34) + chůze (MET podle km/h) + trénink (MET); deficit = váha × tempo % × 7700/7 (pevný); limit dne = výdej − deficit; **plánovací limit** dne = výdej s plánovanou chůzí a tréninkem − deficit.
+- **Slovník (platí v kódu i v textech pro Roberta, sjednoceno 15. 9. 2026):** klidový výdej (BMR, Mifflin–St Jeor) · běžný výdej (klidový × 1,34) · cílený pohyb (chůze + trénink) · celkový výdej (běžný + cílený pohyb) · příjem · **plánovaný deficit** (váha × tempo % × 7700/7, pevný) · **dnešní deficit** (celkový výdej − příjem) · **limit dne** (celkový výdej − plánovaný deficit) · **limit podle plánu** (totéž s naplánovanou chůzí a tréninkem; podle něj se škálují porce) · rezerva (limit dne − příjem) · **spodní hranice jídla** (limit nikdy pod klidový výdej) · cíl jídla · cíl chůze · tempo hubnutí. Slova „bazál“, „pojistka bazálu“, „cílový deficit“, „maximální příjem“, „plánovací limit“ a „cíl chodu“ se už nepoužívají – pletly se.
 - **Pojistka bazálu** (odchylka od sešitu, rozhodnuto): limit nikdy pod BMR; appka řekne, kolik minut chůze chybí.
 - Cíl chodu = cíl z Nastavení × limit/2450; škáluje se jen příloha (flag), faktor 0,3–1,6, příloha zaokrouhlena na 10 g (sešit 5 g – odchylka). Pivo 205 kcal/0,5 l, smažené 2,9 kcal/g, min. 600 kcal na jídlo.
 - Průměr 7 vážení; plánovaná křivka; prognóza; plán proti realitě 75 %.

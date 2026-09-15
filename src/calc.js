@@ -44,7 +44,7 @@ function calcBase(s, weight, walkMin, exerMin, walkKmh, beers, friedG, act) {
   const minOut = baseOut + planWalk * walkPerMin + (act.planKcal || 0);
   const deficit = weight * s.rate_pct / 100 * KG_KCAL / 7;
   const maxIntakeRaw = totalOutRaw - deficit, planLimitRaw = minOut - deficit;
-  // pojistka: limit nikdy pod bazál (rozhodnuto Rudou; odchylka od sešitu)
+  // spodní hranice jídla: limit nikdy pod klidový výdej (rozhodnuto Rudou; odchylka od sešitu)
   const maxIntake = Math.max(bmr, maxIntakeRaw), planLimit = Math.max(bmr, planLimitRaw);
   const belowBmr = maxIntakeRaw < bmr, planBelowBmr = planLimitRaw < bmr;
   const walkToBmr = belowBmr ? Math.ceil((bmr - maxIntakeRaw) / walkPerMin) : 0;
@@ -106,7 +106,7 @@ function calcDay(s, foods, recipes, day, weight) {
   const protTarget = tot.kcal === 0 ? 0 : Math.round(s.protein_min * activeTargets / courseTargetSum(s));
   const intake = tot.kcal + base.drinkKcal;
   const wmNow = day.walk_min || 0;
-  // kolik minut chůze den skutečně srovná (pojistka bazálu drží limit, dokud se výdej nevrátí nad bazál)
+  // kolik minut chůze den skutečně srovná (spodní hranice drží limit, dokud celkový výdej nevyroste dost)
   const walkFix = base.walkPerMin > 0 ? Math.max(0, Math.ceil((intake - base.maxIntakeRaw) / base.walkPerMin)) : 0;
   const checks = [];
   // Kalorie
@@ -128,7 +128,7 @@ function calcDay(s, foods, recipes, day, weight) {
   }
   else checks.push({ name: 'Chůze', state: 2, text: `OK – ušel jsi ${wm} minut (cíl ${wt}) při ${fmt1(base.kmh)} km/h = ${fmt0(wm * base.walkPerMin)} kcal` });
   if (day.act && day.act.planItems) checks.push({ name: 'Trénink', state: day.act.doneAll ? 2 : (day.act.doneKcal ? 3 : 1), text: day.act.doneAll ? `OK – splněno, ${fmt0(day.act.doneKcal)} kcal` : (day.act.doneKcal ? `částečně (${fmt0(day.act.doneKcal)} z ${fmt0(day.act.planKcal)} kcal)` : `čeká – ${day.act.planItems} ${day.act.planItems === 1 ? 'položka' : 'položky'}, ~${fmt0(day.act.planKcal)} kcal`) });
-  if (base.belowBmr) checks.push({ name: 'Bazál', state: 1, text: `Bez pohybu by dnešní limit spadl pod bazál (${fmt0(base.bmr)} kcal) – tolik tělo spálí, i kdybys celý den ležel, a jíst míň nemá smysl. Proto ti limit držím na bazálu. Prvních ${base.walkToBmr} minut chůze limit ještě nezvedne, ty jen dorovnají bazál; teprve každá další minuta ti přidá ${fmt0(base.walkPerMin)} kcal.` });
+  if (base.belowBmr) checks.push({ name: 'Spodní hranice', state: 1, text: `Zatím máš málo cíleného pohybu, takže by ti limit vyšel pod klidový výdej (${fmt0(base.bmr)} kcal) – tolik tělo spotřebuje, i kdybys celý den ležel, a jíst míň nemá smysl. Proto limit držím na téhle spodní hranici. Chůze klidový výdej nezvedá, zvedá celkový výdej – a s ním limit: prvních ${base.walkToBmr} minut se limit ještě nehne, od té doby ti každá minuta přidá ${fmt0(base.walkPerMin)} kcal. Dokud limit drží hranice, je tvůj dnešní deficit menší než plánovaný, takže hubnutí jede pomaleji.` });
   // Ruční úpravy
   const edited = courses.reduce((a, c) => a + c.edited, 0);
   checks.push({ name: 'Ruční úpravy', state: 3, text: edited === 0 ? 'žádné – platí recepty, jak jsou' : `${edited} polí (vyměněná potravina či gramáž). Při změně dne nebo varianty je zkontroluj či smaž.` });
