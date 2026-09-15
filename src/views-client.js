@@ -88,11 +88,11 @@ VIEWS.prehled = function () {
      <h3 style="margin-top:12px">Tvoje fáze: ${esc(ov.phase)}</h3><p class="small muted" style="margin-top:4px">Hodina chůze ti při ${fmt1(ov.cur)} kg udělá asi ${fmt0(60 * b.walkPerMin)} kcal, svižnějším tempem zhruba o třetinu víc. Rychlejší chůze je tedy levnější než delší.</p></div>
   </div>
   <div class="card"><h2>Váha proti plánu</h2>
-   ${lineChart({ series: [{ name: 'plán', color: '#9aa7ab', dash: true, pts: planPts }, { name: 'ranní váha', color: '#b9cfd2', pts: rawPts, thin: true }, { name: 'průměr 7 dní', color: '#0f6f74', pts: realPts, dots: true }], xLabel: 'dní od startu', yUnit: 'kg', hLine: { y: s.goal_weight, label: 'cíl ' + s.goal_weight + ' kg', color: '#2f8f5b' } })}
+   ${lineChart({ series: [{ name: 'plán', color: '#9aa7ab', dash: true, pts: planPts }, { name: 'ranní váha', color: '#a8c6e4', pts: rawPts, thin: true }, { name: 'průměr 7 dní', color: '#1478d4', pts: realPts, dots: true }], xLabel: 'dní od startu', yUnit: 'kg', hLine: { y: s.goal_weight, label: 'cíl ' + s.goal_weight + ' kg', color: '#2f8f5b' } })}
   </div>
   <div class="grid g2">
-   <div class="card"><h2>Pas</h2>${waistRows.length ? lineChart({ series: [{ name: 'pas (cm)', color: '#0f6f74', pts: waistRows, dots: true }], xLabel: 'dní od startu', yUnit: 'cm', hLine: { y: s.goal_waist, label: 'cíl ' + s.goal_waist + ' cm', color: '#2f8f5b' }, h: 220 }) : '<p class="muted small">Zatím žádný obvod pasu. Změř v neděli.</p>'}</div>
-   <div class="card"><h2>Ostatní obvody</h2>${lineChart({ series: [{ name: 'boky', color: '#0f6f74', pts: circ('hips'), dots: true }, { name: 'hrudník', color: '#5b8c3e', pts: circ('chest'), dots: true }, { name: 'stehno', color: '#b7791f', pts: circ('thigh'), dots: true }, { name: 'paže', color: '#8a5a9e', pts: circ('arm'), dots: true }], xLabel: 'dní od startu', yUnit: 'cm', h: 220 })}</div>
+   <div class="card"><h2>Pas</h2>${waistRows.length ? lineChart({ series: [{ name: 'pas (cm)', color: '#1478d4', pts: waistRows, dots: true }], xLabel: 'dní od startu', yUnit: 'cm', hLine: { y: s.goal_waist, label: 'cíl ' + s.goal_waist + ' cm', color: '#2f8f5b' }, h: 220 }) : '<p class="muted small">Zatím žádný obvod pasu. Změř v neděli.</p>'}</div>
+   <div class="card"><h2>Ostatní obvody</h2>${lineChart({ series: [{ name: 'boky', color: '#1478d4', pts: circ('hips'), dots: true }, { name: 'hrudník', color: '#5b8c3e', pts: circ('chest'), dots: true }, { name: 'stehno', color: '#b7791f', pts: circ('thigh'), dots: true }, { name: 'paže', color: '#8a5a9e', pts: circ('arm'), dots: true }], xLabel: 'dní od startu', yUnit: 'cm', h: 220 })}</div>
   </div>
   <div class="grid g2">
    <div class="card"><h2>Plán proti realitě</h2><p class="small muted" style="margin:4px 0 8px">${T.plan_vs_reality_intro.replace('0,70', String(s.rate_pct).replace('.', ','))}</p>

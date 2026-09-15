@@ -40,7 +40,7 @@ function buzz(pattern) { try { if (navigator.vibrate) navigator.vibrate(pattern 
 function celebrate(kind) {
   buzz(kind === 'day' ? [40, 60, 40, 60, 120] : 40);
   if (kind !== 'day') return;
-  const c = document.createElement('div'); c.className = 'confetti'; const colors = ['#0ea5a4', '#22c55e', '#ff7a45', '#fbbf24', '#7c5cff'];
+  const c = document.createElement('div'); c.className = 'confetti'; const colors = ['#1478d4', '#c81f2b', '#101828', '#4aa3e8', '#e0452f'];
   for (let i = 0; i < 40; i++) { const p = document.createElement('i'); p.style.left = (5 + Math.random() * 90) + '%'; p.style.background = colors[i % 5]; p.style.animationDelay = (Math.random() * 0.4) + 's'; p.style.animationDuration = (1.4 + Math.random()) + 's'; c.appendChild(p); }
   document.body.appendChild(c); setTimeout(() => c.remove(), 2600);
 }
