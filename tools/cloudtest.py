@@ -183,6 +183,25 @@ with sync_playwright() as p:
     check('trenér ji vidí jako Robertovu', coach.evaluate(
         f"(Store.rows('foods').find(r=>r.id==='{ownid}')||{{}}).user_id === '{ruid}'"))
 
+    print('\n8 · náhled trenéra nic neuloží, „Plánovat za Roberta“ ano')
+    coach.evaluate("App.preview = true; App.coachPlan = false; App.view = 'dnes'; render()")
+    before = coach.evaluate("JSON.stringify(Store.db.days.map(r=>r.id))")
+    coach.evaluate("(()=>{ const d = getDay(todayISO()); d.meals = {...d.meals, svacina:{ sel: 'CLOUDTEST – náhled' }}; saveDay(d) })()")
+    coach.wait_for_timeout(300)
+    check('v náhledu se nic neuloží', coach.evaluate("JSON.stringify(Store.db.days.map(r=>r.id))") == before)
+
+    coach.evaluate("App.coachPlan = true; render()")
+    rname = coach.evaluate("Recipes().filter(r=>r.course==='Svačina')[0].name")
+    coach.evaluate(f"(()=>{{ const d = getDay(todayISO()); d.meals = {{...d.meals, svacina:{{ sel: {json.dumps(rname)} }} }}; saveDay(d) }})()")
+    cid = coach.evaluate("oid('d', todayISO())")
+    created.append(('days', cid))
+    sync(coach); sync(robert)
+    check('trenér naplánoval Robertovi svačinu', robert.evaluate(
+        f"(Store.rows('days').find(r=>r.id==={json.dumps(cid)})||{{data:{{meals:{{}}}}}}).data.meals.svacina.sel === {json.dumps(rname)}"))
+    check('den patří Robertovi, ne trenérovi', coach.evaluate(
+        f"(Store.rows('days').find(r=>r.id==={json.dumps(cid)})||{{}}).user_id === '{ruid}'"))
+    coach.evaluate("App.coachPlan = false; App.preview = false; render()")
+
     b.close()
 
 if not KEEP:
