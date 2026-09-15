@@ -51,7 +51,7 @@ with sync_playwright() as p:
     print('ics len:', pg.evaluate("(()=>{let n=0;const o=downloadBlob;window.downloadBlob=(b)=>{n=b.size};A.exportIcs();window.downloadBlob=o;return n})()"))
     # PIN
     pg.evaluate("Store.profile=null;LS.del('profile');render()"); pg.fill('#lem','r.pesek24@gmail.com'); pg.fill('#lpw','spatne'); pg.click('#lbtn'); pg.wait_for_timeout(100); print('login wrong:', pg.inner_text('#lerr'))
-    pg.click('text=Přihlásit se jako trenér'); pg.wait_for_timeout(100); pg.fill('#lpw','06392'); pg.click('#lbtn'); pg.wait_for_timeout(200); print('coach login role:', pg.evaluate("Store.profile.role"), pg.evaluate("App.view"))
+    pg.fill('#lem','rehor.rudolf@gmail.com'); pg.fill('#lpw','06392'); pg.click('#lbtn'); pg.wait_for_timeout(200); print('coach login role:', pg.evaluate("Store.profile.role"), pg.evaluate("App.view"))
     pg.evaluate("go('trenink');A.tpNew()"); pg.evaluate("App.tpDay=0;document.querySelector('#tpex').value='Dřep';A.tpItemAdd();document.querySelector('#tpex').value='Kettlebell swing';A.tpItemAdd();document.querySelector('#tpex').value='Běh pomalý';A.tpItemAdd()")
     pg.evaluate("A.tpDayField('walk_min',45)"); pg.evaluate("A.tpField('active_from',mondayOf(todayISO()))"); pg.wait_for_timeout(100)
     print('plan:', pg.evaluate("(()=>{const p=trainingPlans()[0];return p.name+' d0 items='+p.days[0].items.length+' kcal='+Math.round(sessionKcal(p.days[0].items,currentWeight()))+' active='+p.active_from})()"))

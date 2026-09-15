@@ -4,7 +4,6 @@ const $ = sel => document.querySelector(sel);
 const App = { view: 'dnes', date: todayISO(), week: mondayOf(todayISO()), ro: false, moreOpen: false };
 const A = {};  // akce
 const oid = (p, k) => `${p}:${Store.ownerId()}:${k}`;  // id unikátní napříč uživateli
-const COACH_PIN = '06392';  // PIN pro přepnutí do trenérského pohledu v režimu bez cloudu (není to zabezpečení)
 
 /* ---- data ---- */
 function settingsRec() { const uid = Store.ownerId(); return Store.rows('settings').find(r => r.user_id === uid); }
@@ -138,7 +137,7 @@ function render() {
   const el = $('#main'); el.className = App.ro ? 'wrap ro' : 'wrap';
   const V = VIEWS[App.view] || VIEWS.dnes;
   let head = '';
-  if (isCoach() && Store.clients.length > 1 && App.view !== 'databaze') head = `<div class="row small muted" style="margin-bottom:8px">Klient: <select style="width:auto;min-height:30px;padding:3px 8px" onchange="Store.clientId=this.value;LS.set('clientId',this.value);render()">${Store.clients.map(c => `<option value="${c.id}" ${c.id === Store.clientId ? 'selected' : ''}>${esc(c.display_name || c.email || c.id.slice(0, 8))}</option>`).join('')}</select></div>`;
+  if (isCoach() && Store.clients.length > 1 && App.view !== 'databaze') head = `<div class="row small muted" style="margin-bottom:8px">Klient: <select style="width:auto;min-height:30px;padding:3px 8px" onchange="Store.clientId=this.value;LS.set('clientId',this.value);render()">${Store.clients.map(c => `<option value="${c.id}" ${c.id === Store.clientId ? 'selected' : ''}>${esc(c.display_name || c.name || c.email || c.id.slice(0, 8))}</option>`).join('')}</select></div>`;
   if (App.ro) head += `<div class="notice row between" style="margin-bottom:10px"><span>${App.preview ? '👁️ Robertův pohled – přesně to, co vidí on. Jen náhled, nic se neuloží.' : 'Náhled na Robertova data – jen ke čtení.'}</span>${App.preview ? '<button class="btn sm" style="pointer-events:auto" onclick="A.togglePreview()">Zpět do trenéra</button>' : ''}</div>`;
   el.innerHTML = head + V();
 }
@@ -146,24 +145,17 @@ function render() {
 /* ---- přihlášení ---- */
 /* Přístupy bez cloudu (jen bariéra proti omylu – v souboru jsou čitelné; skutečné ověření dělá Supabase) */
 const LOCAL_USERS = { 'r.pesek24@gmail.com': { pw: 'mamnato', role: 'client' }, 'rehor.rudolf@gmail.com': { pw: '06392', role: 'coach' } };
-App.loginCoach = false;
 function renderLogin() {
   $('#app').classList.remove('on'); const L = $('#login'); L.classList.add('on');
-  const coach = App.loginCoach;
-  L.innerHTML = `<div class="card"><div class="hero-logo${coach ? '' : ' pic'}">${coach ? '📊' : '<img src="logo.png" alt="">'}</div><h1>${coach ? 'Přihlášení trenéra' : 'YesYouCan'}</h1><p class="muted small" style="margin:6px 0 14px">${coach ? 'Trenérský účet – dashboard, nastavení, recepty a trénink.' : 'Přihlaš se e-mailem a heslem.'}</p>
-    <div class="in"><label class="f">E-mail</label><input type="email" id="lem" autocomplete="username" value="${coach ? 'rehor.rudolf@gmail.com' : ''}"></div>
+  // jedna přihlašovací obrazovka pro všechny – jestli je to trenér nebo klient, řekne profil
+  L.innerHTML = `<div class="card"><div class="hero-logo pic"><img src="logo.png" alt=""></div><h1>YesYouCan</h1><p class="muted small" style="margin:6px 0 14px">Přihlaš se e-mailem a heslem.</p>
+    <div class="in"><label class="f">E-mail</label><input type="email" id="lem" autocomplete="username"></div>
     <div class="in" style="margin-top:8px"><label class="f">Heslo</label><input type="password" id="lpw" autocomplete="current-password"></div>
     <div id="lerr" class="bad small" style="margin-top:8px"></div>
     <div class="row" style="margin-top:12px"><button class="btn" id="lbtn" onclick="doLogin()">Přihlásit</button>${Store.localMode() ? '' : '<button class="btn sec" onclick="doReset()">Zapomenuté heslo</button>'}</div>
-    <p class="small" style="margin-top:14px"><a href="#" onclick="App.loginCoach=!App.loginCoach;renderLogin();return false">${coach ? '‹ Přihlásit se jako Robert' : 'Přihlásit se jako trenér ›'}</a></p>
     ${Store.localMode() ? '<p class="tiny muted" style="margin-top:8px">Režim bez cloudu: data zůstávají v tomto prohlížeči.</p>' : ''}</div>`;
   $('#lpw').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
-  ($('#lem').value ? $('#lpw') : $('#lem')).focus();
-}
-function coachPin() {
-  const m = UI.modal(`<h2 style="text-align:center">PIN trenéra</h2><p class="muted small" style="text-align:center;margin:6px 0 14px">Přepne appku do trenérského pohledu na tomto zařízení.</p><div class="pin"><input type="password" inputmode="numeric" maxlength="5" id="pinv" style="width:160px;letter-spacing:.3em"></div><div id="pinerr" class="bad small" style="text-align:center;margin-top:8px"></div><div class="row" style="justify-content:center;margin-top:12px"><button class="btn" id="pinok">Přepnout</button><button class="btn sec" onclick="UI.closeModal()">Zpět</button></div>`);
-  const ok = () => { if (m.querySelector('#pinv').value === COACH_PIN) { m.remove(); localLogin('coach'); } else m.querySelector('#pinerr').textContent = 'Špatný PIN.'; };
-  m.querySelector('#pinok').onclick = ok; m.querySelector('#pinv').addEventListener('keydown', e => { if (e.key === 'Enter') ok(); }); m.querySelector('#pinv').focus();
+  $('#lem').focus();
 }
 function localLogin(role) {
   Store.profile = { id: role === 'coach' ? 'local-coach' : 'local-client', role, local: true }; LS.set('profile', Store.profile);
