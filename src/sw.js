@@ -1,0 +1,34 @@
+/* ===== Service worker – appka se otevře i bez signálu =====
+   Verzi cache doplní build.py podle obsahu index.html (__BUILD_HASH__).
+   Cachuje jen vlastní soubory; CDN (Supabase, SheetJS) a volání API jdou vždy ze sítě. */
+const CACHE = 'robert-plan-__BUILD_HASH__';
+const SHELL = ['./', './index.html', './manifest.webmanifest', './icon.svg', './icon-180.png'];
+
+self.addEventListener('install', e => {
+  // appshell musí být v cache celý; ikony a manifest ať build nepoloží celou instalaci
+  e.waitUntil(caches.open(CACHE)
+    .then(c => c.addAll(['./', './index.html']).then(() => Promise.all(SHELL.slice(2).map(u => c.add(u).catch(() => { })))))
+    .then(() => self.skipWaiting()));
+});
+
+self.addEventListener('activate', e => {
+  e.waitUntil(caches.keys()
+    .then(ks => Promise.all(ks.filter(k => k !== CACHE && k.startsWith('robert-plan-')).map(k => caches.delete(k))))
+    .then(() => self.clients.claim()));
+});
+
+self.addEventListener('fetch', e => {
+  const req = e.request;
+  if (req.method !== 'GET') return;
+  const url = new URL(req.url);
+  if (url.origin !== self.location.origin) return;          // CDN a Supabase necachujeme
+  if (url.pathname.endsWith('/sw.js')) return;              // o aktualizaci workeru se stará prohlížeč
+  if (req.mode === 'navigate') {                            // otevření appky: cache napřed, ať naskočí i bez signálu
+    e.respondWith(caches.match('./index.html').then(hit => hit || fetch(req).catch(() => caches.match('./'))));
+    return;
+  }
+  e.respondWith(fetch(req).then(res => {                    // ostatní vlastní soubory: síť napřed, cache jako záloha
+    if (res && res.ok && res.type === 'basic') { const copy = res.clone(); caches.open(CACHE).then(c => c.put(req, copy)); }
+    return res;
+  }).catch(() => caches.match(req)));
+});
