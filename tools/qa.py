@@ -12,7 +12,8 @@ CHECK_JS='''(() => {
     const cs=getComputedStyle(el);
     if(cs.display!=='grid') continue;
     const cols=cs.gridTemplateColumns.split(' ').filter(t=>parseFloat(t)>0).length;
-    const kids=[...el.children].filter(c=>getComputedStyle(c).display!=='none').length;
+    const pocet=par=>[...par.children].reduce((n,c)=>{const d=getComputedStyle(c).display;return d==='none'?n:d==='contents'?n+pocet(c):n+1;},0);
+    const kids=pocet(el);
     if(cols>1 && kids>0 && kids<cols) out.holes.push('prázdné sloupce: '+(el.className||el.tagName)+' '+kids+'/'+cols);
   }
   for(const el of document.querySelectorAll('#main .grid > .card, #main .dgrid > * > .card')){

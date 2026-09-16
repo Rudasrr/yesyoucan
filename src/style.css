@@ -166,7 +166,7 @@ svg.chart{width:100%;height:auto;display:block}
 .dgrid{display:grid;gap:12px;grid-template-columns:1fr;margin-bottom:12px}
 .dgrid .card{margin-bottom:0}
 .dgrid .colL,.dgrid .colR{display:contents}.dgrid>*{min-width:0}
-.ga-hero{order:1}.ga-tasks{order:2}.ga-check{order:3}.ga-sum{order:4}.ga-walk{order:5}
+/* pořadí karet dne určuje struktura, ne order – jinak se po každé úpravě rozsype */
 @media(min-width:900px){.dgrid{grid-template-columns:3fr 2fr;align-items:start}.dgrid .colL,.dgrid .colR{display:flex;flex-direction:column;gap:12px}}
 .task>div{flex:1;min-width:0}
 .xbtn{border:0;background:transparent;color:#a3a9bd;font-size:18px;line-height:1;cursor:pointer;padding:4px 6px;border-radius:8px}.xbtn:hover{background:var(--bad-bg);color:var(--bad)}
@@ -370,16 +370,17 @@ body.has-modal .toast{bottom:auto;top:calc(12px + env(safe-area-inset-top))}
 .grid.gtop{align-items:start}
 
 /* ---- kontroly dne: barvu nese štítek, text zůstává čitelný ---- */
-.checks .chk{display:flex;gap:10px;padding:9px 0 9px 10px;border-bottom:1px solid var(--line2);align-items:baseline}
+/* kontroly: pevná mřížka, ať text začíná všude na stejném místě */
+.checks .chk{display:grid;grid-template-columns:104px 132px 1fr;gap:4px 12px;padding:10px 0 10px 12px;border-bottom:1px solid var(--line2);align-items:baseline;border-left:3px solid var(--line)}
 .checks .chk:last-child{border-bottom:0}
-.checks .chk .cb{flex:1;min-width:0}
+.checks .chk .cb{display:contents}
 .checks .chk .ct{color:var(--ink);font-weight:500}
-.checks .chk .tag{display:inline-block;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;padding:3px 9px;border-radius:999px;margin-right:8px;white-space:nowrap;background:var(--line2);color:var(--ink2)}
-.checks .chk.k1{box-shadow:inset 3px 0 0 var(--bad)}
+.checks .chk .tag{display:inline-block;justify-self:start;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;padding:3px 9px;border-radius:999px;margin-right:8px;white-space:nowrap;background:var(--line2);color:var(--ink2)}
+.checks .chk.k1{border-left-color:var(--bad)}
 .checks .chk.k1 .tag{background:var(--bad-bg);color:var(--bad)}
-.checks .chk.k2{box-shadow:inset 3px 0 0 var(--ok)}
+.checks .chk.k2{border-left-color:var(--ok)}
 .checks .chk.k2 .tag{background:var(--ok-bg);color:var(--ok)}
-.checks .chk.k0{box-shadow:inset 3px 0 0 var(--line)}
+.checks .chk.k0{border-left-color:var(--line)}
 
 /* domácí míra je hlavní údaj, gramáž slouží ke kontrole */
 .meas{font-size:15px;font-weight:800;color:var(--ink);margin-bottom:4px;white-space:nowrap}
@@ -426,4 +427,11 @@ body.has-modal .toast{bottom:auto;top:calc(12px + env(safe-area-inset-top))}
   .muted,.tiny{color:#555!important}
   .sum,.status,.praise,.alert{display:none!important}
   a[href]:after{content:''}
+}
+
+.checks .chk .tag{margin-right:0}
+.checks .chk:not(:has(.tag)) .ct{grid-column:2 / -1}
+@media(max-width:700px){
+  .checks .chk{grid-template-columns:1fr;gap:4px;padding-left:10px}
+  .checks .chk .nm{font-size:12px;text-transform:uppercase;letter-spacing:.03em}
 }
