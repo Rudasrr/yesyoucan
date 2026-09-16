@@ -275,3 +275,11 @@ tr.cath td{background:rgba(28,35,64,.05);font-weight:800;cursor:pointer;padding:
 .items th.m-kcal,.items th.m-prot,.items th.m-carb,.items th.m-fat{font-weight:800}
 .checks .nm.m-kcal,.checks .nm.m-prot{font-weight:800}
 .stats3 .m-kcal b,.stats3 .m-prot b{color:inherit}
+
+/* cvičení: pauza mezi sériemi */
+.trrest{text-align:center;padding:18px 8px}
+.trrest .trlab{font-size:12px;font-weight:800;letter-spacing:.08em;color:var(--ink2)}
+.trrest .trcd{font-size:64px;font-weight:900;line-height:1.05;letter-spacing:-.03em;font-variant-numeric:tabular-nums}
+.trex{margin-top:10px;padding:12px 14px;border-radius:16px;background:rgba(255,255,255,.58);border:1px solid rgba(255,255,255,.8)}
+.trex .tt{font-weight:800;font-size:17px}
+.chip.okc{color:var(--ok)}
