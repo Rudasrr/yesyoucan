@@ -283,3 +283,13 @@ tr.cath td{background:rgba(28,35,64,.05);font-weight:800;cursor:pointer;padding:
 .trex{margin-top:10px;padding:12px 14px;border-radius:16px;background:rgba(255,255,255,.58);border:1px solid rgba(255,255,255,.8)}
 .trex .tt{font-weight:800;font-size:17px}
 .chip.okc{color:var(--ok)}
+
+/* větší ovládání čísel: − hodnota + */
+.step2{display:flex;align-items:center;gap:8px}
+.step2 .sbtn{width:46px;height:46px;flex:none;border-radius:15px;border:1px solid rgba(255,255,255,.85);background:rgba(255,255,255,.62);color:var(--ink);font-size:24px;font-weight:800;line-height:1;cursor:pointer;box-shadow:var(--hl)}
+.step2 .sbtn:active{background:var(--p-bg)}
+.step2 input{width:92px;text-align:center;font-size:19px;font-weight:800;min-height:46px}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:34px;background:transparent;padding:0;border:0;min-height:34px}
+input[type=range]::-webkit-slider-runnable-track{height:10px;border-radius:6px;background:var(--line2);border:1px solid rgba(255,255,255,.8)}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:30px;height:30px;margin-top:-11px;border-radius:50%;background:var(--p);border:3px solid #fff;box-shadow:0 3px 10px -3px rgba(16,24,40,.6);cursor:pointer}
+.rng{display:flex;align-items:center;gap:10px}.rng b{min-width:74px;text-align:right;font-variant-numeric:tabular-nums}

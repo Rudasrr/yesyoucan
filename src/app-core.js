@@ -200,6 +200,22 @@ async function afterLogin() {
   await Store.sync(); render();
 }
 
+/* ---- větší ovládání čísel: − hodnota + (palcem na telefonu) ---- */
+function stepper(id, value, step, min, max) {
+  const st = step || 1;
+  return `<div class="step2"><button class="sbtn" type="button" onclick="A.num('${id}',${-st},${min ?? ''},${max ?? ''})" aria-label="míň">−</button>` +
+    `<input type="number" id="${id}" value="${value}" step="${st}" ${min != null ? `min="${min}"` : ''} ${max != null ? `max="${max}"` : ''}>` +
+    `<button class="sbtn" type="button" onclick="A.num('${id}',${st},${min ?? ''},${max ?? ''})" aria-label="víc">+</button></div>`;
+}
+A.num = (id, d, min, max) => {
+  const el = document.getElementById(id); if (!el) return;
+  let v = (Number(el.value) || 0) + d;
+  if (min !== '' && min != null) v = Math.max(min, v);
+  if (max !== '' && max != null) v = Math.min(max, v);
+  el.value = Math.round(v * 100) / 100;
+  el.dispatchEvent(new Event('change', { bubbles: true }));
+};
+
 /* ---- service worker: appka se otevře i bez signálu ---- */
 function registerSW() {
   if (!('serviceWorker' in navigator) || location.protocol === 'file:') return;   // testy běží z file://
