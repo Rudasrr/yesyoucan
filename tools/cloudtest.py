@@ -202,6 +202,15 @@ with sync_playwright() as p:
         f"(Store.rows('days').find(r=>r.id==={json.dumps(cid)})||{{}}).user_id === '{ruid}'"))
     coach.evaluate("App.coachPlan = false; App.preview = false; render()")
 
+    print('\n9 · knihovna cviků a uložený trénink (globální řádky)')
+    exid = coach.evaluate("(()=>{ Store.put('training', 'exg:cloudtest-cvik', { ex: 'Cloudtest cvik', type: 'strength', sets: 3, reps: 10 }, null); return 'exg:cloudtest-cvik' })()")
+    created.append(('training', exid))
+    twid = coach.evaluate("(()=>{ Store.put('training', 'twg:cloudtest', { name: 'Cloudtest trénink', items: [{ ex: 'Cloudtest cvik', type: 'strength', sets: 3, reps: 10, intensity: 'medium' }] }, null); return 'twg:cloudtest' })()")
+    created.append(('training', twid))
+    sync(coach); sync(robert)
+    check('Robert vidí nový cvik v knihovně', robert.evaluate("Exercises().some(e => e.ex === 'Cloudtest cvik')"))
+    check('Robert vidí uložený trénink', robert.evaluate("Workouts().some(w => w.name === 'Cloudtest trénink')"))
+
     b.close()
 
 if not KEEP:

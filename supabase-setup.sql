@@ -83,9 +83,13 @@ begin
   foreach t in array array['settings','foods','recipes','measurements','days','week_plans','shopping','prefs','training']
   loop
     write_expr := case
-      -- trenér mění klientovi nastavení, tréninkový plán (i odpovědi na poznámky)
-      -- a smí mu naplánovat jídelníček (den a týden) – primárně si ho ale skládá sám
-      when t in ('settings', 'training', 'days', 'week_plans')
+      -- training drží tři věci najednou: plán a poznámky klienta (píše i trenér),
+      -- knihovnu cviků a uložené tréninky (globální řádky, user_id null = trenérovy)
+      when t = 'training'
+        then '(user_id = auth.uid() or public.is_my_client(user_id) or (user_id is null and public.my_role() = ''coach''))'
+      -- trenér mění klientovi nastavení a smí mu naplánovat jídelníček (den a týden)
+      -- – primárně si ho ale skládá sám
+      when t in ('settings', 'days', 'week_plans')
         then '(user_id = auth.uid() or public.is_my_client(user_id))'
       -- výchozí suroviny a recepty jsou globální, mění je jen trenér; klient si dělá vlastní verze
       when t in ('foods', 'recipes')

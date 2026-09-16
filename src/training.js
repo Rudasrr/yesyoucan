@@ -137,7 +137,7 @@ VIEWS.trenink = function () {
       <td class="n">${fmt0(itemKcal(it, w))}</td><td class="n"><button class="xbtn" onclick="A.tpItemDel(${j})">×</button></td></tr>`; }).join('')}
     <tr><td colspan="6" class="b">Trénink celkem · ${fmt0(ed.items.reduce((a, it) => a + itemMinutes(it), 0))} min</td><td class="n b">${fmt0(es.act.planKcal)}</td><td></td></tr></table>
     <div class="row" style="margin-top:10px"><button class="btn sec sm" onclick="A.tpPickEx()">+ přidat cvik</button><button class="btn sec sm" onclick="A.exLibrary()">🏋️ Knihovna cviků</button><input type="text" id="tpnote" placeholder="poznámka k tréninku (volitelně)" value="${esc(ed.note || '')}" style="flex:1;min-width:180px" onchange="A.tpDayField('note',this.value)"></div>
-    <div class="row" style="margin-top:8px"><button class="btn sec sm" onclick="A.tpCopyDay()">Zkopírovat tento den na…</button><button class="btn sec sm" onclick="A.tpClearDay()">Vyprázdnit den</button></div></div>`;
+    <div class="row" style="margin-top:8px"><button class="btn sec sm" onclick="A.twInsertPlanDay()">📂 Vložit uložený trénink</button><button class="btn sec sm" onclick="A.twSaveDay()">💾 Uložit den jako trénink</button><button class="btn sec sm" onclick="A.twLibrary()">Uložené tréninky</button><button class="btn sec sm" onclick="A.tpCopyDay()">Zkopírovat tento den na…</button><button class="btn sec sm" onclick="A.tpClearDay()">Vyprázdnit den</button></div></div>`;
   const summary = `<div class="card"><h2>Týden celkem</h2><div class="stats3 wk" style="margin-top:8px"><div><b>${fmt0(weekAct)}</b><span>kcal z aktivity za týden (min. týden reálně ${fmt0(lastWeekAct)})</span></div><div><b>${fmt0(weekDef / 7)}</b><span>průměrný deficit/den</span></div><div><b class="${weekDef / KG_KCAL >= w * s.rate_pct / 100 * 0.97 ? 'ok' : 'bad'}">−${fmt2(weekDef / KG_KCAL)} <small>kg</small></b><span>projektované tempo (cíl min. −${fmt2(w * s.rate_pct / 100)})</span></div><div><b>${pl.days.filter(d => d.items.length).length}×</b><span>tréninků v týdnu</span></div></div>
     ${warns.map(t => `<div class="alert a2" style="margin-top:8px">${esc(t)}</div>`).join('')}
     ${!warns.length ? '<div class="alert a3" style="margin-top:8px">Plán je v mezích: limit nad klidovým výdejem, tempo drží cíl, navýšení aktivity pod 20 %.</div>' : ''}
@@ -165,9 +165,12 @@ A.tpDelete = () => UI.confirm('Smazat tento plán? Robert se vrátí k výchozí
 /* jednorázová změna dne (trenér z Robertova Dnes) */
 A.tpOverride = date => { const cur = trainingOverride(date) || { ...dayActivityPlan(date) }; delete cur.source; delete cur.planName;
   const m = UI.modal(`<h2>Jednorázová změna · ${czDate(date)}</h2><p class="small muted" style="margin:4px 0 10px">Platí jen pro tento den, šablona zůstává.</p><div class="row"><div class="in"><label class="f">Chůze (min)</label><input type="number" id="ovw" value="${cur.walk_min ?? ''}" style="width:100px"></div><div class="in" style="flex:1"><label class="f">Poznámka pro Roberta</label><input type="text" id="ovn" value="${esc(cur.note || '')}"></div></div>
-    <p class="small muted" style="margin-top:8px">Cviky: ${cur.items && cur.items.length ? cur.items.map(itemLabel).join(' · ') : 'žádné'} <button class="btn sec sm" id="ovclr">bez cviků</button></p>
+    <p class="small muted" style="margin-top:8px">Cviky: <span id="ovitems">${cur.items && cur.items.length ? cur.items.map(itemLabel).join(' · ') : 'žádné'}</span> <button class="btn sec sm" id="ovclr">bez cviků</button> <button class="btn sec sm" id="ovtw">📂 Vložit uložený trénink</button></p>
     <div class="row" style="margin-top:10px"><button class="btn" id="ovok">Uložit změnu</button><button class="btn sec" onclick="UI.closeModal()">Zpět</button>${trainingOverride(date) ? '<button class="btn danger sm" id="ovdel">Zrušit výjimku</button>' : ''}</div>`);
-  let items = cur.items || []; m.querySelector('#ovclr').onclick = () => { items = []; m.querySelector('#ovclr').textContent = '✓ bez cviků'; };
+  let items = cur.items || [];
+  const showItems = () => { m.querySelector('#ovitems').textContent = items.length ? items.map(itemLabel).join(' · ') : 'žádné'; };
+  m.querySelector('#ovclr').onclick = () => { items = []; showItems(); m.querySelector('#ovclr').textContent = '✓ bez cviků'; };
+  m.querySelector('#ovtw').onclick = () => openWorkoutPicker(w => { if (!w) return; items = JSON.parse(JSON.stringify(w.items || [])); showItems(); UI.toast(`Vloženo: ${w.name}. Ulož změnu, ať to platí.`); });
   m.querySelector('#ovok').onclick = () => { const data = { walk_min: Number(m.querySelector('#ovw').value) || 0, walk_kmh: cur.walk_kmh, items, note: m.querySelector('#ovn').value }; m.remove(); Undo.run('Výjimka uložena', () => Store.put('training', oid('to', date), data)); render(); };
   const del = m.querySelector('#ovdel'); if (del) del.onclick = () => UI.confirm('Zrušit výjimku a vrátit se k plánu?', () => { m.remove(); Undo.run('Výjimka zrušena', () => Store.remove('training', oid('to', date))); render(); }, 'Zrušit výjimku');
 }
@@ -246,7 +249,7 @@ function openExPicker(onPick) {
     if (ExPick.type) L = L.filter(e => (e.type || 'strength') === ExPick.type);
     if (ExPick.fav) L = L.filter(e => isExFav(e.slug));
     L.sort((a, b) => (isExFav(b.slug) - isExFav(a.slug)) || a.ex.localeCompare(b.ex, 'cs'));
-    m.querySelector('.box').innerHTML = `<div class="row between"><h2>🏋️ Cviky <span class="muted small" style="font-weight:600">${L.length} z ${Exercises().length}</span></h2><button class="xbtn" onclick="UI.closeModal()">×</button></div>
+    m.querySelector('.box').innerHTML = `<div class="row between"><h2>🏋️ Cviky${help('Knihovna cviků. Hledej podle názvu, filtruj silové a kardio, hvězdičkou si označ oblíbené – ty se řadí nahoru. Tužkou cvik upravíš, tlačítkem + nový přidáš vlastní. Výchozí cviky mění trenér pro všechny, tvoje vlastní vidíš jen ty.')} <span class="muted small" style="font-weight:600">${L.length} z ${Exercises().length}</span></h2><button class="xbtn" onclick="UI.closeModal()">×</button></div>
       <div class="frow" style="margin-top:8px"><input type="text" id="exq" placeholder="hledat cvik…" value="${esc(ExPick.q)}" style="flex:1;min-width:160px"></div>
       <div class="frow"><span class="flab">Filtr</span><div class="seg">${[['', 'vše'], ['strength', 'silové'], ['cardio', 'kardio']].map(([k, l]) => `<button class="${ExPick.type === k ? 'on' : ''}" onclick="ExPick.type='${k}';window._exdraw()">${l}</button>`).join('')}</div>
         <button class="chip ${ExPick.fav ? 'on' : ''}" onclick="ExPick.fav=!ExPick.fav;window._exdraw()">★ oblíbené</button>
@@ -300,3 +303,113 @@ A.exEdit = sl => {
     m.remove(); Undo.run('Cvik smazán', () => deleteExercise(e)); if (window._exdraw) window._exdraw(); render();
   }, 'Smazat');
 };
+
+/* ===== Uložené tréninky (šablony) =====
+   twg:<id>      globální, skládá je trenér, vidí je všichni jeho klienti
+   tw:<uid>:<id> vlastní, skládá si je klient sám
+   Šablona je { name, items:[...], note }. Vkládá se do dne plánu nebo
+   jako jednorázová výjimka na konkrétní datum. */
+function Workouts() {
+  const uid = Store.ownerId();
+  return Store.db.training
+    .filter(r => !r.deleted && (r.id.startsWith('twg:') || (r.id.startsWith('tw:') && r.user_id === uid)))
+    .map(r => ({ id: r.id, global: r.id.startsWith('twg:'), ...r.data }))
+    .sort((a, b) => (a.name || '').localeCompare(b.name || '', 'cs'));
+}
+function workoutById(id) { return Workouts().find(w => w.id === id); }
+function saveWorkout(w) {
+  const isNew = !w.id;
+  const id = w.id || (isCoach() ? 'twg:' + Date.now() : oid('tw', Date.now()));
+  const data = { name: w.name, items: w.items || [], note: w.note || '', updated: new Date().toISOString() };
+  if (id.startsWith('twg:')) Store.put('training', id, data, null); else Store.put('training', id, data);
+  return id;
+}
+const workoutKcal = (w) => (w.items || []).reduce((a, it) => a + itemKcal(it, currentWeight()), 0);
+const workoutMin = (w) => (w.items || []).reduce((a, it) => a + itemMinutes(it), 0);
+
+/* panel uložených tréninků: hledání, vložení, úprava, smazání */
+const TwPick = { q: '' };
+function openWorkoutPicker(onPick) {
+  const m = UI.modal('');
+  const draw = () => {
+    const all = Workouts();
+    const q = TwPick.q.toLowerCase();
+    const L = !q ? all : all.filter(w => (w.name || '').toLowerCase().includes(q) || (w.items || []).some(it => it.ex.toLowerCase().includes(q)));
+    m.querySelector('.box').innerHTML = `<div class="row between"><h2>💾 Uložené tréninky${help('Sestavený trénink si ulož pod jménem a pak ho vlož do kteréhokoli dne – do šablony týdne i jako jednorázovou změnu na konkrétní datum. Hledat jde podle názvu i podle cviku, který v tréninku je. Změna uložené šablony se do už vložených dnů nepropíše.')} <span class="muted small" style="font-weight:600">${L.length} z ${all.length}</span></h2><button class="xbtn" onclick="UI.closeModal()">×</button></div>
+      <div class="frow" style="margin-top:8px"><input type="text" id="twq" placeholder="hledat podle názvu nebo cviku…" value="${esc(TwPick.q)}" style="flex:1;min-width:160px"><button class="btn sec sm" onclick="A.twEdit(null)">+ nový</button></div>
+      <div class="plist" style="margin-top:8px">${L.map(w => `<div class="pitem" ${onPick ? `onclick="window._twpick('${w.id}')"` : ''}>
+          <div style="flex:1;min-width:0"><div class="pn">${esc(w.name || 'bez názvu')}${w.global ? '' : ' <span class="pill">moje</span>'}</div>
+            <div class="pi">${(w.items || []).length ? esc((w.items || []).map(it => it.ex).join(' · ')) : 'zatím prázdný'}</div></div>
+          <div class="pk">${fmt0(workoutKcal(w))} <span>kcal</span><br><span class="muted">${fmt0(workoutMin(w))} min</span></div>
+          <button class="xbtn" title="upravit" onclick="event.stopPropagation();A.twEdit('${w.id}')">✎</button></div>`).join('') || '<p class="muted small" style="margin-top:8px">Zatím žádný uložený trénink. Sestav den a dej „Uložit jako trénink“, nebo si tu založ nový.</p>'}</div>`;
+    const q2 = m.querySelector('#twq');
+    q2.oninput = () => { TwPick.q = q2.value; draw(); const n = m.querySelector('#twq'); n.focus(); n.setSelectionRange(n.value.length, n.value.length); };
+  };
+  window._twdraw = draw;
+  window._twpick = id => { m.remove(); if (onPick) onPick(workoutById(id)); };
+  draw();
+  return m;
+}
+
+/* editor šablony: název, cviky, poznámka */
+A.twEdit = (id, seed) => {
+  const w = id ? { ...workoutById(id) } : { name: (seed && seed.name) || '', items: (seed && seed.items) || [], note: '' };
+  if (id && !w.id) return;
+  let items = JSON.parse(JSON.stringify(w.items || []));
+  const m = UI.modal('', { guardEdits: true });
+  // překreslení nesmí zahodit, co má uživatel rozepsané v polích
+  const grab = () => { const n = m.querySelector('#twn'), no = m.querySelector('#twnote'); if (n) w.name = n.value; if (no) w.note = no.value; };
+  const draw = () => {
+    m.querySelector('.box').innerHTML = `<div class="row between"><h2>${id ? 'Upravit trénink' : 'Nový trénink'}</h2><button class="xbtn" onclick="UI.closeModal()">×</button></div>
+      <div class="in" style="margin-top:10px"><label class="f">Název</label><input type="text" id="twn" value="${esc(w.name || '')}" placeholder="např. Pondělí – nohy a záda"></div>
+      <div class="tbl" style="margin-top:10px"><table class="items"><tr><th>Cvik</th><th class="n">série × opak.</th><th class="n">min</th><th class="n m-kcal">kcal</th><th></th></tr>
+        ${items.map((it, i) => `<tr><td>${esc(it.ex)}</td><td class="n">${it.type === 'cardio' ? '–' : `${it.sets || 3} × ${it.reps || 12}`}</td><td class="n">${fmt0(itemMinutes(it))}</td><td class="n">${fmt0(itemKcal(it, currentWeight()))}</td>
+          <td class="n"><button class="xbtn" onclick="window._twdel(${i})">×</button></td></tr>`).join('') || '<tr><td colspan="5" class="muted small">Zatím prázdné – přidej cvik.</td></tr>'}
+        ${items.length ? `<tr><td class="b">celkem</td><td></td><td class="n b">${fmt0(items.reduce((a, it) => a + itemMinutes(it), 0))}</td><td class="n b">${fmt0(items.reduce((a, it) => a + itemKcal(it, currentWeight()), 0))}</td><td></td></tr>` : ''}</table></div>
+      <div class="row" style="margin-top:8px"><button class="btn sec sm" onclick="window._twadd()">+ přidat cvik</button></div>
+      <div class="in" style="margin-top:8px"><label class="f">Poznámka (volitelně)</label><input type="text" id="twnote" value="${esc(w.note || '')}" placeholder="např. mezi sériemi 90 s pauza"></div>
+      <div class="row" style="margin-top:12px"><button class="btn" id="twok">Uložit</button><button class="btn sec" onclick="UI.closeModal()">Zavřít</button>${id ? '<span class="sp"></span><button class="btn danger sm" id="twdel">Smazat</button>' : ''}</div>
+      <div class="bad small" id="twerr" style="margin-top:8px"></div>`;
+    m.querySelector('#twok').onclick = () => {
+      const name = m.querySelector('#twn').value.trim();
+      if (!name) { m.querySelector('#twerr').textContent = 'Trénink potřebuje název.'; return; }
+      if (!items.length) { m.querySelector('#twerr').textContent = 'Přidej aspoň jeden cvik.'; return; }
+      const data = { id, name, items, note: m.querySelector('#twnote').value.trim() };
+      m.remove();
+      Undo.run(id ? 'Trénink upraven' : 'Trénink uložen', () => saveWorkout(data), `${name}: ${items.length} ${items.length === 1 ? 'cvik' : items.length < 5 ? 'cviky' : 'cviků'}, ${fmt0(items.reduce((a, it) => a + itemKcal(it, currentWeight()), 0))} kcal. Vložíš ho do kteréhokoli dne.`);
+      if (window._twdraw) window._twdraw();
+      render();
+    };
+    const del = m.querySelector('#twdel');
+    if (del) del.onclick = () => UI.confirm(`Smazat uložený trénink ${w.name}? Z dnů, kam jsi ho už vložil, nezmizí.`, () => {
+      m.remove(); Undo.run('Trénink smazán', () => Store.remove('training', id)); if (window._twdraw) window._twdraw(); render();
+    }, 'Smazat');
+  };
+  window._twdel = i => { grab(); items.splice(i, 1); m._dirty = true; draw(); };
+  window._twadd = () => { grab(); openExPicker(e => {
+    if (!e) return;
+    items.push(e.type === 'cardio' ? { ex: e.ex, type: 'cardio', min: 20, met: e.met || null }
+      : { ex: e.ex, type: 'strength', sets: e.sets || 3, reps: e.reps || (e.timed ? 30 : 12), intensity: e.intensity || 'medium', note: e.note || '' });
+    m._dirty = true; draw();
+  }); };
+  draw();
+};
+
+/* uložit rozdělaný den plánu jako šablonu */
+A.twSaveDay = () => {
+  const pl = trainingPlans().find(p => p.id === App.tpId); if (!pl) return;
+  const items = pl.days[App.tpDay].items || [];
+  if (!items.length) { UI.toast('V tomhle dni zatím žádné cviky nejsou – nejdřív nějaké přidej.'); return; }
+  A.twEdit(null, { name: `${DAY_NAMES[App.tpDay]} – ${pl.name}`, items: JSON.parse(JSON.stringify(items)) });
+};
+A.twLibrary = () => openWorkoutPicker(null);
+
+/* vložit šablonu do dne plánu nebo na konkrétní datum */
+A.twInsertPlanDay = () => openWorkoutPicker(w => {
+  if (!w) return;
+  const pl = trainingPlans().find(p => p.id === App.tpId); if (!pl) return;
+  const had = (pl.days[App.tpDay].items || []).length;
+  const put = () => { pl.days[App.tpDay].items = JSON.parse(JSON.stringify(w.items || [])); saveTrainingPlan(pl); render(); };
+  if (had) UI.confirm(`V ${DAY_NAMES[App.tpDay].toLowerCase()} už ${had === 1 ? 'je 1 cvik' : 'jsou cviky (' + had + ')'}. Nahradit je tréninkem ${w.name}?`, () => Undo.run(`Vloženo: ${w.name}`, put), 'Nahradit');
+  else Undo.run(`Vloženo: ${w.name}`, put);
+});
