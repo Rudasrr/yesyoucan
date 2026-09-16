@@ -100,7 +100,6 @@ VIEWS.dnes = function () {
   </div>
   <div id="meals" class="row between" style="margin:8px 0 8px"><h2>🍽️ Jídla dne${help('Pět jídel dne. Řádek ukazuje, co máš naplánované a za kolik kalorií; klikem se rozbalí a dá se upravit – vyměnit jídlo (💡 jiné), vyměnit nebo odebrat surovinu, přepsat gramy, přidat něco navíc. Přílohu appka škáluje sama podle limitu, bílkovinu nekrátí.')} <span class="muted small" style="font-weight:600">${s.courses.some(c => day.meals[c.key].planned) ? `plán na ${dn.toLowerCase()}` : 'bez plánu z Týdne'}</span></h2>
     <div class="row noprint">${prog.missing.length ? `<button class="btn sm write" onclick="A.suggestDay()">💡 Navrhnout ${prog.missing.length === 5 ? 'den' : 'chybějící'}</button>` : ''}<button class="btn sec sm write" onclick="A.resetDay()">Vrátit plán z Týdne</button></div></div>
-  <p class="small muted" style="margin-bottom:10px">Tady se den upravuje: změnit jídlo, vyměnit, odebrat nebo přidat surovinu, upravit gramy, nechat si navrhnout jinou variantu. Co jsi snědl, označ nahoře v úkolech nebo tlačítkem u jídla.</p>
   ${d.courses.map((c, i) => renderCourse(s, foods, recipes, day, c, i, d)).join('')}`;
 
 };

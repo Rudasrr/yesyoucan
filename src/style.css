@@ -338,3 +338,30 @@ body.has-modal .toast{bottom:auto;top:calc(12px + env(safe-area-inset-top))}
 }
 /* kotvy nesmí mizet pod lepící hlavičkou */
 #meals,#aktivita,.course{scroll-margin-top:64px}
+
+/* „snědl jsem“: výrazné, dokud to neodškrtne; potom už jen tiché potvrzení */
+.eat{background:#fff;border:1px solid var(--p);color:var(--p-ink)}
+.eat.on{background:var(--ok-bg);color:var(--ok);border-color:transparent}
+/* míra u gramáže drží na jednom řádku s tlačítky */
+@media(max-width:560px){
+  table.items td.n:nth-child(2){display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px}
+  table.items td.n:nth-child(2) .tiny{flex:0 1 auto}
+}
+
+/* ---- telefon: nic nesmí utéct za pravý okraj ---- */
+@media(max-width:430px){
+  /* sedm dní se musí vejít vedle sebe i se šipkami */
+  .calstrip{gap:3px}
+  .calstrip button{min-width:0;flex:1 1 0;padding:6px 2px;font-size:11px}
+  .calstrip button b{font-size:14px}
+  .daynav{width:32px}
+  /* měření: jeden sloupec, užší tlačítka – jinak stepper přeteče */
+  .step2 .sbtn{width:40px;height:42px;font-size:21px}
+  .step2 input{width:72px;font-size:17px;min-height:42px}
+  .mgrid{grid-template-columns:1fr !important}
+}
+@media(max-width:560px){
+  /* rozpis „Jak se limit počítá“ se musí vejít, ne roztlačit stránku */
+  details table.small{table-layout:fixed;width:100%}
+  details table.small td{overflow-wrap:anywhere}
+}

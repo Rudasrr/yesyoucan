@@ -28,7 +28,7 @@ VIEWS.mereni = function () {
      <h2>${sel === today ? 'Dnešní zápis' : 'Zápis ' + czDate(sel)} <span class="muted small" style="font-weight:400">${DAY_NAMES[dayIndex(sel)]}</span></h2>
      <p class="small muted" style="margin:4px 0 10px">Po probuzení, po WC, nalačno. ${isSun ? 'Neděle – změř i obvody: ráno nalačno, uvolněné břicho, vždy stejné místo.' : 'Obvody stačí v neděli.'}</p>
      <div class="row" style="margin-bottom:8px"><input type="date" value="${sel}" min="${s.start_date}" style="width:auto" onchange="App.measDate=this.value;render()"></div>
-     <div class="grid" style="grid-template-columns:1fr 1fr;gap:8px">${inp('weight', 'Váha (kg)')}${inp('waist', 'Pas (cm)', '0.5')}${inp('hips', 'Boky (cm)', '0.5')}${inp('chest', 'Hrudník (cm)', '0.5')}${inp('thigh', 'Stehno (cm)', '0.5')}${inp('arm', 'Paže (cm)', '0.5')}</div>
+     <div class="grid mgrid" style="grid-template-columns:1fr 1fr;gap:8px">${inp('weight', 'Váha (kg)')}${inp('waist', 'Pas (cm)', '0.5')}${inp('hips', 'Boky (cm)', '0.5')}${inp('chest', 'Hrudník (cm)', '0.5')}${inp('thigh', 'Stehno (cm)', '0.5')}${inp('arm', 'Paže (cm)', '0.5')}</div>
      <div class="in" style="margin-top:8px"><label class="f">Poznámka</label><input type="text" id="m_note" value="${esc(cur.note || '')}"></div>
      <div class="row" style="margin-top:10px"><button class="btn write" onclick="A.saveMeas()">Uložit zápis</button>${byDate[sel] ? `<button class="btn sec sm write" onclick="A.delMeas('${sel}')">Smazat</button>` : ''}</div>
     </div>
