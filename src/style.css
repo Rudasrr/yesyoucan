@@ -318,3 +318,23 @@ body.has-modal .toast{bottom:auto;top:calc(12px + env(safe-area-inset-top))}
 /* posun po týdnech v pásu dní */
 .daynav{width:40px;min-height:44px;flex:none;border:1px solid rgba(255,255,255,.8);background:rgba(255,255,255,.55);border-radius:14px;font-size:20px;font-weight:800;color:var(--ink);cursor:pointer;box-shadow:var(--hl)}
 .daynav:disabled{cursor:default}
+
+/* ---- telefon: tabulka surovin se rozpadne na řádky, nic se neusekne ---- */
+@media(max-width:560px){
+  table.items{display:block;width:100%}
+  table.items tbody{display:block}
+  table.items tr{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;padding:10px 0;border-bottom:1px solid var(--line2)}
+  table.items tr:first-child{display:none}
+  table.items td{display:block;padding:0;border:0;text-align:left;width:auto}
+  table.items td:first-child{flex:1 0 100%;font-weight:700;display:flex;align-items:center;gap:6px}
+  table.items td.n[data-l]::before{content:attr(data-l) " ";font-size:11px;color:var(--ink2);font-weight:700}
+  table.items td:first-child .pickbtn{width:auto !important;flex:1;min-width:0}
+  .eat.big{padding:9px 14px;font-size:14px}
+  table.items .gstep{margin-right:auto}
+  table.items tr.sum{border-bottom:0;background:none}
+  /* „snědl jsem“ patří pod název, ne mezi něj a kalorie */
+  .course .hd .eat.big{order:9}
+  .course .hd .k{margin-left:auto}
+}
+/* kotvy nesmí mizet pod lepící hlavičkou */
+#meals,#aktivita,.course{scroll-margin-top:64px}
