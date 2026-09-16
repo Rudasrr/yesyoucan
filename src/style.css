@@ -95,7 +95,7 @@ tr.today td{background:var(--p-bg)}
 .eat.on{background:var(--ok);color:#fff;border-color:transparent}
 .status{border-radius:var(--r2);padding:10px 14px;font-weight:600}
 .st0{background:#f1f3f8;color:var(--ink2)}.st1{background:var(--bad-bg);color:var(--bad)}.st2{background:var(--ok-bg);color:var(--ok)}.st3{background:var(--warn-bg);color:var(--warn)}
-.checks div{display:flex;gap:10px;padding:7px 0;border-bottom:1px solid var(--line2)}
+.checks .chk{display:flex;gap:10px;padding:7px 0;border-bottom:1px solid var(--line2)}
 .checks .nm{width:110px;color:var(--ink2);font-size:13px;flex:none}
 .checks .s1{color:var(--bad);font-weight:700}.checks .s2{color:var(--ok)}.checks .s3{color:var(--ink2)}
 .bar{height:12px;background:var(--line2);border-radius:6px;overflow:hidden}.bar i{display:block;height:100%;background:var(--grad)}
@@ -368,3 +368,27 @@ body.has-modal .toast{bottom:auto;top:calc(12px + env(safe-area-inset-top))}
 
 /* karty v řádku se nenatahují do výšky té nejvyšší – zbyla by pod nimi prázdná plocha */
 .grid.gtop{align-items:start}
+
+/* ---- kontroly dne: barvu nese štítek, text zůstává čitelný ---- */
+.checks .chk{display:flex;gap:10px;padding:9px 0 9px 10px;border-bottom:1px solid var(--line2);align-items:baseline}
+.checks .chk:last-child{border-bottom:0}
+.checks .chk .cb{flex:1;min-width:0}
+.checks .chk .ct{color:var(--ink);font-weight:500}
+.checks .chk .tag{display:inline-block;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;padding:3px 9px;border-radius:999px;margin-right:8px;white-space:nowrap;background:var(--line2);color:var(--ink2)}
+.checks .chk.k1{box-shadow:inset 3px 0 0 var(--bad)}
+.checks .chk.k1 .tag{background:var(--bad-bg);color:var(--bad)}
+.checks .chk.k2{box-shadow:inset 3px 0 0 var(--ok)}
+.checks .chk.k2 .tag{background:var(--ok-bg);color:var(--ok)}
+.checks .chk.k0{box-shadow:inset 3px 0 0 var(--line)}
+
+/* domácí míra je hlavní údaj, gramáž slouží ke kontrole */
+.meas{font-size:15px;font-weight:800;color:var(--ink);margin-bottom:4px;white-space:nowrap}
+.gstep .gu{font-size:12px;color:var(--ink2);font-weight:700;margin-left:2px}
+.gstep input.g{font-size:15px;font-weight:600;color:var(--ink2)}
+@media(max-width:560px){ table.items td.n:nth-child(2){align-items:baseline} .meas{flex:1 0 100%} }
+
+/* souhrn dne: barva jen v proužku a štítku, text čitelný */
+.checks + .status, .status.day{font-weight:500;color:var(--ink);padding-left:14px;border-left:3px solid var(--line)}
+.status.st1{color:var(--ink);border-left-color:var(--bad)}
+.status.st2{color:var(--ink);border-left-color:var(--ok)}
+.status.st0{color:var(--ink2)}

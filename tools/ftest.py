@@ -24,7 +24,7 @@ with sync_playwright() as p:
     print('edits:', pg.evaluate("JSON.stringify(getDay(App.date).meals.snidane)"))
     print('checks text:', pg.evaluate("[...document.querySelectorAll('.checks div')].map(d=>d.textContent)"))
     pg.evaluate("A.dayField('beers','6','Piva')"); pg.wait_for_timeout(100)
-    print('friday hero:', pg.evaluate("document.querySelector('.herob .big').textContent"), pg.evaluate("document.querySelector('.checks div span.s1, .checks div span.s2').textContent"))
+    print('friday hero:', pg.evaluate("document.querySelector('.herob .big').textContent"), pg.evaluate("(()=>{const c=document.querySelector('.checks .chk');return c?c.querySelector('.tag').textContent+': '+c.querySelector('.ct').textContent.slice(0,60):'-'})()"))
     pg.evaluate("A.removeItem('snidane',0);A.extraAdd('snidane');A.extraFood('snidane',0,'Tofu');A.extraG('snidane',0,150)"); print('remove/extra:', pg.evaluate("JSON.stringify(getDay(App.date).meals.snidane)"), pg.evaluate("calcDay(S(),Foods(),Recipes(),effectiveDay(App.date),currentWeight()).courses[0].items.map(i=>i.food+':'+i.g).join(',')"))
     pg.evaluate("A.resetCourse('snidane')");
     pg.evaluate("toggleFav('Míchaná vejce se šunkou a chlebem')"); print('fav:', pg.evaluate("Prefs().favs"), 'recent:', pg.evaluate("Prefs().recent.slice(0,2)"))

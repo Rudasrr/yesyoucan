@@ -106,32 +106,45 @@ function calcDay(s, foods, recipes, day, weight) {
   const protTarget = tot.kcal === 0 ? 0 : Math.round(s.protein_min * activeTargets / courseTargetSum(s));
   const intake = tot.kcal + base.drinkKcal;
   const wmNow = day.walk_min || 0;
+  // co už je opravdu snědené a co je zatím jen plán – appka je nesmí házet do jednoho pytle
+  const eatenKcal = courses.reduce((a, c) => a + (((day.meals[c.key] || {}).eaten) ? c.kcal : 0), 0) + base.drinkKcal;
+  const allEaten = courses.every(c => !(c.active || c.situace) || (day.meals[c.key] || {}).eaten);
+  const jenPlan = !allEaten;
+  // limit, jak vyjde po splnění plánované chůze a tréninku
+  const limitPoPlanu = Math.max(base.bmr, base.minOut - base.deficit);
   // kolik minut chůze den skutečně srovná (spodní hranice drží limit, dokud celkový výdej nevyroste dost)
   const walkFix = base.walkPerMin > 0 ? Math.max(0, Math.ceil((intake - base.maxIntakeRaw) / base.walkPerMin)) : 0;
   const checks = [];
   // Kalorie
-  if (tot.kcal === 0) checks.push({ name: 'Kalorie', state: 0, text: 'Zatím nic nevybráno' });
-  else if (intake > base.maxIntake + 30) checks.push({ name: 'Kalorie', state: 1, text: `PŘES LIMIT o ${fmt0(intake - base.maxIntake)} kcal` + (base.drinkKcal > 0 ? ` (v tom pití ${fmt0(base.drinkKcal)} kcal)` : '') + `. Dnešní deficit je o tolik menší, takže se hubnutí posune. Spraví to jedno z toho: ubrat ${fmt0(intake - base.maxIntake)} kcal (nejdřív příloha), nebo dojít dnes celkem ${wmNow + walkFix} minut (teď máš ${wmNow}).` });
-  else if (intake > base.maxIntake) checks.push({ name: 'Kalorie', state: 2, text: 'Sedí na limitu, rozdíl je jen v zaokrouhlení porcí – neřeš to.' + (base.drinkKcal > 0 ? ` (v tom pití ${fmt0(base.drinkKcal)} kcal)` : '') });
-  else checks.push({ name: 'Kalorie', state: 2, text: `V limitu, zbývá ${fmt0(base.maxIntake - intake)} kcal` + (base.drinkKcal > 0 ? ` (v tom pití ${fmt0(base.drinkKcal)} kcal)` : '') + '. Můžeš je sníst, nebo nechat být – deficit tím jen povyroste.' });
+  if (tot.kcal === 0) checks.push({ name: 'Kalorie', state: 0, label: 'Nevybráno', text: 'Zatím nic nevybráno' });
+  else if (intake > base.maxIntake + 30) {
+    const drink = base.drinkKcal > 0 ? ` (v tom pití ${fmt0(base.drinkKcal)} kcal)` : '';
+    // plán se vejde do limitu, jen zatím chybí pohyb, se kterým počítá
+    if (jenPlan && intake <= limitPoPlanu + 30) checks.push({ name: 'Kalorie', state: 3, label: 'Zatím plán',
+      text: `Naplánováno ${fmt0(intake)} kcal${drink} – to sedí do limitu ${fmt0(limitPoPlanu)} kcal, který ti vyjde, až uděláš svůj pohyb (chůze ${base.planWalk} min${base.planKcal ? ' + trénink' : ''}). Teď máš ${wmNow} minut, takže limit je zatím jen ${fmt0(base.maxIntake)}. Nic neřeš, jen to dojdi.` });
+    else checks.push({ name: 'Kalorie', state: 1, label: jenPlan ? 'Plán je nad limitem' : 'Přes limit',
+      text: `${jenPlan ? 'Naplánováno' : 'Snědeno'} ${fmt0(intake)} kcal${drink}, limit je ${fmt0(base.maxIntake)} – o ${fmt0(intake - base.maxIntake)} kcal víc. Deficit dne bude o tolik menší, takže se hubnutí posune. Spraví to jedno z toho: ubrat ${fmt0(intake - base.maxIntake)} kcal (nejdřív příloha), nebo dojít dnes celkem ${wmNow + walkFix} minut (teď máš ${wmNow}).` });
+  }
+  else if (intake > base.maxIntake) checks.push({ name: 'Kalorie', state: 2, label: 'Sedí', text: 'Sedí na limitu, rozdíl je jen v zaokrouhlení porcí – neřeš to.' + (base.drinkKcal > 0 ? ` (v tom pití ${fmt0(base.drinkKcal)} kcal)` : '') });
+  else checks.push({ name: 'Kalorie', state: 2, label: jenPlan ? 'Plán sedí' : 'V limitu', text: `${jenPlan ? 'Naplánováno' : 'Snědeno'} ${fmt0(intake)} z ${fmt0(base.maxIntake)} kcal, zbývá ${fmt0(base.maxIntake - intake)} kcal` + (base.drinkKcal > 0 ? ` (v tom pití ${fmt0(base.drinkKcal)} kcal)` : '') + '. Můžeš je sníst, nebo nechat být – deficit tím jen povyroste.' });
   // Bílkoviny
-  if (tot.p === 0) checks.push({ name: 'Bílkoviny', state: 0, text: 'Zatím nic nevybráno' });
-  else if (tot.p < protTarget) checks.push({ name: 'Bílkoviny', state: 1, text: `MÁLO – chybí ${fmt0(protTarget - tot.p)} g bílkovin (cíl dne ${fmt0(protTarget)} g). Když hubneš a bílkoviny chybí, ubývá s tukem i sval. Přidej tvaroh, skyr, maso, rybu nebo vejce – ${Math.max(1, Math.round((protTarget - tot.p) / 20))}× porce po 20 g to dorovná.` });
-  else checks.push({ name: 'Bílkoviny', state: 2, text: `OK, ${fmt0(tot.p)} z ${fmt0(protTarget)} g` });
+  if (tot.p === 0) checks.push({ name: 'Bílkoviny', state: 0, label: 'Nevybráno', text: 'Zatím nic nevybráno' });
+  else if (tot.p < protTarget) checks.push({ name: 'Bílkoviny', state: 1, label: 'Málo', text: `Chybí ${fmt0(protTarget - tot.p)} g bílkovin (cíl dne ${fmt0(protTarget)} g). Když hubneš a bílkoviny chybí, ubývá s tukem i sval. Přidej tvaroh, skyr, maso, rybu nebo vejce – ${Math.max(1, Math.round((protTarget - tot.p) / 20))}× porce po 20 g to dorovná.` });
+  else checks.push({ name: 'Bílkoviny', state: 2, label: 'OK', text: `${fmt0(tot.p)} z ${fmt0(protTarget)} g – sedí.` });
   // Chůze
   const wm = wmNow, wt = base.planWalk;
   if (wm < wt) {
     const over = intake > base.maxIntake + 30;
     const tail = !over ? 'Na limit jídla to dnes zatím stačí, ale bez chůze nebude deficit takový, jaký má být.'
       : (wt >= wmNow + walkFix ? 'Dojdi je a den se srovná sám.' : `I tak bys byl nad limitem – dnes potřebuješ celkem ${wmNow + walkFix} minut.`);
-    checks.push({ name: 'Chůze', state: 1, text: `MÁLO – ušel jsi ${wm} z ${wt} minut, chybí ${wt - wm}. Je to ${fmt0((wt - wm) * base.walkPerMin)} kcal, o které máš dnes nižší limit jídla. ${tail}` });
+    checks.push({ name: 'Chůze', state: 1, label: 'Chybí chůze', text: `Ušel jsi ${wm} z ${wt} minut, chybí ${wt - wm}. Je to ${fmt0((wt - wm) * base.walkPerMin)} kcal, o které máš dnes nižší limit jídla. ${tail}` });
   }
-  else checks.push({ name: 'Chůze', state: 2, text: `OK – ušel jsi ${wm} minut (cíl ${wt}) při ${fmt1(base.kmh)} km/h = ${fmt0(wm * base.walkPerMin)} kcal` });
-  if (day.act && day.act.planItems) checks.push({ name: 'Trénink', state: day.act.doneAll ? 2 : (day.act.doneKcal ? 3 : 1), text: day.act.doneAll ? `OK – splněno, ${fmt0(day.act.doneKcal)} kcal` : (day.act.doneKcal ? `částečně (${fmt0(day.act.doneKcal)} z ${fmt0(day.act.planKcal)} kcal)` : `čeká – ${day.act.planItems} ${day.act.planItems === 1 ? 'položka' : 'položky'}, ~${fmt0(day.act.planKcal)} kcal`) });
-  if (base.belowBmr) checks.push({ name: 'Spodní hranice', state: 1, text: `Zatím máš málo cíleného pohybu, takže by ti limit vyšel pod klidový výdej (${fmt0(base.bmr)} kcal) – tolik tělo spotřebuje, i kdybys celý den ležel, a jíst míň nemá smysl. Proto limit držím na téhle spodní hranici. Chůze klidový výdej nezvedá, zvedá celkový výdej – a s ním limit: prvních ${base.walkToBmr} minut se limit ještě nehne, od té doby ti každá minuta přidá ${fmt0(base.walkPerMin)} kcal. Dokud limit drží hranice, je tvůj dnešní deficit menší než plánovaný, takže hubnutí jede pomaleji.` });
+  else checks.push({ name: 'Chůze', state: 2, label: 'OK', text: `OK – ušel jsi ${wm} minut (cíl ${wt}) při ${fmt1(base.kmh)} km/h = ${fmt0(wm * base.walkPerMin)} kcal` });
+  if (day.act && day.act.planItems) checks.push({ name: 'Trénink', state: day.act.doneAll ? 2 : (day.act.doneKcal ? 3 : 1), label: day.act.doneAll ? 'Hotovo' : (day.act.doneKcal ? 'Rozdělané' : 'Čeká'), text: day.act.doneAll ? `OK – splněno, ${fmt0(day.act.doneKcal)} kcal` : (day.act.doneKcal ? `částečně (${fmt0(day.act.doneKcal)} z ${fmt0(day.act.planKcal)} kcal)` : `čeká – ${day.act.planItems} ${day.act.planItems === 1 ? 'položka' : 'položky'}, ~${fmt0(day.act.planKcal)} kcal`) });
+  if (base.belowBmr) checks.push({ name: 'Spodní hranice', state: 1, label: 'Drží hranice', text: `Zatím máš málo cíleného pohybu, takže by ti limit vyšel pod klidový výdej (${fmt0(base.bmr)} kcal) – tolik tělo spotřebuje, i kdybys celý den ležel, a jíst míň nemá smysl. Proto limit držím na téhle spodní hranici. Chůze klidový výdej nezvedá, zvedá celkový výdej – a s ním limit: prvních ${base.walkToBmr} minut se limit ještě nehne, od té doby ti každá minuta přidá ${fmt0(base.walkPerMin)} kcal. Dokud limit drží hranice, je tvůj dnešní deficit menší než plánovaný, takže hubnutí jede pomaleji.` });
   // Ruční úpravy
   const edited = courses.reduce((a, c) => a + c.edited, 0);
-  checks.push({ name: 'Ruční úpravy', state: 3, text: edited === 0 ? 'žádné – platí recepty, jak jsou' : `${edited} polí (vyměněná potravina či gramáž). Při změně dne nebo varianty je zkontroluj či smaž.` });
+  checks.push({ name: 'Ruční úpravy', state: 3, label: edited === 0 ? 'Žádné' : `${edited}×`, text: edited === 0 ? 'žádné – platí recepty, jak jsou' : `${edited} polí (vyměněná potravina či gramáž). Při změně dne nebo varianty je zkontroluj či smaž.` });
   const dayDeficit = base.totalOut - intake;
   let summary, ok = false;
   const targetKg = weight * s.rate_pct / 100;
@@ -144,7 +157,7 @@ function calcDay(s, foods, recipes, day, weight) {
     if (tot.p < protTarget) fix.push(`přidat ${fmt0(protTarget - tot.p)} g bílkovin`);
     if (day.act && day.act.planItems && !day.act.doneAll) fix.push('odškrtat trénink');
     const kg = dayDeficit * 7 / KG_KCAL;
-    summary = `Den zatím nesedí: ${fix.length ? fix.join(', ') : 'podívej se na červený řádek výš'}. Takhle jsi na deficitu ${fmt0(dayDeficit)} kcal, což je ${fmt2(kg)} kg za týden místo plánovaných ${fmt2(targetKg)} kg. Jeden takový den nic nezkazí, ale tři v týdnu ano.`;
+    summary = `${jenPlan ? 'Plán dne zatím nesedí' : 'Den zatím nesedí'}: ${fix.length ? fix.join(', ') : 'podívej se na označený řádek výš'}. Takhle jsi na deficitu ${fmt0(dayDeficit)} kcal, což je ${fmt2(kg)} kg za týden místo plánovaných ${fmt2(targetKg)} kg. Jeden takový den nic nezkazí, ale tři v týdnu ano.`;
   }
   let friday;
   if (base.drinkKcal === 0) friday = 'Když si dáš piva nebo něco smaženého, zapiš to nahoře. Porce jídel se ti samy zmenší, aby ses vešel do dne – nemusíš nic počítat.';
