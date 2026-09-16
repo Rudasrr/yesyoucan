@@ -392,3 +392,38 @@ body.has-modal .toast{bottom:auto;top:calc(12px + env(safe-area-inset-top))}
 .status.st1{color:var(--ink);border-left-color:var(--bad)}
 .status.st2{color:var(--ink);border-left-color:var(--ok)}
 .status.st0{color:var(--ink2)}
+
+/* ---- pravidlo: samostatné číslo kalorií je vždy fialové ----
+   Jestli jídlo sedí do cíle, ukazuje tečka před číslem, ne barva čísla. */
+.course .hd .k{color:var(--kcal)}
+.course .hd .k::before{content:'';display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;background:var(--line);vertical-align:1px}
+.course .hd .k.ok::before{background:var(--ok)}
+.course .hd .k.warn::before{background:var(--y)}
+.course .hd .k.bad::before{background:var(--bad)}
+.course .hd .k:empty::before{display:none}
+.pk{color:var(--kcal)}
+.pk.bad{color:var(--bad)}
+.pk .muted{color:var(--prot)}
+
+/* ---- tisk: nákupní seznam a rozpis vaření se musí vejít na jednu A4 ---- */
+@media print{
+  @page{size:A4 portrait;margin:10mm}
+  html,body{background:#fff!important;font-size:10pt}
+  body{padding:0!important;background-image:none!important}
+  header.top,nav.mob,nav.desk,.noprint,.toast,.ibtn,.syncb,.notice,.help,details{display:none!important}
+  .wrap{max-width:none;padding:0}
+  .card{background:#fff!important;border:0!important;box-shadow:none!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;
+    border-radius:0;padding:0 0 4mm;margin:0;break-inside:avoid}
+  h1{font-size:15pt;margin-bottom:2mm}
+  h2,h3{font-size:11pt;margin-bottom:1mm;border-bottom:.4pt solid #999;padding-bottom:.5mm}
+  /* kategorie nákupu do tří sloupců, ať se vejdou na stránku */
+  .grid,.grid.g2,.grid.g32,.tiles{display:block!important}
+  .print-cols{column-count:3;column-gap:6mm}
+  .print-cols>*{break-inside:avoid;margin-bottom:3mm;display:block}
+  table{width:100%;border-collapse:collapse}
+  table.small td{padding:.7mm 1mm;font-size:9.5pt;border-bottom:.3pt solid #ddd}
+  input[type=checkbox]{width:9pt!important;height:9pt!important;transform:none}
+  .muted,.tiny{color:#555!important}
+  .sum,.status,.praise,.alert{display:none!important}
+  a[href]:after{content:''}
+}

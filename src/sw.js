@@ -23,8 +23,21 @@ self.addEventListener('fetch', e => {
   const url = new URL(req.url);
   if (url.origin !== self.location.origin) return;          // CDN a Supabase necachujeme
   if (url.pathname.endsWith('/sw.js')) return;              // o aktualizaci workeru se stará prohlížeč
-  if (req.mode === 'navigate') {                            // otevření appky: cache napřed, ať naskočí i bez signálu
-    e.respondWith(caches.match('./index.html').then(hit => hit || fetch(req).catch(() => caches.match('./'))));
+  if (req.mode === 'navigate') {
+    // Otevření appky: zkusit síť (a obejít cache prohlížeče), ať je vždycky nejnovější verze.
+    // Když síť do 2,5 s nedá odpověď nebo není vůbec, vzít uloženou kopii – appka se otevře i bez signálu.
+    e.respondWith((async () => {
+      try {
+        const net = await Promise.race([
+          fetch(new Request(req.url, { cache: 'reload', credentials: 'same-origin' })),
+          new Promise((_, rej) => setTimeout(() => rej(new Error('pomalá síť')), 2500))
+        ]);
+        if (net && net.ok) { const c = await caches.open(CACHE); c.put('./index.html', net.clone()); }
+        return net;
+      } catch (err) {
+        return (await caches.match('./index.html')) || (await caches.match('./')) || Response.error();
+      }
+    })());
     return;
   }
   e.respondWith(fetch(req).then(res => {                    // ostatní vlastní soubory: síť napřed, cache jako záloha
