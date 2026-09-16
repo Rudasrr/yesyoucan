@@ -43,7 +43,7 @@ nav.mob button svg{width:22px;height:22px}nav.mob button.on{color:var(--p-ink);b
 .card.tint{background:rgba(255,255,255,.42)}
 .card.grad{background:var(--grad);color:#fff;border:0}.card.grad .muted,.card.grad .lbl{color:rgba(255,255,255,.88)}
 .card.grad2{background:var(--grad2);color:#fff;border:0}.card.grad3{background:var(--grad3);color:#fff;border:0}
-.grid{display:grid;gap:12px}.grid>*{min-width:0}
+.grid{display:grid;gap:12px;align-items:start}.grid>*{min-width:0}
 @media(min-width:900px){.g2{grid-template-columns:1fr 1fr}.g3{grid-template-columns:repeat(3,1fr)}.g32{grid-template-columns:3fr 2fr}.g23{grid-template-columns:2fr 3fr}.g4{grid-template-columns:repeat(4,1fr)}}
 .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.row.between{justify-content:space-between}.sp{flex:1}
 .hero{display:grid;gap:14px;grid-template-columns:1fr}
@@ -237,11 +237,11 @@ tr.cath td{background:rgba(28,35,64,.05);font-weight:800;cursor:pointer;padding:
 .hsec summary{list-style:none;display:flex;align-items:center;gap:14px;padding:14px 18px;cursor:pointer}.hsec summary::-webkit-details-marker{display:none}
 .hsec .hem{font-size:26px;width:36px;text-align:center;flex:none}.hsec .ht{font-weight:800;font-size:16px}.hsec .hs{font-size:13px;color:var(--ink2)}.hsec summary>div{flex:1}
 .hsec .hb{padding:0 18px 16px}
-.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}
 .tile{background:rgba(255,255,255,.58);border:1px solid rgba(255,255,255,.8);border-radius:18px;padding:12px 14px;box-shadow:var(--sh),var(--hl)}.tile .tt{font-weight:800;font-size:15px}.tile .tb{font-size:13px;color:var(--ink2);margin-top:2px}.tile .ts{font-size:12px;color:var(--ink2);margin-top:6px;border-top:1px solid #eef0f6;padding-top:6px}
 .tile.big{background:var(--grad);color:#fff}.tile.big .tt{font-size:26px}.tile.big .tb{color:rgba(255,255,255,.9)}
 .steps{display:grid;gap:8px}.step{display:flex;gap:12px;align-items:flex-start;background:rgba(255,255,255,.58);border:1px solid rgba(255,255,255,.8);border-radius:16px;padding:10px 12px}.step .sn{width:28px;height:28px;border-radius:50%;background:var(--grad);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-weight:800;flex:none}.step .tt{font-weight:800}.step .ts{font-size:13px;color:var(--ink2)}
-.rules2{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:8px}.rule{display:flex;gap:10px;background:rgba(255,255,255,.58);border:1px solid rgba(255,255,255,.8);border-radius:16px;padding:10px 12px;font-size:14px}.rule .rem{font-size:20px;flex:none}
+.rules2{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:8px}.rule{display:flex;gap:10px;background:rgba(255,255,255,.58);border:1px solid rgba(255,255,255,.8);border-radius:16px;padding:10px 12px;font-size:14px}.rule .rem{font-size:20px;flex:none}
 @media(max-width:600px){.items .sw{min-width:150px}.items td{padding:5px 2px}}
 .pitem,.task{flex:none}
 @media(max-width:600px){table.small td:first-child{white-space:nowrap}}
@@ -365,3 +365,6 @@ body.has-modal .toast{bottom:auto;top:calc(12px + env(safe-area-inset-top))}
   details table.small{table-layout:fixed;width:100%}
   details table.small td{overflow-wrap:anywhere}
 }
+
+/* karty v řádku se nenatahují do výšky té nejvyšší – zbyla by pod nimi prázdná plocha */
+.grid.gtop{align-items:start}

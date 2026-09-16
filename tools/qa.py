@@ -6,7 +6,21 @@ VIEWS_C=['dnes','tyden','prehled','mereni','nakup','vareni','recepty','suroviny'
 VIEWS_K=['klient','zprava','trenink','nastaveni','databaze','dnes','tyden']
 WIDTHS=[390,768,1440]
 CHECK_JS='''(() => {
-  const out={overflow:0, offscreen:[], contrast:[], tiny:[], sidescroll:[]};
+  const out={overflow:0, offscreen:[], contrast:[], tiny:[], sidescroll:[], holes:[]};
+  // díry v rozvržení: mřížka s prázdnými sloupci, nebo karta natažená do prázdna
+  for(const el of document.querySelectorAll('#main *')){
+    const cs=getComputedStyle(el);
+    if(cs.display!=='grid') continue;
+    const cols=cs.gridTemplateColumns.split(' ').filter(t=>parseFloat(t)>0).length;
+    const kids=[...el.children].filter(c=>getComputedStyle(c).display!=='none').length;
+    if(cols>1 && kids>0 && kids<cols) out.holes.push('prázdné sloupce: '+(el.className||el.tagName)+' '+kids+'/'+cols);
+  }
+  for(const el of document.querySelectorAll('#main .grid > .card, #main .dgrid > * > .card')){
+    const r=el.getBoundingClientRect();
+    const last=[...el.children].filter(c=>c.getBoundingClientRect().height>0).pop(); if(!last) continue;
+    const dole=r.bottom-last.getBoundingClientRect().bottom;
+    if(dole>90) out.holes.push('prázdno pod obsahem: '+(el.className||'card')+' '+Math.round(dole)+'px');
+  }
   for(const el of document.querySelectorAll('#main *')){
     const cs=getComputedStyle(el);
     if(/(auto|scroll)/.test(cs.overflowX) && el.scrollWidth > el.clientWidth + 8)
@@ -22,7 +36,7 @@ CHECK_JS='''(() => {
     if(el.children.length===0 && el.textContent.trim().length>2){ const cs=getComputedStyle(el); const fs=parseFloat(cs.fontSize); if(fs<11) out.tiny.push(el.textContent.trim().slice(0,30));
       const b=bg(el); if(b!=='grad'){ const l1=lum(cs.color), l2=lum(b); if(l1!=null&&l2!=null){ const cr=(Math.max(l1,l2)+.05)/(Math.min(l1,l2)+.05); if(cr<3.5) out.contrast.push(el.textContent.trim().slice(0,30)+'|'+cr.toFixed(1)); } } }
   }
-  out.offscreen=out.offscreen.slice(0,5); out.contrast=out.contrast.slice(0,5); out.tiny=out.tiny.slice(0,5); out.sidescroll=out.sidescroll.slice(0,5);
+  out.offscreen=out.offscreen.slice(0,5); out.contrast=out.contrast.slice(0,5); out.tiny=out.tiny.slice(0,5); out.sidescroll=out.sidescroll.slice(0,5); out.holes=out.holes.slice(0,5);
   return out; })()'''
 rows=[]
 with sync_playwright() as p:
@@ -38,7 +52,7 @@ with sync_playwright() as p:
                 res=pg.evaluate(CHECK_JS)
                 # click all buttons that don't navigate/destroy (sample)
                 nbtn=pg.evaluate("document.querySelectorAll('#main button').length")
-                rows.append((role,w,v,res['overflow'],len(res['offscreen']),res['offscreen'][:2],len(res['contrast']),res['contrast'][:2],len(res['tiny']),nbtn,len(errs),len(res['sidescroll']) if w==390 else 0,res['sidescroll'][:2]))
+                rows.append((role,w,v,res['overflow'],len(res['offscreen']),res['offscreen'][:2],len(res['contrast']),res['contrast'][:2],len(res['tiny']),nbtn,len(errs),len(res['sidescroll']) if w==390 else 0,res['sidescroll'][:2],len(res['holes']),res['holes'][:2]))
             ctx.close()
     # interaction sweep: click every button on each client view (1440), catching errors
     ctx=b.new_context(viewport={'width':1440,'height':900},locale='cs-CZ'); pg=ctx.new_page(); errs=[]
@@ -54,8 +68,10 @@ with sync_playwright() as p:
                 clicks+=1; pg.wait_for_timeout(30); pg.evaluate("UI.closeModal()"); pg.evaluate(f"if(App.view!=='{v}') go('{v}')")
             except Exception as e: errs.append(f'{v}#{i}: {e}')
     b.close()
-print(f"{'role':6} {'w':5} {'view':10} {'ovfl':5} {'off':4} {'contr':5} {'tiny':4} {'bok':4} {'btns':4} err")
-for r in rows: print(f"{r[0]:6} {r[1]:<5} {r[2]:10} {r[3]:<5} {r[4]:<4} {r[6]:<5} {r[8]:<4} {r[11]:<4} {r[9]:<4} {r[10]} {r[5] if r[4] else ''} {r[7] if r[6] else ''} {r[12] if r[11] else ''}")
+print(f"{'role':6} {'w':5} {'view':10} {'ovfl':5} {'off':4} {'contr':5} {'tiny':4} {'bok':4} {'díra':4} {'btns':4} err")
+for r in rows: print(f"{r[0]:6} {r[1]:<5} {r[2]:10} {r[3]:<5} {r[4]:<4} {r[6]:<5} {r[8]:<4} {r[11]:<4} {r[13]:<4} {r[9]:<4} {r[10]} {r[5] if r[4] else ''} {r[7] if r[6] else ''} {r[12] if r[11] else ''} {r[14] if r[13] else ''}")
 side=sum(r[11] for r in rows)
 print('na telefonu se roluje do strany:', side or 'nikde')
+holes=sum(r[13] for r in rows)
+print('díry v rozvržení:', holes or 'žádné')
 print('interaction clicks:',clicks,'errors:',errs[:5] or 'none')
