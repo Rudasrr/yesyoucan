@@ -17,7 +17,9 @@ with sync_playwright() as p:
     pg.evaluate("A.toggleCourse('snidane')"); pg.wait_for_timeout(100)   # jídla jsou sbalená, editace až po rozkliknutí
     pg.evaluate("document.querySelector('.course .pickbtn').click()"); pg.wait_for_timeout(100); pg.fill('#pkq','míchaná'); pg.wait_for_timeout(100); print('picker hits:', pg.evaluate("document.querySelectorAll('.pitem').length")); pg.evaluate("window._pick('Míchaná vejce se šunkou a chlebem')"); pg.wait_for_timeout(100)
     print('sel:', pg.evaluate("getDay(App.date).meals.snidane"))
-    pg.select_option('.course >> nth=0 >> .items select >> nth=0','Tofu'); pg.wait_for_timeout(100)
+    pg.click('.course >> nth=0 >> .items .pickbtn >> nth=0'); pg.wait_for_timeout(150)   # výměna suroviny přes panel s hledáním
+    pg.fill('#fp-q','tofu'); pg.wait_for_timeout(150); print('panel surovin našel:', pg.evaluate("document.querySelectorAll('.pitem').length"))
+    pg.evaluate("window._fppick('Tofu')"); pg.wait_for_timeout(150)
     pg.fill('.course >> nth=0 >> .items input >> nth=1','80'); pg.press('.course >> nth=0 >> .items input >> nth=1','Tab'); pg.wait_for_timeout(100)
     print('edits:', pg.evaluate("JSON.stringify(getDay(App.date).meals.snidane)"))
     print('checks text:', pg.evaluate("[...document.querySelectorAll('.checks div')].map(d=>d.textContent)"))

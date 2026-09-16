@@ -13,7 +13,7 @@ VIEWS.mereni = function () {
   const last = addDays(today, 1) > s.start_date ? today : s.start_date;
   const dates = []; for (let d = last; d >= s.start_date && dates.length < 400; d = addDays(d, -1)) dates.push(d);
   const missing = dates.filter(d => d !== today && !byDate[d]).length;
-  const inp = (f, l, step = '0.1') => `<div class="in"><label class="f">${l}</label><input type="number" step="${step}" min="0" id="m_${f}" value="${cur[f] ?? ''}"></div>`;
+  const inp = (f, l, step = '0.1') => `<div class="in"><label class="f">${l}</label>${stepper('m_' + f, cur[f] ?? '', Number(step), 0)}</div>`;
   return `
   <div class="row between" style="margin-bottom:8px"><h1>Měření${help('Váha každé ráno po WC, nalačno. Jedno číslo nic neznamená – appka počítá průměr posledních 7 vážení. Obvody stačí v neděli, vždy stejné místo. Zápis, který vybočuje o víc než 2 kg, se před uložením zeptá.')}</h1><span class="small muted">start ${czDate(s.start_date)}${ov.last ? ` · ${ov.count} vážení` : ''}</span></div>
   <div class="grid g23">
@@ -277,7 +277,7 @@ A.importJson = async file => {
     let n = 0;
     Object.entries(dump.tables).forEach(([t, rows]) => { if (!TABLES.includes(t)) return; rows.forEach(r => { const i = Store.db[t].findIndex(x => x.id === r.id); if (i < 0 || r.updated_at > Store.db[t][i].updated_at) { if (i < 0) Store.db[t].push(r); else Store.db[t][i] = r; Store.queue(t, r); n++; } }); Store.save(t); });
     UI.toast(`Nahráno ${n} záznamů`); render();
-  });
+  }, 'Nahrát zálohu');
 };
 A.exportXlsx = async () => {
   try { if (!window.XLSX) await loadScript('https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js'); } catch (e) { UI.toast('Bez internetu nejde export do Excelu; použij zálohu JSON'); return; }

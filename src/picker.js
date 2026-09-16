@@ -76,7 +76,7 @@ function generateWeek(monday, mode, dayIdx) {
 }
 A.genWeek = mode => { const wk = getWeek(App.week); const has = wk.plan.flat().some(Boolean);
   const run = () => Undo.run('Návrh týdne', () => { generateWeek(App.week, mode); const w2 = getWeek(App.week); w2.reviewed = true; saveWeek(w2); render(); }, () => { const days = getWeek(App.week).plan.map(d => calcPlanDay(S(), Foods(), Recipes(), d, currentWeight())); const ok = days.filter(d => d.state === 2).length; return `${mode === 'empty' ? 'Prázdná místa doplněna' : 'Týden navržen'}: ${ok} ze 7 dnů v limitu. Změň, co nechceš, pak nákup.`; });
-  if (mode === 'all' && has) UI.confirm('Přegenerovat celý týden? Současný výběr se přepíše (půjde vrátit).', run); else run(); };
+  if (mode === 'all' && has) UI.confirm('Přegenerovat celý týden? Současný výběr se přepíše (půjde vrátit).', run, 'Přegenerovat'); else run(); };
 A.genDay = di => Undo.run('Návrh dne', () => { generateWeek(App.week, 'day', di); render(); }, () => { const r = calcPlanDay(S(), Foods(), Recipes(), getWeek(App.week).plan[di], currentWeight()); return `${DAY_NAMES[di]} přegenerováno – ${r.status}, ${fmt0(r.kcal)} kcal.`; });
 
 /* ===== Hlas trenéra – jedna věta „co teď“ ===== */

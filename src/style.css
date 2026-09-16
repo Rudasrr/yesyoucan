@@ -293,3 +293,28 @@ input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:34px
 input[type=range]::-webkit-slider-runnable-track{height:10px;border-radius:6px;background:var(--line2);border:1px solid rgba(255,255,255,.8)}
 input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:30px;height:30px;margin-top:-11px;border-radius:50%;background:var(--p);border:3px solid #fff;box-shadow:0 3px 10px -3px rgba(16,24,40,.6);cursor:pointer}
 .rng{display:flex;align-items:center;gap:10px}.rng b{min-width:74px;text-align:right;font-variant-numeric:tabular-nums}
+
+/* ovládání palcem: klikací plochy aspoň 40 px */
+.xbtn{min-width:40px;min-height:40px;padding:8px;display:inline-flex;align-items:center;justify-content:center}
+.star{min-width:40px;min-height:40px;padding:6px;display:inline-flex;align-items:center;justify-content:center;font-size:20px}
+.ibtn{width:28px;height:28px;font-size:14px}
+.eat{padding:9px 14px;font-size:14px;min-height:40px}
+.course .hd{min-height:52px}
+nav.mob button{min-height:52px}
+.chip{min-height:38px;display:inline-flex;align-items:center}
+/* hláška nesmí zakrývat tlačítka v okně */
+.toast{z-index:80}
+body.has-modal .toast{bottom:auto;top:calc(12px + env(safe-area-inset-top))}
+
+/* gramáž: − pole + */
+.gstep{display:inline-flex;align-items:center;gap:3px}
+.gstep .gb{width:34px;height:36px;flex:none;border:1px solid var(--line);background:rgba(255,255,255,.7);border-radius:10px;font-size:18px;font-weight:800;line-height:1;cursor:pointer;color:var(--ink)}
+.gstep .gb:active{background:var(--p-bg)}
+.gstep input.g{width:62px;text-align:center}
+/* „snědl jsem“ je nejčastější úkon dne */
+.eat.big{padding:10px 16px;font-size:14px;font-weight:800}
+@media(max-width:560px){.course .hd{flex-wrap:wrap}.eat.big{flex:1 0 100%;justify-content:center;margin-top:6px}}
+
+/* posun po týdnech v pásu dní */
+.daynav{width:40px;min-height:44px;flex:none;border:1px solid rgba(255,255,255,.8);background:rgba(255,255,255,.55);border-radius:14px;font-size:20px;font-weight:800;color:var(--ink);cursor:pointer;box-shadow:var(--hl)}
+.daynav:disabled{cursor:default}

@@ -96,11 +96,15 @@ const UI = {
       m._guard = () => !!m._dirty;
     }
     m.addEventListener('click', e => { if (e.target === m) UI.tryClose(m); });
-    document.body.appendChild(m); return m;
+    document.body.appendChild(m);
+    m.querySelectorAll('input[type=number]:not([inputmode])').forEach(i => i.setAttribute('inputmode', 'decimal'));
+    document.body.classList.add('has-modal');
+    return m;
   },
   /* zavřít okno – s otázkou, pokud v něm něco rozdělaného zůstalo */
   tryClose(m) {
     if (!m) return;
+    setTimeout(() => { if (!document.querySelector('.modal')) document.body.classList.remove('has-modal'); }, 0);
     if (m._guard && m._guard()) { m._guard = null; UI.confirm('Zavřít bez uložení? Rozdělané změny se ztratí.', () => m.remove(), 'Zavřít a zahodit'); return; }
     m.remove();
   },
@@ -158,7 +162,15 @@ function render() {
   const planBtns = `<span class="row" style="gap:6px"><button class="btn sec sm" style="pointer-events:auto" onclick="A.toggleCoachPlan()">${App.coachPlan ? '👁️ Jen koukat' : '✏️ Plánovat za Roberta'}</button><button class="btn sm" style="pointer-events:auto" onclick="A.togglePreview()">Zpět do trenéra</button></span>`;
   if (App.ro) head += `<div class="notice row between" style="margin-bottom:10px"><span>${App.preview ? '👁️ Robertův pohled – přesně to, co vidí on. Jen náhled, nic se neuloží.' : 'Náhled na Robertova data – jen ke čtení.'}</span>${App.preview ? planBtns : ''}</div>`;
   else if (App.preview && App.coachPlan) head += `<div class="notice warn row between" style="margin-bottom:10px"><span>✏️ Plánuješ za Roberta – co tu uložíš, uvidí u sebe. Normálně si den skládá sám.</span>${planBtns}</div>`;
+  // překreslení nesmí sebrat kurzor z rozepsaného pole ani odskočit se stránkou
+  const ae = document.activeElement;
+  const keep = ae && ae.id && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA')
+    ? { id: ae.id, s: ae.selectionStart, e: ae.selectionEnd } : null;
+  const sy = window.scrollY;
   el.innerHTML = head + V();
+  el.querySelectorAll('input[type=number]:not([inputmode])').forEach(i => i.setAttribute('inputmode', 'decimal'));
+  if (keep) { const n = document.getElementById(keep.id); if (n) { n.focus(); try { n.setSelectionRange(keep.s, keep.e); } catch (e) { } } }
+  if (Math.abs(window.scrollY - sy) > 2) window.scrollTo(0, sy);
 }
 
 /* ---- přihlášení ---- */
@@ -201,12 +213,18 @@ async function afterLogin() {
 }
 
 /* ---- větší ovládání čísel: − hodnota + (palcem na telefonu) ---- */
-function stepper(id, value, step, min, max) {
+function stepper(id, value, step, min, max, onchange) {
   const st = step || 1;
   return `<div class="step2"><button class="sbtn" type="button" onclick="A.num('${id}',${-st},${min ?? ''},${max ?? ''})" aria-label="míň">−</button>` +
-    `<input type="number" id="${id}" value="${value}" step="${st}" ${min != null ? `min="${min}"` : ''} ${max != null ? `max="${max}"` : ''}>` +
+    `<input type="number" id="${id}" value="${value}" step="${st}" ${min != null ? `min="${min}"` : ''} ${max != null ? `max="${max}"` : ''}${onchange ? ` onchange="${onchange}"` : ''}>` +
     `<button class="sbtn" type="button" onclick="A.num('${id}',${st},${min ?? ''},${max ?? ''})" aria-label="víc">+</button></div>`;
 }
+/* posun hodnoty v políčku vedle tlačítka (gramáž v jídle) */
+A.gnudge = (btn, d) => {
+  const inp = btn.parentElement.querySelector('input'); if (!inp) return;
+  inp.value = Math.max(0, (Number(inp.value) || 0) + d);
+  inp.dispatchEvent(new Event('change', { bubbles: true }));
+};
 A.num = (id, d, min, max) => {
   const el = document.getElementById(id); if (!el) return;
   let v = (Number(el.value) || 0) + d;

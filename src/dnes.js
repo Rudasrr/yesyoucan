@@ -39,7 +39,8 @@ VIEWS.dnes = function () {
   const tasks = dayTasks(App.date); const doneN = tasks.filter(t => t.done).length;
   const st = streakOk(), ws = weighStreak();
   // pás dní
-  const mon = mondayOf(todayISO()); const strip = [];
+  if (!App.stripWeek) App.stripWeek = mondayOf(todayISO());
+  const mon = App.stripWeek; const thisMon = mondayOf(todayISO()); const strip = [];
   for (let k = 0; k < 7; k++) { const dt = addDays(mon, k); const future = dt > todayISO(); const ev = future ? null : (dt < todayISO() ? evaluateDay(dt) : null);
     strip.push(`<button class="${dt === App.date ? 'on' : ''} ${ev && ev.ok ? 'has' : ''}" ${future ? 'disabled style="opacity:.45"' : ''} onclick="App.date='${dt}';render()">${DAY_SHORT[dayIndex(dt)]}<b>${parseISO(dt).getDate()}.</b></button>`); }
   // hlavní číslo: rezerva plánu proti limitu
@@ -54,7 +55,10 @@ VIEWS.dnes = function () {
   return `
   <div class="row between" style="margin-bottom:8px"><h1>${isToday ? 'Dnes' : dn} <span class="muted" style="font-weight:600;font-size:15px">${czDate(App.date)}</span></h1>
     <div class="row">${st >= 2 ? `<span class="streak">🔥 ${st} dnů v řadě</span>` : ''}${ws >= 3 ? `<span class="streak" style="background:var(--p-bg);color:var(--p-ink)">⚖️ ${ws}× vážení</span>` : ''}</div></div>
-  <div class="calstrip noprint" style="margin-bottom:12px">${strip.join('')}</div>
+  <div class="row" style="gap:6px;margin-bottom:12px"><button class="daynav" onclick="A.stripShift(-7)" title="předchozí týden">‹</button>
+    <div class="calstrip noprint" style="flex:1;margin:0">${strip.join('')}</div>
+    <button class="daynav" onclick="A.stripShift(7)" ${mon >= thisMon ? 'disabled style="opacity:.35"' : ''} title="další týden">›</button></div>
+  ${mon !== thisMon ? `<p class="tiny muted" style="margin:-6px 0 10px">Koukáš na týden od ${czDateShort(mon)} <button class="btn sec sm" onclick="A.stripShift(0)">zpět na tento týden</button></p>` : ''}
   ${isToday ? mismatchAlert(App.date) : ''}
   ${now}
   ${note ? `<div class="note"><span class="em">💬</span><div><div class="tiny muted" style="font-weight:700">Vzkaz od trenéra${noteAt ? ' · ' + czDateShort(noteAt) : ''}</div><div>${esc(note)}</div></div></div>` : ''}
@@ -135,17 +139,17 @@ function renderCourse(s, foods, recipes, day, c, i, d) {
   let body = '';
   if (c.active) {
     body = `<div class="tbl"><table class="items"><tr><th>Surovina</th><th class="n">g</th><th class="n m-kcal">kcal</th><th class="n m-prot">bílk.</th><th></th></tr>` +
-      c.items.map(it => it.extra ? `<tr><td><select class="sw edit" onchange="A.extraFood('${cs.key}',${String(it.idx).slice(1)},this.value)">${foodOpts(it.food)}</select><div class="tiny muted">přidáno</div></td>
-        <td class="n"><input class="g edit" type="number" min="0" step="5" value="${it.g}" onchange="A.extraG('${cs.key}',${String(it.idx).slice(1)},this.value)"></td><td class="n">${fmt0(it.kcal)}</td><td class="n">${fmt1(it.p)}</td><td class="n"><button class="xbtn write" title="odebrat" onclick="A.extraDel('${cs.key}',${String(it.idx).slice(1)})">×</button></td></tr>`
-      : `<tr><td>${modeBadge(it.food)}<select class="sw ${it.swapped ? 'edit' : ''}" style="width:calc(100% - 26px)" onchange="A.swap('${cs.key}',${it.idx},this.value)">${foodOpts(it.food)}</select>${it.swapped ? `<div class="tiny muted">recept: ${esc(it.origFood)}</div>` : ''}</td>
-        <td class="n"><input class="g ${it.manual ? 'edit' : ''}" type="number" min="0" step="5" value="${it.g}" onchange="A.gram('${cs.key}',${it.idx},this.value)">${it.scale && !it.manual && it.g !== it.origG ? `<div class="tiny muted">recept ${it.origG} g · přizpůsobeno tvému limitu</div>` : ''}<div class="tiny muted">${measureText(it.food, it.g)}</div></td>
+      c.items.map(it => it.extra ? `<tr><td><button class="pickbtn sm edit" onclick="openFoodPicker(n=>A.extraFood('${cs.key}',${String(it.idx).slice(1)},n),${JSON.stringify(it.food).replace(/"/g, '&quot;')})">${esc(it.food)}</button><div class="tiny muted">přidáno</div></td>
+        <td class="n"><span class="gstep"><button class="gb" onclick="A.gnudge(this,-10)">−</button><input class="g edit" type="number" min="0" step="5" value="${it.g}" onchange="A.extraG('${cs.key}',${String(it.idx).slice(1)},this.value)"><button class="gb" onclick="A.gnudge(this,10)">+</button></span></td><td class="n">${fmt0(it.kcal)}</td><td class="n">${fmt1(it.p)}</td><td class="n"><button class="xbtn write" title="odebrat" onclick="A.extraDel('${cs.key}',${String(it.idx).slice(1)})">×</button></td></tr>`
+      : `<tr><td>${modeBadge(it.food)}<button class="pickbtn sm ${it.swapped ? 'edit' : ''}" style="width:calc(100% - 26px)" onclick="openFoodPicker(n=>A.swap('${cs.key}',${it.idx},n),${JSON.stringify(it.food).replace(/"/g, '&quot;')})">${esc(it.food)}</button>${it.swapped ? `<div class="tiny muted">recept: ${esc(it.origFood)}</div>` : ''}</td>
+        <td class="n"><span class="gstep"><button class="gb" onclick="A.gnudge(this,-10)">−</button><input class="g ${it.manual ? 'edit' : ''}" type="number" min="0" step="5" value="${it.g}" onchange="A.gram('${cs.key}',${it.idx},this.value)"><button class="gb" onclick="A.gnudge(this,10)">+</button></span>${it.scale && !it.manual && it.g !== it.origG ? `<div class="tiny muted">recept ${it.origG} g · přizpůsobeno tvému limitu</div>` : ''}<div class="tiny muted">${measureText(it.food, it.g)}</div></td>
         <td class="n">${fmt0(it.kcal)}</td><td class="n">${fmt1(it.p)}</td><td class="n"><button class="xbtn write" title="odebrat" onclick="A.removeItem('${cs.key}',${it.idx})">×</button></td></tr>`).join('') +
       (c.removedItems || []).map(r => `<tr class="muted"><td colspan="4" style="text-decoration:line-through">${esc(r.food)} ${r.g} g</td><td class="n"><button class="xbtn write" title="vrátit" onclick="A.unremoveItem('${cs.key}',${r.idx})">↺</button></td></tr>`).join('') +
       `<tr><td class="b">celkem</td><td></td><td class="n b">${fmt0(c.kcal)}</td><td class="n b">${fmt1(c.p)}</td><td></td></tr></table></div>` +
       `<div class="row" style="margin-top:8px"><button class="btn sec sm write" onclick="A.extraAdd('${cs.key}')">+ přidat surovinu</button>${c.edited ? `<button class="btn sec sm write" onclick="A.resetCourse('${cs.key}')">Vrátit recept beze změn</button>` : ''}</div>`;
   } else if (c.situace) body = `<p class="small muted">Vyřešíš na místě – cíl jídla ${fmt0(cs.kcal)} kcal, min. ${SEED.settings.courses[i].prot_min} g bílkovin. Napiš, co jsi snědl – appka rozpozná suroviny, gramy dolaď.</p>
       <div class="row"><input type="text" id="ate-${cs.key}" value="${esc(m.ate_text || '')}" placeholder="např. 2 rohlíky se šunkou a sýrem, jablko" style="flex:1;min-width:200px"><button class="btn sec sm write" onclick="A.ateText('${cs.key}',document.getElementById('ate-${cs.key}').value)">Rozpoznat</button></div>
-      ${(m.extra || []).length ? `<div class="tbl"><table class="items" style="margin-top:8px"><tr><th>Surovina</th><th class="n">g</th><th class="n">kcal</th><th></th></tr>${(m.extra || []).map((ex, j) => { const f = foods.find(x => x.name === ex.food); return `<tr><td>${modeBadge(ex.food)}<select class="sw edit" style="width:calc(100% - 26px)" onchange="A.extraFood('${cs.key}',${j},this.value)">${foodOpts(ex.food)}</select><div class="tiny muted">${measureText(ex.food, ex.g)}</div></td><td class="n"><input class="g edit" type="number" min="0" step="5" value="${ex.g}" onchange="A.extraG('${cs.key}',${j},this.value)"></td><td class="n">${f ? fmt0(f.kcal * ex.g / 100) : ''}</td><td class="n"><button class="xbtn write" onclick="A.extraDel('${cs.key}',${j})">×</button></td></tr>`; }).join('')}<tr><td class="b">celkem</td><td></td><td class="n b">${fmt0((m.extra || []).reduce((a, ex) => { const f = foods.find(x => x.name === ex.food); return a + (f ? f.kcal * ex.g / 100 : 0); }, 0))}</td><td></td></tr></table></div><p class="hint">Do součtu dne se počítá cíl jídla; tvůj zápis je pro tebe a trenéra.</p>` : ''}`;
+      ${(m.extra || []).length ? `<div class="tbl"><table class="items" style="margin-top:8px"><tr><th>Surovina</th><th class="n">g</th><th class="n">kcal</th><th></th></tr>${(m.extra || []).map((ex, j) => { const f = foods.find(x => x.name === ex.food); return `<tr><td>${modeBadge(ex.food)}<button class="pickbtn sm edit" style="width:calc(100% - 26px)" onclick="openFoodPicker(n=>A.extraFood('${cs.key}',${j},n),${JSON.stringify(ex.food).replace(/"/g, '&quot;')})">${esc(ex.food)}</button><div class="tiny muted">${measureText(ex.food, ex.g)}</div></td><td class="n"><span class="gstep"><button class="gb" onclick="A.gnudge(this,-10)">−</button><input class="g edit" type="number" min="0" step="5" value="${ex.g}" onchange="A.extraG('${cs.key}',${j},this.value)"><button class="gb" onclick="A.gnudge(this,10)">+</button></span></td><td class="n">${f ? fmt0(f.kcal * ex.g / 100) : ''}</td><td class="n"><button class="xbtn write" onclick="A.extraDel('${cs.key}',${j})">×</button></td></tr>`; }).join('')}<tr><td class="b">celkem</td><td></td><td class="n b">${fmt0((m.extra || []).reduce((a, ex) => { const f = foods.find(x => x.name === ex.food); return a + (f ? f.kcal * ex.g / 100 : 0); }, 0))}</td><td></td></tr></table></div><p class="hint">Do součtu dne se počítá cíl jídla; tvůj zápis je pro tebe a trenéra.</p>` : ''}`;
   else if (c.skipped) body = `<p class="small muted">Vynecháno.</p>`;
   const st = c.active ? (Math.abs(c.kcal - c.target) <= 30 ? 'ok' : (c.kcal > c.target ? 'bad' : 'warn')) : '';
   const eaten = !!m.eaten;
@@ -153,13 +157,14 @@ function renderCourse(s, foods, recipes, day, c, i, d) {
   const sum = !cur ? 'nevybráno' : (cur === VYNECHAT ? 'vynecháno' : cur);
   return `<div class="course ${eaten ? 'eaten' : ''} ${open ? 'open' : ''}" id="c-${cs.key}"><div class="hd" onclick="A.toggleCourse('${cs.key}')" title="${open ? 'sbalit' : 'rozbalit a upravit'}"><span style="font-size:18px">${COURSE_EMOJI[cs.key]}</span><span class="t">${esc(cs.name)}</span><span class="time">${cs.time}</span>
       <span class="csum ${cur ? '' : 'muted'}">${esc(sum)}</span>
-      ${cur && cur !== VYNECHAT ? `<button class="eat ${eaten ? 'on' : ''} write" onclick="event.stopPropagation();A.eaten('${cs.key}',${!eaten})">${eaten ? '✓ snědeno' : 'snědl jsem'}</button>` : ''}${cur && cur !== SITUACE && cur !== VYNECHAT ? `<button class="star ${isFav(cur) ? 'on' : ''}" onclick="event.stopPropagation();A.favInPlace(this,${JSON.stringify(cur).replace(/"/g, '&quot;')})" title="oblíbené">${isFav(cur) ? '★' : '☆'}</button>` : ''}
+      ${cur && cur !== VYNECHAT ? `<button class="eat big ${eaten ? 'on' : ''} write" onclick="event.stopPropagation();A.eaten('${cs.key}',${!eaten})">${eaten ? '✓ snědeno' : 'snědl jsem'}</button>` : ''}${cur && cur !== SITUACE && cur !== VYNECHAT ? `<button class="star ${isFav(cur) ? 'on' : ''}" onclick="event.stopPropagation();A.favInPlace(this,${JSON.stringify(cur).replace(/"/g, '&quot;')})" title="oblíbené">${isFav(cur) ? '★' : '☆'}</button>` : ''}
       <span class="k ${st}">${c.active || c.situace ? fmt0(c.kcal) + ' kcal' : ''}</span><span class="cotog">${open ? '▴' : '▾'}</span></div>
     ${!open ? '' : `<div class="bd"><div class="row" style="gap:6px"><div style="flex:1;min-width:0">${pickBtn}</div><button class="btn sec sm write" title="navrhnout jinou variantu, která se vejde" onclick="A.suggestOne('${cs.key}')">💡 jiné</button></div>
     <div class="hint">${c.active ? (() => { const t = toleranceText(c.kcal, c.target); return `<b class="${t.ok ? 'ok' : 'warn'}">${t.text}</b> · cíl ${fmt0(c.target)} kcal`; })() : esc(c.hint)}${m.sel && m.planned && m.sel !== m.planned ? ` · místo plánu (${esc(m.planned)})` : ''}${m.auto ? ' · navrženo appkou' : ''}</div>
     <div style="margin-top:8px">${body}</div></div>`}</div>`;
 }
 
+A.stripShift = n => { App.stripWeek = n ? addDays(App.stripWeek, n) : mondayOf(todayISO()); render(); };
 A.toggleCourse = key => { App.openCourse = App.openCourse === key ? null : key; render(); };
 
 /* ---- akce Dnes (vše se Zpět a hláškou) ---- */
