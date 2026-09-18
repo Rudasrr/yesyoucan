@@ -75,7 +75,9 @@ function coachAlerts() {
   if (tydnu >= 8) out.push({ lv: 2, text: `${tydnu} týdnů bez udržovacího týdne. Po osmi týdnech deficitu se vyplatí jeden týden na nule – v Plánu a cílech.` });
   return out;
 }
-function coachSeen() { const p = Prefs(); const old = p.coachSeen; p.coachSeen = todayISO(); if (old !== p.coachSeen) savePrefs(p); return old; }
+/* Kdy jsem se sem naposledy díval, je věc trenéra a jeho prohlížeče – ne Robertova data.
+   Do prefs to nepatří: ta patří klientovi a RLS by zápis stejně odmítla. */
+function coachSeen() { const k = 'seen:' + Store.ownerId(); const old = LS.get(k, null); LS.set(k, todayISO()); return old; }
 
   const quiet = quietHeader();
   const upoz = coachAlerts();

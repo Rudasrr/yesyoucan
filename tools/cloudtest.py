@@ -112,7 +112,7 @@ with sync_playwright() as p:
     sync(robert)
     nfoods = robert.evaluate("Store.rows('foods').filter(r=>r.user_id===null).length")
     nrec = robert.evaluate("Store.rows('recipes').filter(r=>r.user_id===null).length")
-    check('Robert vidí 196 globálních surovin', nfoods == 196, nfoods)
+    check('Robert vidí 214 globálních surovin', nfoods == 214, nfoods)
     check('Robert vidí 200 globálních receptů', nrec == 200, nrec)
 
     print('\n3 · Robert uloží vážení → trenér ho vidí')
