@@ -177,7 +177,7 @@ function calcDay(s, foods, recipes, day, weight) {
     if (tot.p < protTarget) fix.push(`přidat ${fmt0(protTarget - tot.p)} g bílkovin`);
     if (day.act && day.act.planItems && !day.act.doneAll) fix.push('odškrtat trénink');
     const kg = dayDeficit * 7 / KG_KCAL;
-    summary = `${jenPlan ? 'Plán dne zatím nesedí' : 'Den zatím nesedí'}: ${fix.length ? fix.join(', ') : 'podívej se na označený řádek výš'}. Takhle jsi na deficitu ${fmt0(dayDeficit)} kcal, což je ${fmt2(kg)} kg za týden místo plánovaných ${fmt2(targetKg)} kg. Jeden takový den nic nezkazí, ale tři v týdnu ano.`;
+    summary = `${jenPlan ? 'Plán dne zatím nesedí' : 'Den zatím nesedí'}: ${fix.length ? fix.join(', ') : 'podívej se na označený řádek výš'}. ${dayDeficit >= 0 ? `Takhle jsi na deficitu ${fmt0(dayDeficit)} kcal, což je ${fmt2(kg)} kg za týden místo plánovaných ${fmt2(targetKg)} kg.` : `Takhle jsi dokonce ${fmt0(-dayDeficit)} kcal v plusu – při takovém dni se nehubne, ale přibírá.`} Jeden takový den nic nezkazí, ale tři v týdnu ano.`;
   }
   let friday;
   if (base.drinkKcal === 0) friday = 'Když si dáš piva nebo něco smaženého, zapiš to nahoře. Porce jídel se ti samy zmenší, aby ses vešel do dne – nemusíš nic počítat.';

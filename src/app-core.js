@@ -281,3 +281,48 @@ function showNewPassword() {
   m.querySelector('#npb').onclick = async () => { try { await Store.updatePassword(m.querySelector('#npw').value); m.remove(); UI.toast('Heslo změněno'); location.hash = ''; } catch (e) { m.querySelector('#nperr').textContent = e.message; } };
 }
 document.addEventListener('DOMContentLoaded', boot);
+
+/* ===== Informační blok nad obrazovkou =====
+   Krátké „co se tu dělá“, dá se zabalit a appka si to pamatuje.
+   Delší vysvětlení je pod ⓘ vedle nadpisu. */
+function flow(id, kroky, napoveda) {
+  const p = Prefs(); const zabaleno = (p.flowOff || []).includes(id);
+  return `<div class="flow ${zabaleno ? 'off' : ''}" id="flow-${id}">
+    <button class="flowtog" onclick="A.flowToggle('${id}')" title="${zabaleno ? 'rozbalit' : 'sbalit'}">${zabaleno ? '▾' : '▴'}</button>
+    <div class="flowin"><span class="flowem">🧭</span>
+      <div><div class="flowsteps">${kroky.map((k, i) => `<span class="fstep"><b>${i + 1}</b>${esc(k)}</span>`).join('<span class="farr">›</span>')}</div>
+      ${napoveda ? `<div class="tiny muted" style="margin-top:6px">${esc(napoveda)}</div>` : ''}</div></div></div>`;
+}
+A.flowToggle = id => {
+  const p = Prefs(); const f = (p.flowOff || []).slice(); const i = f.indexOf(id);
+  if (i < 0) f.push(id); else f.splice(i, 1);
+  savePrefs({ ...p, flowOff: f }); render();
+};
+
+/* ===== Způsoby zobrazení plnění =====
+   ring   – kolečko pro „kolik z cíle“ (jedno číslo, jeden cíl)
+   dualBar– dva pruhy přes sebe: co říká plán a co je skutečnost
+   spark  – trend za posledních pár dní */
+function ring(pct, cislo, popis, barva, velikost) {
+  const S = velikost || 108, r = S / 2 - 9, C = 2 * Math.PI * r;
+  const p = clamp(pct, 0, 100);
+  return `<div class="ring"><svg viewBox="0 0 ${S} ${S}" width="${S}" height="${S}" aria-hidden="true">
+      <circle cx="${S / 2}" cy="${S / 2}" r="${r}" fill="none" stroke="var(--line2)" stroke-width="9"/>
+      <circle cx="${S / 2}" cy="${S / 2}" r="${r}" fill="none" stroke="${barva || 'var(--p)'}" stroke-width="9" stroke-linecap="round"
+        stroke-dasharray="${C}" stroke-dashoffset="${C * (1 - p / 100)}" transform="rotate(-90 ${S / 2} ${S / 2})"/></svg>
+    <div class="rval"><b>${cislo}</b></div><div class="rlab">${esc(popis)}</div></div>`;
+}
+function dualBar(planHod, realHod, max, jednotka) {
+  const m = Math.max(max || 0, planHod, realHod, 1);
+  const pp = clamp(planHod / m * 100, 0, 100), pr = clamp(realHod / m * 100, 0, 100);
+  return `<div class="dual"><div class="dbar plan" style="width:${pp}%"></div><div class="dbar real ${realHod >= planHod ? 'ok' : 'low'}" style="width:${pr}%"></div>
+    <div class="dleg"><span><i class="lp"></i>plán ${fmt2(planHod)}${jednotka}</span><span><i class="lr ${realHod >= planHod ? 'ok' : 'low'}"></i>skutečnost ${fmt2(realHod)}${jednotka}</span></div></div>`;
+}
+function spark(hodnoty, barva) {
+  const v = hodnoty.filter(x => x != null);
+  if (v.length < 2) return '';
+  const min = Math.min(...v), max = Math.max(...v), r = (max - min) || 1;
+  const W = 120, H = 34;
+  const body = v.map((x, i) => `${(i / (v.length - 1) * W).toFixed(1)},${(H - 3 - (x - min) / r * (H - 6)).toFixed(1)}`).join(' ');
+  return `<svg class="spark" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" aria-hidden="true"><polyline points="${body}" fill="none" stroke="${barva || 'var(--p)'}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+}

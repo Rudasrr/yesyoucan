@@ -47,7 +47,7 @@ VIEWS.dnes = function () {
   const reserve = d.remaining; const planned = d.tot.kcal > 0;
   let big, lbl, tone;
   if (!planned) { big = fmt0(d.base.maxIntake); lbl = 'kcal je dnešní limit – zatím nic naplánováno'; tone = 'grad3'; }
-  else if (reserve < -30) { const pend = (d.base.planKcal || 0) - (d.base.doneKcal || 0); const walkPend = Math.max(0, d.base.planWalk - (day.walk_min || 0)) * d.base.walkPerMin; big = fmt0(-reserve); lbl = pend + walkPend >= -reserve ? `kcal nad limit teď – po plánované aktivitě (${fmt0(pend + walkPend)} kcal) bude sedět` : 'kcal nad limit – plán dne nesedí'; tone = pend + walkPend >= -reserve ? 'grad3' : 'grad2'; }
+  else if (reserve < -30) { const pend = (d.base.planKcal || 0) - (d.base.doneKcal || 0); const walkPend = Math.max(0, d.base.planWalk - (day.walk_min || 0)) * d.base.walkPerMin; big = fmt0(-reserve); lbl = pend + walkPend >= -reserve ? `kcal nad limit teď – po plánované aktivitě (${fmt0(pend + walkPend)} kcal) bude sedět` : 'kcal nad limit – plán dne nesedí'; tone = pend + walkPend >= -reserve ? 'grad3' : 'grad3 warnline'; }
   else { big = fmt0(Math.max(0, reserve)); lbl = prog.missing.length ? `kcal ti ještě zbývá do limitu · chybí naplánovat ${prog.missing.map(c => c.name.toLowerCase()).join(', ')}` : 'kcal ti ještě zbývá do limitu – plán dne sedí'; tone = 'grad'; }
   const pctE = clamp(prog.eaten / d.base.maxIntake * 100, 0, 100), pctP = clamp(prog.planned / d.base.maxIntake * 100, 0, 100 - pctE);
   // karta Teď
@@ -59,6 +59,7 @@ VIEWS.dnes = function () {
     <div class="calstrip noprint" style="flex:1;margin:0">${strip.join('')}</div>
     <button class="daynav" onclick="A.stripShift(7)" ${mon >= thisMon ? 'disabled style="opacity:.35"' : ''} title="další týden">›</button></div>
   ${mon !== thisMon ? `<p class="tiny muted" style="margin:-6px 0 10px">Koukáš na týden od ${czDateShort(mon)} <button class="btn sec sm" onclick="A.stripShift(0)">zpět na tento týden</button></p>` : ''}
+  ${flow('dnes', ['Zvaž se ráno', 'Odškrtávej jídla', 'Zapiš chůzi', 'Večer mrkni na kontrolu dne'], 'Karta Teď nahoře ti vždycky řekne jeden další krok – když nevíš, drž se jí.')}
   ${isToday ? mismatchAlert(App.date) : ''}
   ${now}
   ${note ? `<div class="note"><span class="em">💬</span><div><div class="tiny muted" style="font-weight:700">Vzkaz od trenéra${noteAt ? ' · ' + czDateShort(noteAt) : ''}</div><div>${esc(note)}</div></div></div>` : ''}
@@ -70,7 +71,7 @@ VIEWS.dnes = function () {
   <div><b class="${prog.eaten + d.base.drinkKcal > d.base.maxIntake ? 'bad' : ''}">${fmt0(prog.eaten + d.base.drinkKcal)} <small>/ ${fmt0(d.base.maxIntake)}</small></b><span><span class="mdot kcal"></span>snědeno z limitu</span></div>
   <div><b>${fmt0(d.intake)} <small>/ ${fmt0(d.base.maxIntake)}</small></b><span><span class="mdot kcal"></span>celý plán dne</span></div>
   <div><b class="${d.tot.p > 0 ? (d.tot.p >= d.protTarget ? 'ok' : 'bad') : ''}">${fmt0(d.tot.p)} <small>/ ${d.protTarget || s.protein_min}</small></b><span><span class="mdot prot"></span>bílkoviny (g)</span></div>
-  <div><b class="${planned ? (d.dayDeficit >= d.base.deficit * 0.9 ? 'ok' : 'warn') : ''}">${planned ? fmt0(d.dayDeficit) : '–'}</b><span>${planned ? `dnešní deficit · ${fmt2(d.dayDeficit * 7 / KG_KCAL)} kg/týden, plán ${fmt2(w * s.rate_pct / 100)}` : 'dnešní deficit'}</span></div>
+  <div><b class="${planned ? (d.dayDeficit >= d.base.deficit * 0.9 ? 'ok' : 'warn') : ''}">${planned ? fmt0(d.dayDeficit) : '–'}</b><span>${planned ? (d.dayDeficit >= 0 ? `dnešní deficit · ${fmt2(d.dayDeficit * 7 / KG_KCAL)} kg/týden, plán ${fmt2(w * s.rate_pct / 100)}` : `dnes jsi v plusu – takhle se přibírá`) : 'dnešní deficit'}</span></div>
   </div>
   ${renderDayCheck(d, s, day, w, planned)}
   </div>

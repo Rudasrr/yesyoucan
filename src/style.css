@@ -502,3 +502,41 @@ body.has-modal .toast{bottom:auto;top:calc(12px + env(safe-area-inset-top))}
 .subtabs button{border:0;background:transparent;border-radius:999px;padding:9px 16px;font-weight:700;color:var(--ink2);cursor:pointer;min-height:42px;font-size:14px}
 .subtabs button.on{background:var(--p);color:#fff}
 .subtabs button:hover:not(.on){background:rgba(255,255,255,.7);color:var(--ink)}
+
+/* informační blok „jak se tu pracuje“ */
+.flow{position:relative;background:rgba(255,255,255,.5);border:1px solid rgba(255,255,255,.8);border-radius:18px;padding:12px 44px 12px 14px;box-shadow:var(--hl)}
+.flow .flowin{display:flex;gap:10px;align-items:flex-start}
+.flow .flowem{font-size:18px;line-height:1.2;flex:none}
+.flow .flowsteps{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px}
+.flow .fstep{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:700;color:var(--ink)}
+.flow .fstep b{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;background:var(--p);color:#fff;font-size:11px;flex:none}
+.flow .farr{color:var(--ink2);font-weight:800}
+.flow .flowtog{position:absolute;top:8px;right:8px;width:32px;height:32px;border:0;background:rgba(255,255,255,.7);border-radius:10px;color:var(--ink2);font-size:14px;cursor:pointer}
+.flow.off{padding:8px 44px 8px 14px}
+.flow.off .flowin{align-items:center}
+.flow.off .flowsteps{display:none}
+.flow.off .flowin > div::before{content:'Jak se tu pracuje';font-size:13px;font-weight:700;color:var(--ink2)}
+.flow.off .tiny{display:none}
+
+/* kolečka, dvojpruhy, jiskra */
+.rings{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin-top:10px}
+.ring{position:relative;text-align:center}
+.ring svg{display:block;margin:0 auto}
+.ring .rval{position:absolute;top:0;left:0;right:0;height:108px;display:flex;align-items:center;justify-content:center;pointer-events:none}
+.ring .rval b{font-size:22px;font-weight:900;letter-spacing:-.02em}
+.ring .rlab{font-size:12px;color:var(--ink2);font-weight:700;margin-top:6px;line-height:1.35}
+.dual{margin-top:8px}
+.dual .dbar{height:12px;border-radius:6px;margin-bottom:4px}
+.dual .dbar.plan{background:var(--line);}
+.dual .dbar.real{background:var(--ok)}
+.dual .dbar.real.low{background:var(--y)}
+.dual .dleg{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--ink2);font-weight:700;margin-top:2px}
+.dual .dleg i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;background:var(--line)}
+.dual .dleg i.lr{background:var(--ok)}.dual .dleg i.lr.low{background:var(--y)}
+.spark{vertical-align:middle}
+
+/* stav „nad limitem“: tmavá karta s červeným proužkem, ne sytě červená plocha */
+.herob.warnline{position:relative}
+.herob.warnline::before{content:'';position:absolute;left:0;top:0;bottom:0;width:5px;background:var(--bad)}
+.herob.warnline .tiny:first-child{color:#ff9d9d}
+.card.ga-hero{overflow:hidden}

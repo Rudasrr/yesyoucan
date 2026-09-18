@@ -15,6 +15,7 @@ VIEWS._mereni = function () {
   const missing = dates.filter(d => d !== today && !byDate[d]).length;
   const inp = (f, l, step = '0.1') => `<div class="in"><label class="f">${l}</label>${stepper('m_' + f, cur[f] ?? '', Number(step), 0)}</div>`;
   return `
+  ${flow('mereni', ['Ráno po WC, nalačno', 'Zapiš váhu', 'V neděli i obvody'], 'Jedno číslo z rána nic neznamená – appka počítá s průměrem posledních sedmi vážení.')}
   <div class="row between" style="margin-bottom:8px"><h1>Měření${help('Váha každé ráno po WC, nalačno. Jedno číslo nic neznamená – appka počítá průměr posledních 7 vážení. Obvody stačí v neděli, vždy stejné místo. Zápis, který vybočuje o víc než 2 kg, se před uložením zeptá.')}</h1><span class="small muted">start ${czDate(s.start_date)}${ov.last ? ` · ${ov.count} vážení` : ''}</span></div>
   <div class="grid g23">
    <div>
@@ -71,6 +72,7 @@ VIEWS._prehled = function () {
   const circ = k => meas.filter(m => m[k] != null).sort((a, b2) => a.date < b2.date ? -1 : 1).map(m => [daysBetween(s.start_date, m.date), m[k]]);
   const fmtReal = v => typeof v === 'number' ? fmt2(v) : v;
   return `
+  ${flow('prehled', ['Podívej se, jak si vedeš', 'Porovnej plán a skutečnost', 'Sleduj trend, ne jeden den'], 'Rozhoduje čára, ne tečka. Když jsi pod plánem dva týdny v řadě, řekni to trenérovi.')}
   <h1 style="margin-bottom:8px">Přehled${help('Jak jsi na cestě: aktuální váha (průměr 7 dní), kolik je dole a kolik zbývá, prognóza data cíle z tvého skutečného tempa, týdenní ohlédnutí a grafy. Plánovaná křivka = 0,7 % váhy týdně od startu.')}</h1>
   <div class="card">
    <div class="kpi"><div><div class="v">${fmt1(ov.cur)}</div><div class="l">aktuální váha (kg)</div></div><div><div class="v ok">${fmt1(ov.lost)}</div><div class="l">shozeno (kg)</div></div><div><div class="v">${fmt1(ov.remaining)}</div><div class="l">zbývá (kg)</div></div><div><div class="v">${Math.round(ov.progress * 100)} %</div><div class="l">cesty za tebou</div></div></div>
@@ -79,7 +81,17 @@ VIEWS._prehled = function () {
   </div>
 
   <div class="card"><h2>Jak si vedeš${help('Vlevo co říká plán, vpravo co ukazuje váha. Prognóza vychází z dosavadního tempa – ke konci se hubnutí vždycky zpomalí, takže reálné datum bývá o něco později.')}</h2>
-   <table class="small vs" style="margin-top:8px"><tr><th>Ukazatel</th><th class="n">Plán</th><th class="n">Skutečnost</th></tr>
+   <div class="rings">
+     ${ring(clamp((s.start_weight - ov.cur) / Math.max(1, s.start_weight - s.goal_weight) * 100, 0, 100), fmt0(clamp((s.start_weight - ov.cur) / Math.max(1, s.start_weight - s.goal_weight) * 100, 0, 100)) + ' %', 'cesty k cíli · zbývá ' + fmt1(Math.max(0, ov.cur - s.goal_weight)) + ' kg', 'var(--p)')}
+     ${ring(ov.avgWeekLoss != null ? clamp(ov.avgWeekLoss / Math.max(0.01, ov.cur * s.rate_pct / 100) * 100, 0, 130) : 0, ov.avgWeekLoss != null ? fmt0(ov.avgWeekLoss / Math.max(0.01, ov.cur * s.rate_pct / 100) * 100) + ' %' : '–', 'tempa proti plánu · ' + (ov.avgWeekLoss != null ? fmt2(ov.avgWeekLoss) : '–') + ' z ' + fmt2(ov.cur * s.rate_pct / 100) + ' kg', ov.avgWeekLoss != null && ov.avgWeekLoss >= ov.cur * s.rate_pct / 100 * 0.9 ? 'var(--ok)' : 'var(--y)')}
+     ${ring(clamp(ov.count / Math.max(1, (ov.daysSinceStart || 1)) * 100, 0, 100), ov.count + '×', 'vážení z ' + (ov.daysSinceStart ?? '–') + ' dní', 'var(--carb)')}
+     <div class="ring" style="display:flex;flex-direction:column;justify-content:center;align-items:center;gap:4px">
+       ${spark(ov.rows.slice(-14).map(r => r.avg), 'var(--p)')}
+       <div class="rlab">trend průměru za 14 dní<br><b>${ov.rows.length > 1 ? (ov.rows[ov.rows.length - 1].avg <= ov.rows[0].avg ? 'jde dolů' : 'jde nahoru') : '–'}</b></div></div>
+   </div>
+   <div style="margin-top:14px"><div class="small muted" style="font-weight:700;margin-bottom:2px">Úbytek za týden: plán proti skutečnosti</div>
+     ${dualBar(ov.cur * s.rate_pct / 100, ov.avgWeekLoss || 0, Math.max(ov.cur * s.rate_pct / 100, ov.avgWeekLoss || 0) * 1.15, ' kg')}</div>
+   <table class="small vs" style="margin-top:14px"><tr><th>Ukazatel</th><th class="n">Plán</th><th class="n">Skutečnost</th></tr>
     <tr><td>Váha</td><td class="n">${fmt1(planWeightAt(s, ov.daysSinceStart || 0))} kg</td><td class="n b">${fmt1(ov.cur)} kg</td></tr>
     <tr><td>Shozeno od startu</td><td class="n">${fmt1(Math.max(0, s.start_weight - planWeightAt(s, ov.daysSinceStart || 0)))} kg</td><td class="n b ${ov.dev != null && ov.dev >= 0 ? 'ok' : 'bad'}">${fmt1(Math.max(0, s.start_weight - ov.cur))} kg</td></tr>
     <tr><td>Úbytek za týden</td><td class="n">${fmt2(ov.cur * s.rate_pct / 100)} kg</td><td class="n b">${ov.avgWeekLoss != null ? fmt2(ov.avgWeekLoss) + ' kg' : 'zatím málo dat'}</td></tr>
@@ -147,7 +159,9 @@ VIEWS.tyden = function () {
   const weighed = days.filter(d => Meas().some(m => m.date === d.date && m.weight != null)).length;
   const walked = days.reduce((a, d) => a + ((getDay(d.date).walk_min) || 0), 0);
   const isThis = App.week === mondayOf(today);
-  return `<div class="row between" style="margin-bottom:8px"><h1>Týden${help('Plán sedmi dní. Nech si ho navrhnout (💡) a jen dolaď, nebo vybírej ručně. U každého dne vidíš stav proti limitu toho dne – limit počítá s plánovanou chůzí a tréninkem. Z plánu se sám skládá Nákup i Vaření; na Dnes ti jídla naskočí automaticky.')}</h1>${toggle}</div>
+
+  return `${flow('tyden', ['Nech si navrhnout týden', 'Dolaď, co nechceš', 'Zkontroluj, že dny sedí', 'Běž nakoupit'], 'Plánuješ jen tento a příští týden. Den, který nesedí, má červený proužek – rozklikni ho a vyměň jedno jídlo.')}
+  <div class="row between" style="margin-bottom:8px"><h1>Týden${help('Plán sedmi dní. Nech si ho navrhnout (💡) a jen dolaď, nebo vybírej ručně. U každého dne vidíš stav proti limitu toho dne – limit počítá s plánovanou chůzí a tréninkem. Z plánu se sám skládá Nákup i Vaření; na Dnes ti jídla naskočí automaticky.')}</h1>${toggle}</div>
   ${days.filter(d => d.date >= today && dayMismatch(d.date)).length ? `<div class="alert a2" style="margin-bottom:10px">🏋️ ${days.filter(d => d.date >= today && dayMismatch(d.date)).length} ${days.filter(d => d.date >= today && dayMismatch(d.date)).length === 1 ? 'den nesedí' : 'dny nesedí'} s limitem (změna aktivity) – u dne klikni na „přidat/ubrat“.</div>` : ''}
   <div class="praise ${msgs[0].tone}"><span class="em">${msgs[0].em}</span><div>${esc(msgs[0].text)}${msgs[1] ? `<div class="small muted" style="margin-top:4px;font-weight:500">${msgs[1].em} ${esc(msgs[1].text)}</div>` : ''}</div></div>
   <div class="card"><div class="stats3 wk">
@@ -186,10 +200,10 @@ VIEWS._nakup = function () {
   const wk = getWeek(App.week); const shop = getShop(App.week); const thisMon = mondayOf(todayISO());
   const list = calcShopping(s, foods, recipes, wk.plan, w, weekActs(App.week, w));
   const weekNav = `<div class="row noprint" style="margin-bottom:10px">${weekToggle()}<span class="sp"></span><button class="btn sec sm" onclick="window.print()">Tisk</button></div>`;
-  if (!list.length) return `<h1>Nákup</h1>${weekNav}<div class="card">Na tento týden nemáš naplánovaná jídla. Naplánuj je v Týdnu a seznam se složí sám.</div>`;
+  if (!list.length) return `${flow('nakup', ['Naplánuj týden', 'Odškrtávej, co máš doma', 'Zbytek kup'], 'Množství jsou syrové suroviny přepočítané na tvoji váhu. Odškrtnutí se ukládá, seznam jde vytisknout na jednu stránku.')}<h1>Nákup</h1>${weekNav}<div class="card">Na tento týden nemáš naplánovaná jídla. Naplánuj je v Týdnu a seznam se složí sám.</div>`;
   const cats = [...new Set(list.map(x => x.cat))];
   const done = list.filter(x => shop.checked[x.food]).length;
-  return `<h1 style="margin-bottom:6px">Nákup${help('Seznam surovin pro naplánovaný týden, sečtený přes všechny dny a přepočítaný na tvoji váhu. Odškrtávej „mám“ – stav se ukládá. Vejce jsou v kusech, nad kilo v kilogramech.')}</h1><p class="small muted" style="margin-bottom:8px">Množství jsou syrové suroviny, jak se váží před přípravou, přepočítané na tvoji aktuální váhu – stejně jako rozpis Vaření. Mám ${done} z ${list.length}.</p>${weekNav}
+  return `${flow('nakup', ['Naplánuj týden', 'Odškrtávej, co máš doma', 'Zbytek kup'], 'Množství jsou syrové suroviny přepočítané na tvoji váhu. Odškrtnutí se ukládá, seznam jde vytisknout na jednu stránku.')}<h1 style="margin-bottom:6px">Nákup${help('Seznam surovin pro naplánovaný týden, sečtený přes všechny dny a přepočítaný na tvoji váhu. Odškrtávej „mám“ – stav se ukládá. Vejce jsou v kusech, nad kilo v kilogramech.')}</h1><p class="small muted" style="margin-bottom:8px">Množství jsou syrové suroviny, jak se váží před přípravou, přepočítané na tvoji aktuální váhu – stejně jako rozpis Vaření. Mám ${done} z ${list.length}.</p>${weekNav}
   <div class="masonry print-cols">${cats.map(c => `<div class="card tight"><h3 style="margin-bottom:4px">${esc(c)}</h3><table class="small">${list.filter(x => x.cat === c).map(x => `<tr class="${shop.checked[x.food] ? 'muted' : ''}"><td style="width:34px"><input type="checkbox" ${shop.checked[x.food] ? 'checked' : ''} onchange="A.shopCheck('${esc(x.food)}',this.checked)" style="width:20px;height:20px;min-height:0"></td><td style="${shop.checked[x.food] ? 'text-decoration:line-through' : ''}">${esc(x.food)}${x.uses > 1 && (['Ořechy a semínka', 'Uzeniny'].includes(x.cat) || /Sýr|Eidam|Gouda|Feta|Šunka/.test(x.food)) ? `<div class="tiny muted">rozděl po nákupu na ${x.uses} porcí po ${fmt0(x.g / x.uses)} g</div>` : ''}</td><td class="n b">${x.buy}</td><td class="n muted tiny noprint">${x.buy === fmt0(x.g) + ' g' ? '' : fmt0(x.g) + ' g'}</td></tr>`).join('')}</table></div>`).join('')}</div>
   <div class="row noprint"><button class="btn sec sm write" onclick="A.shopReset()">Odškrtnout vše zpět</button></div>`;
 };
@@ -204,7 +218,7 @@ VIEWS.navod = function () {
   const tiles = (rows) => `<div class="tiles">${rows.map(r => `<div class="tile"><div class="tt">${esc(r[0])}</div><div class="tb">${esc(r[1])}</div>${r[2] ? `<div class="ts">${esc(r[2])}</div>` : ''}</div>`).join('')}</div>`;
   const steps = (rows) => `<div class="steps">${rows.map((r, i) => `<div class="step"><span class="sn">${i + 1}</span><div><div class="tt">${esc(r[0])}</div><div class="ts">${esc(r[1])}</div></div></div>`).join('')}</div>`;
   const RULE_EM = ['🍽️', '🥩', '🥦', '💧', '🚶', '⏱️', '🎯', '🗓️', '🥛', '🧭'];
-  return `<h1 style="margin-bottom:8px">Start a návod</h1>
+  return `${flow('navod', ['Přečti si deset pravidel', 'Mrkni na slovníček', 'Vrať se sem, když nevíš'], '')}<h1 style="margin-bottom:8px">Start a návod</h1>
   <div class="card grad3" style="padding:20px"><p style="font-size:17px;font-weight:700;margin:0">${esc(T.start_intro[0])}</p><p class="small" style="opacity:.9;margin:8px 0 0">${esc(T.start_intro[1])}</p></div>
   <div class="tiles" style="margin-bottom:12px"><div class="tile big"><div class="tt">${fmt0(b.planLimit)}</div><div class="tb">kcal na jídlo a pití za den</div></div><div class="tile big"><div class="tt">${fmt1(Math.max(0, ov.cur - s.goal_weight))} kg</div><div class="tb">do cíle ${s.goal_weight} kg</div></div><div class="tile big"><div class="tt">${Math.round(ov.progress * 100)} %</div><div class="tb">cesty za tebou</div></div><div class="tile big"><div class="tt">${esc(ov.phase.split(' – ')[0])}</div><div class="tb">${esc(ov.phase.split(' – ')[1] || 'fáze chůze')}</div></div></div>
   ${sec('rules', '📜', 'Deset pravidel, která platí vždy', 'Krátká. Když si nebudeš vědět rady, vrať se sem.', `<div class="rules2">${T.rules.map((r, i) => `<div class="rule"><span class="rem">${RULE_EM[i] || '•'}</span><div>${esc(r)}</div></div>`).join('')}</div>`, true)}
@@ -243,7 +257,8 @@ VIEWS._suroviny = function () {
   const edit = f => coach ? `A.editFood('${f.id}')` : (f.own ? `A.editFood('${f.id}','own')` : `A.editFood('${f.id}','override')`);
   const row = f => `<tr><td class="b">${f.own ? '📌 ' : (f.overridden ? '✏️ ' : '')}${esc(f.name)}</td><td class="n b">${f.kcal}</td><td class="n">${f.p}</td><td class="n hm">${f.c}</td><td class="n hm">${f.f}</td><td class="n"><button class="ebtn write" title="upravit" onclick="${edit(f)}">✎</button></td></tr>`;
   const grouped = !q && !App.fsort;
-  return `<div class="row between" style="margin-bottom:8px"><h1>Suroviny${help('Databáze surovin (na 100 g), ze které jsou složené recepty. Klikni na kategorii pro sbalení. Tužka u výchozí suroviny vytvoří tvoji verzi (✏️) – trenérova databáze zůstává; 📌 jsou tvoje vlastní suroviny, které jde použít v receptech i při přidávání surovin do jídla.')}</h1><button class="btn sm write" onclick="A.editFood(null,'${coach ? 'global' : 'own'}')">+ ${coach ? 'nová surovina' : 'moje surovina'}</button></div>
+  return `${flow('suroviny', ['Hledej surovinu', 'Zkontroluj hodnoty', 'Uprav nebo přidej vlastní'], 'Hodnoty jsou na 100 g v syrovém stavu. Když si surovinu upravíš, počítají s ní tvoje recepty.')}
+  <div class="row between" style="margin-bottom:8px"><h1>Suroviny${help('Databáze surovin (na 100 g), ze které jsou složené recepty. Klikni na kategorii pro sbalení. Tužka u výchozí suroviny vytvoří tvoji verzi (✏️) – trenérova databáze zůstává; 📌 jsou tvoje vlastní suroviny, které jde použít v receptech i při přidávání surovin do jídla.')}</h1><button class="btn sm write" onclick="A.editFood(null,'${coach ? 'global' : 'own'}')">+ ${coach ? 'nová surovina' : 'moje surovina'}</button></div>
   <p class="small muted" style="margin-bottom:8px">${foods.length} surovin, hodnoty na 100 g. ${coach ? 'Úpravy platí pro všechny.' : 'Úprava výchozí suroviny vytvoří tvoji verzi (✏️) – databáze trenéra se nemění; 📌 jsou tvoje vlastní.'}</p>
   <div class="frow"><span class="flab">Hledat</span><input type="text" id="fq" placeholder="surovina nebo kategorie…" value="${esc(App.fq)}" style="flex:1;min-width:180px" oninput="App.fq=this.value;render();const i=document.querySelector('#fq');i.focus();i.setSelectionRange(i.value.length,i.value.length)"></div>
   <div class="frow" style="margin-bottom:10px"><span class="flab">Řadit</span><div class="seg">${[['', 'kategorie A–Z'], ['kcal', 'kcal ↑'], ['p', 'bílkoviny ↓']].map(([k, l]) => `<button class="${App.fsort === k ? 'on' : ''}" onclick="App.fsort='${k}';render()">${l}</button>`).join('')}</div></div>

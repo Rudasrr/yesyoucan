@@ -114,7 +114,8 @@ window._rf = k => { if (k === '__clear') App.rfil = {}; else if (k.startsWith('c
 VIEWS._recepty = function () {
   const all = Recipes(); const own = all.filter(r => (r.own || r.overridden) && !r.deleted); const favs = Prefs().favs.length;
   const list = recipeList(all);
-  return `<div class="row between" style="margin-bottom:8px"><h1>Recepty${help('Všech 200 receptů ze sešitu plus tvoje vlastní. Řádek ukazuje chod, kalorie a bílkoviny; rozbalením uvidíš suroviny s gramy. Hvězdička = oblíbené (panel výběru je řadí nahoru, generátor týdne je zařazuje častěji). Upravit můžeš i výchozí recept – vznikne tvoje verze, trenérova databáze zůstává.')}</h1><button class="btn sm write" onclick="A.editOwn()">+ nový recept</button></div>
+  return `${flow('recepty', ['Najdi recept', 'Uprav si ho', 'Ulož jako svoji verzi'], 'Trenérovy recepty zůstanou nedotčené – tvoje úprava platí jen pro tebe.')}
+  <div class="row between" style="margin-bottom:8px"><h1>Recepty${help('Všech 200 receptů ze sešitu plus tvoje vlastní. Řádek ukazuje chod, kalorie a bílkoviny; rozbalením uvidíš suroviny s gramy. Hvězdička = oblíbené (panel výběru je řadí nahoru, generátor týdne je zařazuje častěji). Upravit můžeš i výchozí recept – vznikne tvoje verze, trenérova databáze zůstává.')}</h1><button class="btn sm write" onclick="A.editOwn()">+ nový recept</button></div>
   <div class="row small muted" style="margin-bottom:8px"><span class="pill">${all.filter(r => !r.deleted).length} receptů</span><span class="pill">📖 ${own.length} mých</span><span class="pill">⭐ ${favs} oblíbených</span><span class="sp"></span><span>${list.count} zobrazeno</span></div>
   ${recipeFilterBar(all)}<div class="card tight" style="margin-top:10px">${list.html}</div>`;
 };
@@ -125,7 +126,8 @@ VIEWS._vareni = function () {
   const s = S(), foods = Foods(), recipes = Recipes(), w = currentWeight();
   const wk = getWeek(App.week);
   const weekNav = `<div class="row noprint" style="margin-bottom:10px">${weekToggle()}<div class="seg"><button class="${App.vMode === 'recipes' ? 'on' : ''}" onclick="App.vMode='recipes';render()">podle receptů</button><button class="${App.vMode === 'days' ? 'on' : ''}" onclick="App.vMode='days';render()">podle dnů</button></div><span class="sp"></span><button class="btn sec sm" onclick="window.print()">Tisk</button></div>`;
-  const head = `<div class="row between" style="margin-bottom:6px"><h1>Vaření${help('Rozpis toho, co v týdnu uvařit. „Podle receptů“ sečte, kolikrát se jídlo v týdnu opakuje – hodí se na vaření do krabiček. „Podle dnů“ je rozpis den po dni. Gramy jsou syrové a přepočítané na tvoji aktuální váhu a plánovanou aktivitu dne.')}</h1></div>`;
+  const head = `${flow('vareni', ['Podívej se, co se opakuje', 'Uvař dopředu', 'Odškrtni 🍱 uvařeno'], 'Vaříš jednou a máš na víc dnů. Rozpis jde přepnout podle receptů nebo podle dnů.')}
+  <div class="row between" style="margin-bottom:6px"><h1>Vaření${help('Rozpis toho, co v týdnu uvařit. „Podle receptů“ sečte, kolikrát se jídlo v týdnu opakuje – hodí se na vaření do krabiček. „Podle dnů“ je rozpis den po dni. Gramy jsou syrové a přepočítané na tvoji aktuální váhu a plánovanou aktivitu dne.')}</h1></div>`;
   if (!wk.plan.some(d => d.some(Boolean))) return head + weekNav + `<div class="card">Zatím nemáš naplánovaný týden. Vyber jídla v Týdnu (nebo nech appku navrhnout) a rozpis se tu vyplní sám.</div>`;
   const days = wk.plan.map((sels, i) => ({ i, r: calcPlanDay(s, foods, recipes, sels, w, planActFor(addDays(App.week, i), w)) }));
   if (App.vMode === 'days') return head + `<p class="small muted" style="margin-bottom:8px">Gramy jsou syrové, přepočítané na ${fmt1(w)} kg a aktivitu dne.</p>` + weekNav +
