@@ -369,11 +369,11 @@ body.has-modal .toast{bottom:auto;top:calc(12px + env(safe-area-inset-top))}
 
 /* ---- kontroly dne: barvu nese štítek, text zůstává čitelný ---- */
 /* kontroly: pevná mřížka, ať text začíná všude na stejném místě */
-.checks .chk{display:grid;grid-template-columns:104px 132px 1fr;gap:4px 12px;padding:10px 0 10px 12px;border-bottom:1px solid var(--line2);align-items:baseline;border-left:3px solid var(--line)}
+.checks .chk{display:grid;grid-template-columns:104px minmax(0,1fr);gap:4px 14px;padding:10px 0 10px 12px;border-bottom:1px solid var(--line2);align-items:baseline;border-left:3px solid var(--line)}
 .checks .chk:last-child{border-bottom:0}
-.checks .chk .cb{display:contents}
+.checks .chk .cb{min-width:0}
 .checks .chk .ct{color:var(--ink);font-weight:500}
-.checks .chk .tag{display:inline-block;justify-self:start;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;padding:3px 9px;border-radius:999px;margin-right:8px;white-space:nowrap;background:var(--line2);color:var(--ink2)}
+.checks .chk .tag{display:inline-block;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;padding:3px 9px;border-radius:999px;margin-right:8px;white-space:nowrap;background:var(--line2);color:var(--ink2)}
 .checks .chk.k1{border-left-color:var(--bad)}
 .checks .chk.k1 .tag{background:var(--bad-bg);color:var(--bad)}
 .checks .chk.k2{border-left-color:var(--ok)}
@@ -427,10 +427,10 @@ body.has-modal .toast{bottom:auto;top:calc(12px + env(safe-area-inset-top))}
   a[href]:after{content:''}
 }
 
-.checks .chk .tag{margin-right:0}
-.checks .chk:not(:has(.tag)) .ct{grid-column:2 / -1}
+.checks .chk .tag{margin-right:10px;margin-bottom:2px}
+
 @media(max-width:700px){
-  .checks .chk{grid-template-columns:1fr;gap:4px;padding-left:10px}
+  .checks .chk{grid-template-columns:1fr;gap:2px;padding-left:10px}
   .checks .chk .nm{font-size:12px;text-transform:uppercase;letter-spacing:.03em}
 }
 
@@ -442,3 +442,7 @@ body.has-modal .toast{bottom:auto;top:calc(12px + env(safe-area-inset-top))}
 #main > *{margin-top:0!important;margin-bottom:0!important}
 .card{margin-bottom:0}
 .dgrid{margin-bottom:0}
+
+/* ---- jeden sloupec obsahu, na šířku čitelný ---- */
+#main{max-width:1060px;margin:0 auto;width:100%}
+.dgrid{display:block}
