@@ -15,6 +15,9 @@ const SEED_YLD = Object.fromEntries(SEED.foods.filter(f => f.yld).map(f => [f.na
 /* hmotnost hotového jídla ze suroviny v syrovém/suchém stavu */
 function cookedG(food, g) { return g * (SEED_YLD[food] || 1); }
 /* gramy na displeji: uvnitř počítáme přesně (rýže 74,074 g), člověku ukazujeme celé gramy */
+/* hodnoty surovin na displeji: převod na suchý stav dal rýži 351 kcal a čočce 27 g bílkovin
+   – v tabulce stačí jedno desetinné místo, přesné číslo si drží výpočet */
+const vShow = n => (Math.round((Number(n) || 0) * 10) / 10).toLocaleString('cs-CZ');
 const gShow = g => { const n = Number(g) || 0; return n >= 10 ? Math.round(n) : Math.round(n * 10) / 10; };
 function roundPortion(g, scale, f) { if (!scale) return g; const y = yieldOf(f); return Math.round(g * y / 10) * 10 / y; }
 const fmt1 = n => (Math.round(n * 10) / 10).toLocaleString('cs-CZ', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
@@ -85,13 +88,26 @@ function calcCourse(s, foods, recipes, course, sel, edits, budget) {
   const out = { key: course.key, sel, target, items: [], kcal: 0, p: 0, c: 0, f: 0, factor: 1, recipeKcal: 0, active: false, edited: 0 };
   if (!sel) { out.hint = `cíl ${fmt0(cTarget)} kcal`; return out; }
   if (sel === VYNECHAT) { out.hint = 'vynecháno – 0 kcal'; out.skipped = true; return out; }
-  if (sel === SITUACE) { out.kcal = cTarget; out.situace = true; out.hint = `cíl ${fmt0(cTarget)} kcal · vyřešíš podle situace`; return out; }
+  if (sel === SITUACE) {
+    /* „Vyřeším podle situace“ počítá s cílem chodu, dokud Robert nenapíše, co snědl.
+       Jakmile něco zapíše (typicky jídlo mimo dům), počítá se skutečnost – jinak by
+       oběd v restauraci za 1 200 kcal v součtu dne vůbec nebyl vidět. */
+    out.situace = true; out.g = 0; out.gc = 0;
+    const fkS = nm => foods.find(x => x.name === nm && !x.deleted);
+    ((edits && edits.extra) || []).forEach((ex, j) => { const f = fkS(ex.food); if (!f || !(ex.g > 0)) return;
+      const row = { idx: 'x' + j, extra: true, food: ex.food, g: Number(ex.g), manual: true, kcal: f.kcal * ex.g / 100, p: f.p * ex.g / 100, c: f.c * ex.g / 100, fat: f.f * ex.g / 100 };
+      out.items.push(row); out.kcal += row.kcal; out.p += row.p; out.c += row.c; out.f += row.fat;
+      out.g += row.g; out.gc += cookedG(row.food, row.g); });
+    if (out.items.length) { out.zapsano = true; out.hint = `zapsáno ${fmt0(out.kcal)} kcal · cíl byl ${fmt0(cTarget)} kcal`; }
+    else { out.kcal = cTarget; out.hint = `cíl ${fmt0(cTarget)} kcal · vyřešíš podle situace`; }
+    return out;
+  }
   const r = recipes.find(x => x.name === sel && !x.deleted) || recipes.find(x => x.name === sel);
   if (!r) { out.hint = 'recept nenalezen'; return out; }
   out.active = true;
   const fk = n => foods.find(x => x.name === n && !x.deleted);
   // faktor z původního receptu (sloupce K/L/M/N)
-  let fixed = 0, scal = 0;
+  let fixed = 0, scal = 0; out.g = 0; out.gc = 0;
   r.items.forEach(it => { const f = fk(it.food); const k = f ? f.kcal * it.g / 100 : 0; if (it.scale) scal += k; else fixed += k; out.recipeKcal += k; });
   out.factor = scal === 0 ? 1 : clamp((cTarget * budget / total - fixed) / scal, 0.3, 1.6);
   const removed = (edits && edits.removed) || {};
@@ -108,10 +124,12 @@ function calcCourse(s, foods, recipes, course, sel, edits, budget) {
     const row = { idx: i, food: foodName, origFood: it.food, g, origG: it.g, scale: it.scale, manual, swapped: !!swaps[i],
       kcal: f ? f.kcal * g / 100 : 0, p: f ? f.p * g / 100 : 0, c: f ? f.c * g / 100 : 0, fat: f ? f.f * g / 100 : 0 };
     out.items.push(row); out.kcal += row.kcal; out.p += row.p; out.c += row.c; out.f += row.fat;
+    out.g += g; out.gc += cookedG(foodName, g);   // hmotnost porce: v nákupním stavu a na talíři
   });
   ((edits && edits.extra) || []).forEach((ex, j) => { const f = fk(ex.food); if (!f || !(ex.g > 0)) return; out.edited++;
     const row = { idx: 'x' + j, extra: true, food: ex.food, g: Number(ex.g), manual: true, kcal: f.kcal * ex.g / 100, p: f.p * ex.g / 100, c: f.c * ex.g / 100, fat: f.f * ex.g / 100 };
-    out.items.push(row); out.kcal += row.kcal; out.p += row.p; out.c += row.c; out.f += row.fat; });
+    out.items.push(row); out.kcal += row.kcal; out.p += row.p; out.c += row.c; out.f += row.fat;
+    out.g += row.g; out.gc += cookedG(row.food, row.g); });
   const diff = out.kcal - target;
   out.hint = `cíl ${fmt0(target)} kcal · recept ${fmt0(out.recipeKcal)} kcal · teď ${fmt0(out.kcal)} kcal` +
     (Math.round(diff) !== 0 ? ` (${signed0(diff)} kcal proti cíli)` : '');

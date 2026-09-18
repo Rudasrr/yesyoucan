@@ -112,9 +112,12 @@ const UI = {
   confirm(text, onYes, yesLabel) { const m = this.modal(`<p>${esc(text)}</p><div class="row"><button class="btn danger" id="cy">${esc(yesLabel || 'Ano')}</button><button class="btn sec" onclick="UI.closeModal()">Zpět</button></div>`); m.querySelector('#cy').onclick = () => { m.remove(); onYes(); }; }
 };
 
-const NAV_CLIENT = [['dnes', 'Dnes'], ['tyden', 'Týden'], ['jidlo', 'Jídlo'], ['mereni', 'Měření'], ['navod', 'Návod']];
+const NAV_CLIENT = [['dnes', 'Dnes'], ['tyden', 'Týden'], ['jidlo', 'Jídlo'], ['mereni', 'Měření']];
+/* Recepty a suroviny jsou databáze, ne denní obrazovky – Robert je používá přes výběr
+   surovin v receptu. V menu jen zabíraly místo, tak jsou pod Více. */
+const MORE_CLIENT = [['recepty', 'Recepty'], ['suroviny', 'Suroviny'], ['navod', 'Start a návod'], ['ucet', 'Nastavení']];
 const NAV_CLIENT_OLD = [['dnes', 'Dnes'], ['tyden', 'Týden'], ['prehled', 'Přehled'], ['mereni', 'Měření'], ['nakup', 'Nákup'], ['vareni', 'Vaření'], ['recepty', 'Recepty'], ['suroviny', 'Suroviny'], ['navod', 'Návod']];
-const NAV_COACH = [['klient', 'Dashboard'], ['zprava', 'Zpráva'], ['trenink', 'Trénink'], ['nastaveni', 'Nastavení'], ['databaze', 'Databáze'], ['dnes', 'Dnes'], ['tyden', 'Týden'], ['jidlo', 'Jídlo'], ['mereni', 'Měření'], ['navod', 'Návod']];
+const NAV_COACH = [['klient', 'Dashboard'], ['zprava', 'Zpráva'], ['trenink', 'Trénink'], ['nastaveni', 'Plán a cíle'], ['databaze', 'Databáze'], ['dnes', 'Dnes'], ['tyden', 'Týden'], ['jidlo', 'Jídlo'], ['mereni', 'Měření'], ['navod', 'Návod']];
 const MOB_MAIN_CLIENT = ['dnes', 'tyden', 'jidlo', 'mereni'];
 const MOB_MAIN_COACH = ['klient', 'trenink', 'nastaveni', 'dnes'];
 const ICONS = {
@@ -143,7 +146,7 @@ function renderShell() {
   const main = isCoach() ? MOB_MAIN_COACH : MOB_MAIN_CLIENT;
   const label = v => items.find(x => x[0] === v)[1];
   const deskItems = items;
-  $('#nav-desk').innerHTML = deskItems.map(([v, l]) => `<button class="${App.view === v ? 'on' : ''}" onclick="go('${v}')">${l}</button>`).join('') + `<button class="${App.view === 'ucet' ? 'on' : ''}" onclick="go('ucet')" title="Účet, připomínky, záloha">⚙︀ Účet</button>` + (realCoach() ? `<button class="${App.preview ? 'on' : ''}" onclick="A.togglePreview()" title="Náhled Robertova rozhraní">👁️ ${App.preview ? 'Zpět do trenéra' : 'Pohled Roberta'}</button>` : '');
+  $('#nav-desk').innerHTML = deskItems.map(([v, l]) => `<button class="${App.view === v ? 'on' : ''}" onclick="go('${v}')">${l}</button>`).join('') + `<button class="${App.view === 'ucet' ? 'on' : ''}" onclick="go('ucet')" title="Připomínky, kalendář, záloha, odhlášení">⚙︀ Nastavení</button>` + (realCoach() ? `<button class="${App.preview ? 'on' : ''}" onclick="A.togglePreview()" title="Náhled Robertova rozhraní">👁️ ${App.preview ? 'Zpět do trenéra' : 'Pohled Roberta'}</button>` : '');
   $('#nav-mob').innerHTML = main.map(v => `<button class="${App.view === v ? 'on' : ''}" onclick="go('${v}')">${ICONS[v]}${label(v)}</button>`).join('') +
     `<button class="${!main.includes(App.view) ? 'on' : ''}" onclick="go('more')">${ICONS.more}Více</button>`;
   $('#who').textContent = App.preview ? 'náhled Roberta' : (isCoach() ? 'trenér' : 'Robert');

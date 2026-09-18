@@ -205,12 +205,12 @@ function renderActivityCard(date, day, d) {
       <p class="tiny muted" style="margin-top:6px">Cíl ti dává trenér. Ty jen zapisuješ, kolik jsi opravdu ušel.</p></div>
     ${d.base.belowBmr ? `<div class="alert a2" style="margin-top:8px">Zatím máš málo cíleného pohybu – limit by vyšel pod klidový výdej, tak ho držím na spodní hranici. Chůze klidový výdej nezvedá, ale zvedá celkový výdej: od ${d.base.walkToBmr}. minuty ti začne růst i limit.</div>` : ''}
     ${items_html}
-    <div class="fulfil write">
-      <div class="row between"><span class="fgoal">👣 Kroky za den – cíl ${fmt0(stepsGoal())}</span><b>${daySteps(day) == null ? 'zatím nezapsáno' : fmt0(daySteps(day)) + ' kroků'}</b></div>
-      <div class="bar" style="margin:6px 0 8px;height:6px"><i style="width:${daySteps(day) == null ? 0 : clamp(daySteps(day) / stepsGoal() * 100, 0, 100)}%"></i></div>
-      <div class="row" style="gap:10px;align-items:flex-end"><div class="in"><label class="f">Kolik jsi jich dnes ušel</label>${stepper('steps-in', daySteps(day) == null ? '' : daySteps(day), 500, 0, 40000, "A.setSteps(this.value)")}</div>
-        <span class="tiny muted" style="max-width:280px">Zapiš večer podle hodinek nebo telefonu. Do limitu jídla se to nepočítá – běžný výdej s tím počítá už sám. Trenér podle toho ladí faktor aktivity.</span></div></div>
-    <details style="margin-top:10px"><summary class="small muted" style="cursor:pointer">Upravit ručně (minuty, tempo, piva, smažené)</summary>
+<details style="margin-top:10px"><summary class="small muted" style="cursor:pointer">Kroky, tempo, piva a smažené</summary>
+    <div class="fulfil write" style="margin-top:10px">
+      <div class="row between"><span class="fgoal">👣 Kroky za den – nepovinné, cíl ${fmt0(stepsGoal())}</span><b>${daySteps(day) == null ? 'nezapsáno' : fmt0(daySteps(day)) + ' kroků'}</b></div>
+      <div class="row" style="gap:10px;align-items:flex-end;margin-top:6px"><div class="in"><label class="f">Kolik jsi jich dnes ušel</label>${stepper('steps-in', daySteps(day) == null ? '' : daySteps(day), 500, 0, 40000, "A.setSteps(this.value)")}</div>
+        <span class="tiny muted" style="max-width:320px">Nemusíš. Do limitu jídla se kroky nepočítají – běžný výdej s nimi počítá už sám a ušlé minuty výš říkají totéž. Zapiš je, jen když chceš, aby trenér přesněji naladil faktor aktivity.</span></div></div>
+
     <div class="grid" style="grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><div class="in"><label class="f">Ušlé minuty</label><input type="number" min="0" step="5" value="${day.walk_min ?? ''}" placeholder="0" onchange="A.setWalk(this.value)"></div><div class="in"><label class="f">Tempo</label><select onchange="A.dayField('walk_kmh',this.value,'Tempo změněno')">${SEED.met.map(([k]) => `<option value="${k}" ${Number(day.walk_kmh) === k ? 'selected' : ''}>${fmt1(k)} km/h</option>`).join('')}</select></div>
     <div class="in"><label class="f">Piv dnes (0,5 l)</label><input type="number" min="0" step="1" value="${day.beers || ''}" placeholder="0" onchange="A.dayField('beers',this.value,'Piva zapsána')"></div><div class="in"><label class="f">Smažené (g)</label><input type="number" min="0" step="50" value="${day.fried_g || ''}" placeholder="0" onchange="A.dayField('fried_g',this.value,'Smažené zapsáno')"></div></div><p class="hint">${esc(d.friday)}</p></details></div>`;
 }

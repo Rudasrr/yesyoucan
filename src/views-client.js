@@ -255,7 +255,7 @@ VIEWS._suroviny = function () {
   const list = foods.filter(f => !q || f.name.toLowerCase().includes(q) || f.cat.toLowerCase().includes(q)).sort((a, b) => App.fsort === 'kcal' ? a.kcal - b.kcal : App.fsort === 'p' ? b.p - a.p : a.name.localeCompare(b.name, 'cs'));
   const cats = [...new Set(foods.map(f => f.cat))].sort((a, b) => a.localeCompare(b, 'cs'));
   const edit = f => coach ? `A.editFood('${f.id}')` : (f.own ? `A.editFood('${f.id}','own')` : `A.editFood('${f.id}','override')`);
-  const row = f => `<tr><td class="b">${f.own ? '📌 ' : (f.overridden ? '✏️ ' : '')}${esc(f.name)}</td><td class="n b">${f.kcal}</td><td class="n">${f.p}</td><td class="n hm">${f.c}</td><td class="n hm">${f.f}</td><td class="n"><button class="ebtn write" title="upravit" onclick="${edit(f)}">✎</button></td></tr>`;
+  const row = f => `<tr><td class="b">${f.own ? '📌 ' : (f.overridden ? '✏️ ' : '')}${esc(f.name)}</td><td class="n b">${vShow(f.kcal)}</td><td class="n">${vShow(f.p)}</td><td class="n hm">${vShow(f.c)}</td><td class="n hm">${vShow(f.f)}</td><td class="n"><button class="ebtn write" title="upravit" onclick="${edit(f)}">✎</button></td></tr>`;
   const grouped = !q && !App.fsort;
   return `${flow('suroviny', ['Hledej surovinu', 'Zkontroluj hodnoty', 'Uprav nebo přidej vlastní'], 'Hodnoty jsou na 100 g v tom stavu, v jakém surovinu kupuješ (rýže suchá, maso syrové). Když si surovinu upravíš, počítají s ní tvoje recepty.')}
   <div class="row between" style="margin-bottom:8px"><h1>Suroviny${help('Databáze surovin (na 100 g v nákupním stavu – rýže suchá, maso syrové), ze které jsou složené recepty. Klikni na kategorii pro sbalení. Tužka u výchozí suroviny vytvoří tvoji verzi (✏️) – trenérova databáze zůstává; 📌 jsou tvoje vlastní suroviny, které jde použít v receptech i při přidávání surovin do jídla.')}</h1><button class="btn sm write" onclick="A.editFood(null,'${coach ? 'global' : 'own'}')">+ ${coach ? 'nová surovina' : 'moje surovina'}</button></div>
@@ -269,15 +269,17 @@ VIEWS._suroviny = function () {
 App.fsort = '';
 
 /* ---------- VÍCE / ÚČET ---------- */
+VIEWS.recepty = function () { return VIEWS._recepty(); };
+VIEWS.suroviny = function () { return VIEWS._suroviny(); };
 VIEWS.more = function () {
-  const items = nav().filter(([v]) => !(isCoach() ? MOB_MAIN_COACH : MOB_MAIN_CLIENT).includes(v));
-  const desc = { nakup: 'seznam z plánu týdne', vareni: 'rozpis na týden, tisk', recepty: 'vlastní jídla', suroviny: 'databáze potravin', navod: 'pravidla, čísla, postup', mereni: 'váha a obvody', prehled: 'grafy a statistika', tyden: 'plán 7 dní', klient: 'stav klienta', nastaveni: 'parametry plánu', databaze: 'editace databáze', dnes: 'skládání dne' };
-  const col = { nakup: 'var(--grad2)', vareni: 'var(--grad)', recepty: 'var(--grad3)', suroviny: 'var(--y)', navod: 'var(--v)', mereni: 'var(--p)', prehled: 'var(--grad)', tyden: 'var(--grad3)', dnes: 'var(--grad)' };
-  const em = { nakup: '🛒', vareni: '🍳', recepty: '📖', suroviny: '🥦', navod: '📘', mereni: '⚖️', prehled: '📈', tyden: '🗓️', dnes: '☀️', klient: '📊', nastaveni: '⚙️', databaze: '🗄️' };
-  return `<h1 style="margin-bottom:10px">Více${help('Obrazovky, které se nevešly do spodního menu. Na mobilu jsou v menu jen Dnes, Týden, Jídlo a Měření – zbytek najdeš tady.')}</h1>${realCoach() ? `<button class="btn sm" style="margin-bottom:10px;pointer-events:auto" onclick="A.togglePreview()">👁️ ${App.preview ? 'Zpět do trenéra' : 'Pohled Roberta'}</button>` : ''}<div class="more">${items.map(([v, l]) => `<button onclick="go('${v}')"><i style="background:${col[v] || 'var(--line2)'};display:flex;align-items:center;justify-content:center;font-size:18px">${em[v] || ''}</i>${l}<span>${desc[v] || ''}</span></button>`).join('')}<button onclick="go('ucet')"><i style="background:var(--line2);display:flex;align-items:center;justify-content:center;font-size:18px">🔔</i>Účet a připomínky<span>upozornění, kalendář, záloha</span></button></div>`;
+  const items = isCoach() ? nav().filter(([v]) => !MOB_MAIN_COACH.includes(v)) : MORE_CLIENT;
+  const desc = { nakup: 'seznam z plánu týdne', vareni: 'rozpis na týden, tisk', recepty: 'vlastní jídla', suroviny: 'databáze potravin', navod: 'pravidla, čísla, postup', ucet: 'připomínky, kalendář, záloha', mereni: 'váha a obvody', prehled: 'grafy a statistika', tyden: 'plán 7 dní', klient: 'stav klienta', nastaveni: 'parametry plánu', databaze: 'editace databáze', dnes: 'skládání dne' };
+  const col = { nakup: 'var(--grad2)', vareni: 'var(--grad)', recepty: 'var(--grad3)', suroviny: 'var(--y)', navod: 'var(--v)', ucet: 'var(--line2)', mereni: 'var(--p)', prehled: 'var(--grad)', tyden: 'var(--grad3)', dnes: 'var(--grad)' };
+  const em = { nakup: '🛒', vareni: '🍳', recepty: '📖', suroviny: '🥦', navod: '📘', ucet: '⚙️', mereni: '⚖️', prehled: '📈', tyden: '🗓️', dnes: '☀️', klient: '📊', nastaveni: '⚙️', databaze: '🗄️' };
+  return `<h1 style="margin-bottom:10px">Více${help('Obrazovky, které se nevešly do spodního menu. Na mobilu jsou v menu jen Dnes, Týden, Jídlo a Měření – zbytek najdeš tady.')}</h1>${realCoach() ? `<button class="btn sm" style="margin-bottom:10px;pointer-events:auto" onclick="A.togglePreview()">👁️ ${App.preview ? 'Zpět do trenéra' : 'Pohled Roberta'}</button>` : ''}<div class="more">${items.map(([v, l]) => `<button onclick="go('${v}')"><i style="background:${col[v] || 'var(--line2)'};display:flex;align-items:center;justify-content:center;font-size:18px">${em[v] || ''}</i>${l}<span>${desc[v] || ''}</span></button>`).join('')}<button onclick="go('ucet')"><i style="background:var(--line2);display:flex;align-items:center;justify-content:center;font-size:18px">🔔</i>Nastavení<span>upozornění, kalendář, záloha</span></button></div>`;
 };
 VIEWS.ucet = function () {
-  return `<h1 style="margin-bottom:10px">Účet a záloha${help('Stav přihlášení a synchronizace, připomínky do prohlížeče, export dne nebo týdne do kalendáře a záloha všech dat do souboru. Záloha se hodí před větší změnou – obnovením se data vrátí do stavu ze zálohy.')}</h1>
+  return `<h1 style="margin-bottom:10px">Nastavení${help('Stav přihlášení a synchronizace, připomínky do prohlížeče, export dne nebo týdne do kalendáře a záloha všech dat do souboru. Záloha se hodí před větší změnou – obnovením se data vrátí do stavu ze zálohy.')}</h1>
   <div class="card"><h2>Stav</h2><p class="small muted" style="margin-top:4px">${Store.localMode() ? 'Aplikace běží bez cloudu – data jsou jen v tomto prohlížeči. Udělej si zálohu.' : `Přihlášen: ${esc(Store.session ? Store.session.user.email : '')} · role ${isCoach() ? 'trenér' : 'klient'}${Store.outbox.length ? ` · ${Store.outbox.length} změn čeká na odeslání` : ' · vše odesláno'}`}</p>
     <div class="row" style="margin-top:8px">${Store.localMode() ? '' : '<button class="btn sec sm" onclick="Store.sync().then(()=>{render();UI.toast(\'Synchronizováno\')})">Synchronizovat teď</button>'}<button class="btn sec sm" onclick="A.logout()">Odhlásit</button></div></div>
   ${!isCoach() && !Meas().length ? `<div class="card"><h2>Historie ze sešitu</h2><p class="small muted" style="margin-top:4px">Zatím nemáš žádné vážení. Můžeš si nahrát 14 vážení a obvody z Excelu (27. 8. – 9. 9. 2026), ať grafy navazují.</p><div class="row" style="margin-top:8px"><button class="btn sec sm" onclick="A.seedMeas()">Nahrát vážení ze sešitu</button></div></div>` : ''}
@@ -365,8 +367,6 @@ function barChart(vals, labels, goal) {
 const JIDLO_TABS = [
   ['nakup', '🛒 Nákup', 'Co koupit na naplánovaný týden'],
   ['vareni', '🍳 Vaření', 'Co uvařit dopředu, ať máš hotovo'],
-  ['recepty', '📖 Recepty', 'Z čeho se skládají tvoje jídla'],
-  ['suroviny', '🥦 Suroviny', 'Databáze potravin a jejich hodnot'],
 ];
 App.jidloTab = 'nakup';
 A.jidlo = tab => { App.jidloTab = tab; go('jidlo'); };

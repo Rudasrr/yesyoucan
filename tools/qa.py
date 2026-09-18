@@ -2,7 +2,7 @@ import json, sys
 from playwright.sync_api import sync_playwright
 import os; URL='file://'+os.path.abspath(os.path.join(os.path.dirname(__file__),'..','out','index.html'))
 SETUP=open(os.path.join(os.path.dirname(__file__),'shots.py')).read().split("SETUP_CLIENT='''")[1].split("'''")[0]
-VIEWS_C=['dnes','tyden','jidlo','mereni','navod','more','ucet']
+VIEWS_C=['dnes','tyden','jidlo','mereni','navod','recepty','suroviny','more','ucet']
 SUBTABS=[('jidlo','jidloTab',['nakup','vareni','recepty','suroviny']),('mereni','merTab',['zapis','prehled'])]
 VIEWS_K=['klient','zprava','trenink','nastaveni','databaze','dnes','tyden']
 WIDTHS=[390,768,1440]

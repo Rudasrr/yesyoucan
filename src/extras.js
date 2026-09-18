@@ -1,5 +1,5 @@
 /* ===== Domácí míry: ⚖️ zvaž · 🥄 odměř · ✋ od oka =====
-   Nádoby: Robert má 6 slotů s výchozí velikostí (Účet → Moje nádoby); gramy = objem × hustota. */
+   Nádoby: Robert má 6 slotů s výchozí velikostí (Nastavení → Moje nádoby); gramy = objem × hustota. */
 const MODE_EM = { vaz: '⚖️', odm: '🥄', oko: '✋' };
 const MODE_LABEL = { vaz: 'zvaž', odm: 'odměř', oko: 'od oka' };
 function containers() { const p = Prefs(); const out = {}; Object.entries(SEED.containers).forEach(([k, v]) => { out[k] = { ...v, ...(p.containers && p.containers[k] ? p.containers[k] : {}) }; }); return out; }
@@ -189,6 +189,18 @@ A.fitDay = date => { const s = S(), foods = Foods(), recipes = Recipes(), w = cu
       cands.sort((a, b) => diff > 0 ? a.c.kcal - b.c.kcal : b.c.kcal - a.c.kcal); const pick = cands[0]; tried.add(pick.ci);
       const name = pickFitting(s, foods, recipes, s.courses[pick.ci].key, pick.c.kcal + diff, r.protTarget - r.p + pick.c.p, pick.c.sel, r.planLimit); if (name) wk.plan[di][pick.ci] = name; }
     saveWeek(wk); }, (() => { const r = calcPlanDay(s, foods, recipes, wk.plan[di], w, act); const diff = r.planLimit - r.kcal; return Math.abs(diff) <= 100 ? `Sedí: ${fmt0(r.kcal)} kcal při limitu ${fmt0(r.planLimit)}.` : diff > 0 ? `Recepty výš nesahají – ${fmt0(r.kcal)}/${fmt0(r.planLimit)} kcal. Zbylých ${fmt0(diff)} kcal přidej přílohou nebo ořechy v Jídlech dne.` : `Pořád přes o ${fmt0(-diff)} kcal – uber přílohu v Jídlech dne.`; })()); render(); };
+/* Doplnění zpětně: když Robert pár dní nezapisoval, nemá proklikávat dny po jednom
+   a hádat, co mu chybí. Tohle mu řekne kolik a hodí ho rovnou na první takový den. */
+function catchUpAlert() {
+  const today = todayISO(); const miss = []; const ms = Meas();
+  for (let k = 1; k <= 7; k++) { const dt = addDays(today, -k);
+    const day = effectiveDay(dt); const meas = ms.some(m => m.date === dt && m.weight != null);
+    const jidlo = S().courses.some(c => (day.meals[c.key] || {}).eaten);
+    if (!jidlo && !meas && !(day.walk_min > 0)) miss.push(dt); }
+  if (!miss.length) return '';
+  const first = miss[miss.length - 1];
+  return `<div class="alert a2" style="margin-bottom:10px"><div style="flex:1">${miss.length === 1 ? `Za ${czDateShort(miss[0])} nemáš zapsáno nic – ani váhu, ani jídlo, ani chůzi.` : `Chybí ti zápisy za ${miss.length} dny: ${miss.slice().reverse().map(czDateShort).join(', ')}.`} Doplň aspoň váhu, průměr se pak srovná.</div><button class="btn sm" onclick="App.date='${first}';App.stripWeek=mondayOf('${first}');go('dnes')">Doplnit ${czDateShort(first)}</button></div>`;
+}
 function mismatchAlert(date) { const m = dayMismatch(date); if (!m) return ''; return `<div class="alert ${m.diff > 0 ? 'a2' : 'a1'}" style="margin-bottom:10px"><div style="flex:1">${m.trainingChanged ? '🏋️ Trenér změnil trénink. ' : ''}Limit dne je <b>${fmt0(m.limit)} kcal</b>, plán jídel má <b>${fmt0(m.planned)}</b> – ${m.diff > 0 ? `<b>přidej ${fmt0(m.diff)} kcal</b>, jinak jsi v moc velkém deficitu` : `<b>uber ${fmt0(-m.diff)} kcal</b>, jinak jsi přes`}.</div><button class="btn sm write" onclick="A.fitDay('${date}')">💡 Dorovnat</button></div>`; }
 
 /* ===== Běžná denní chůze (kroky) – jen informace pro trenéra, nepočítá se do cíle ani limitu ===== */

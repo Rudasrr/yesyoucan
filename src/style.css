@@ -188,6 +188,9 @@ svg.chart{width:100%;height:auto;display:block}
 .stats3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:14px 18px}
 .stats3 div{min-width:0}.stats3 b{display:block;font-size:22px;font-weight:800;letter-spacing:-.02em;line-height:1.1}.stats3 b small{font-size:13px;color:var(--ink2);font-weight:700}.stats3 span{display:block;font-size:12px;color:var(--ink2);margin-top:2px}
 .stats3.wk{grid-template-columns:repeat(auto-fit,minmax(130px,1fr));padding:0}
+.stats3.two{grid-template-columns:repeat(2,1fr)}
+.course .k .pw{display:block;font-size:11px;font-weight:700;color:var(--ink2);margin-top:1px}
+.course .k .pw{display:block;font-size:11px;font-weight:700;color:var(--ink2);margin-top:1px}
 .pickbtn{width:100%;display:flex;align-items:center;gap:8px;text-align:left;background:rgba(255,255,255,.6);border:1px solid rgba(28,35,64,.08)!important;border:0;border-radius:12px;padding:10px 12px;cursor:pointer;font-weight:700;min-height:44px}
 .pickbtn span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.pickbtn em{font-style:normal;font-size:12px;color:var(--p-ink);font-weight:700}
 .pickbtn.empty{background:var(--p-bg);color:var(--p-ink);border:1.5px dashed var(--p)}
@@ -199,10 +202,12 @@ svg.chart{width:100%;height:auto;display:block}
 .pitem .pn{font-weight:800}.pitem .pi{font-size:12px;color:var(--ink2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .pitem .pk{text-align:right;font-weight:800;white-space:nowrap;font-size:14px;line-height:1.2}.pitem .pk span{font-size:11px;font-weight:600;color:var(--ink2)}.pitem .pk.bad{color:var(--bad)}
 .note{display:flex;gap:12px;align-items:flex-start;background:#fff;border-left:4px solid var(--v);border-radius:16px;padding:12px 16px;margin-bottom:12px;box-shadow:var(--sh);font-weight:600}.note .em{font-size:22px}
-.ftab th,.ftab td{white-space:nowrap}.ftab td:first-child{white-space:normal;min-width:180px}
+.ftab th,.ftab td{white-space:nowrap}.ftab td:first-child{white-space:normal;min-width:120px;overflow-wrap:anywhere}
 .modal .box>.row.between{flex-wrap:nowrap;align-items:flex-start}.modal .box>.row.between h2{flex:1}
 @media(max-width:600px){.hm{display:none}.tbl table{width:100%}
-.tbl table.small td,.tbl table.small th{padding-left:5px;padding-right:5px}}
+.tbl table.small td,.tbl table.small th{padding-left:5px;padding-right:5px}
+.tbl table.small td:first-child{overflow-wrap:anywhere}
+.ftab td:first-child{min-width:0;white-space:normal;overflow-wrap:anywhere}}
 
 /* segmentový přepínač (iOS) */
 .seg{display:inline-flex;background:rgba(28,35,64,.07);border-radius:12px;padding:3px;gap:2px;flex-wrap:wrap}
@@ -245,7 +250,7 @@ tr.cath td{background:rgba(28,35,64,.05);font-weight:800;cursor:pointer;padding:
 .rules2{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:8px}.rule{display:flex;gap:10px;background:rgba(255,255,255,.58);border:1px solid rgba(255,255,255,.8);border-radius:16px;padding:10px 12px;font-size:14px}.rule .rem{font-size:20px;flex:none}
 @media(max-width:600px){.items .sw{min-width:150px}.items td{padding:5px 2px}}
 .pitem,.task{flex:none}
-@media(max-width:600px){table.small td:first-child{white-space:nowrap}}
+@media(max-width:600px){table.small td:first-child{white-space:nowrap}.ftab td:first-child,.tbl table.small td:first-child{white-space:normal}}
 
 .mbadge{display:inline-block;width:20px;text-align:center;margin-right:4px;font-size:13px;vertical-align:middle}
 .notebox textarea{width:100%;border:0;border-radius:12px;padding:8px 10px;background:#f1f3f8}
@@ -540,4 +545,21 @@ body.has-modal .toast{bottom:auto;top:calc(12px + env(safe-area-inset-top))}
 .herob.warnline{position:relative}
 .herob.warnline::before{content:'';position:absolute;left:0;top:0;bottom:0;width:5px;background:var(--bad)}
 .herob.warnline .tiny:first-child{color:#ff9d9d}
+/* Hlavička dlaždice dne + pruh, který ukazuje totéž co velké číslo */
+.herob .hcap{font-size:12px;opacity:.9;font-weight:700;letter-spacing:.04em;text-transform:uppercase;display:flex;align-items:center;gap:8px}
+.herob.warnline .hcap{color:#ff9d9d}
+.bar3{position:relative;height:14px;background:rgba(255,255,255,.28);border-radius:7px;display:flex;overflow:hidden}
+.bar3 i{display:block;height:100%}
+.bar3 .e{background:#fff}
+.bar3 .p{background:rgba(255,255,255,.5);background-image:repeating-linear-gradient(45deg,transparent 0 4px,rgba(255,255,255,.4) 4px 8px)}
+.bar3 .o{background:#ff6b6b}
+.bar3 u{position:absolute;top:-3px;bottom:-3px;width:2px;background:#fff;box-shadow:0 0 0 1px rgba(0,0,0,.25)}
+.blg{display:flex;flex-wrap:wrap;gap:4px 14px;margin-top:8px;font-size:12px;opacity:.95}
+.blg span{display:flex;align-items:center;gap:5px}
+.blg i{width:10px;height:10px;border-radius:3px;display:block;flex:none}
+.blg .e{background:#fff}
+.blg .p{background:rgba(255,255,255,.5);background-image:repeating-linear-gradient(45deg,transparent 0 3px,rgba(255,255,255,.45) 3px 6px)}
+.blg .o{background:#ff6b6b}
+.blg .gr{margin-left:auto;font-weight:700}
+@media(max-width:600px){.blg .gr{margin-left:0}}
 .card.ga-hero{overflow:hidden}
