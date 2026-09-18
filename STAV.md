@@ -45,6 +45,9 @@ Webová appka pro jednoho klienta (Robert, start 134,4 kg → 102 kg, 0,7 % váh
 **Trenér:** Dashboard (tichý: 🟢🟡🔴, věta, návrh vzkazu, co se stalo od minula, tempo cíl/plán/realita, doporučení; Detail) · Zpráva (týdenní, kopírovat/poslat) · Trénink (plány Po–Ne, knihovna 38 cviků, kalorie, limit jídla dne vs. Robertův plán, varování, progres, výjimka dne) · Nastavení (s doporučeními a tlačítky) · Databáze/Recepty/Suroviny (globální editace) · 👁️ Pohled Roberta (náhled).
 Den se ukládá průběžně, o půlnoci se uzavře sám; každá změna má hlášku + Zpět.
 
+## Cheat na dnešek (nové 18. 9. 2026, změna výpočtu)
+Robert zapíše ráno, co ho večer čeká (piva, smažené, volný text). Appka to počítá do dne jako **plán, ne zápis** – nic se večer nepotvrzuje jako snědené. Klíčová změna: **cheat se přednostně pokrývá pohybem, ne menšími porcemi.** `calcBase` zvedne plánovanou chůzi o `min(90, cheat / kcal na minutu)`; o co se chůzí pokrýt nedá (`cheatRest`), o to se zmenší porce jako dřív. U dvou piv (410 kcal) to znamená +64 minut chůze a porce zůstanou; u 6 piv a 200 g smaženého se pokryje 586 kcal a zbytek padne na porce. Volný text nejdřív hledá v `CHEAT_LIB` (18 typických hříchů s kcal za porci), pak v surovinách, a co appka nezná, si Robert odhadne v okně. Kontrolní číslo pátku (1 890,0 kcal) se nezměnilo – porce tam drží spodní mez.
+
 ## Odchylky od sešitu (záměrné)
 Nákup škálovaný na aktuální váhu · datované týdny · pojistka bazálu · příloha na 10 g · „kolik co stojí“ počítáno živě (statické hodnoty v sešitu si nesedí) · start 134,4 (texty říkaly 129) · tolerance „sedí“ ±60 kcal v UI.
 

@@ -32,14 +32,21 @@ function metFor(kmh, met) {
 }
 
 /* Základ dne: BMR, výdej, limity (Dnešní den!E6–E26) */
-function calcBase(s, weight, walkMin, exerMin, walkKmh, beers, friedG, act) {
+function calcBase(s, weight, walkMin, exerMin, walkKmh, beers, friedG, act, extraKcal) {
   act = act || {};                       // { planWalk, planKcal, doneKcal }  – z tréninkového plánu
   const bmr = 10 * weight + 6.25 * s.height - 5 * s.age + 5;
   const baseOut = bmr * s.activity;
   const kmh = walkKmh || s.walk_kmh;
   const walkPerMin = (metFor(kmh, s.met) - 1) * 3.5 * weight / 200;
   const exerPerMin = 2.5 * 3.5 * weight / 200;
-  const planWalk = act.planWalk != null ? act.planWalk : s.walk_min;
+  const planWalkBase = act.planWalk != null ? act.planWalk : s.walk_min;
+  // cheat (pivo, smažené, cokoli navíc) se přednostně pokrývá pohybem, ne menšími porcemi;
+  // víc než hodinu a půl chůze navíc po nikom chtít nejde, zbytek padne na porce
+  const cheatKcal = (beers || 0) * BEER_KCAL + (friedG || 0) * FRIED_KCAL_G + (extraKcal || 0);
+  const cheatWalk = cheatKcal > 0 ? Math.min(90, Math.ceil(cheatKcal / walkPerMin)) : 0;
+  const planWalk = planWalkBase + cheatWalk;
+  const cheatCovered = cheatWalk * walkPerMin;
+  const cheatRest = Math.max(0, cheatKcal - cheatCovered);
   const totalOutRaw = baseOut + (walkMin || 0) * walkPerMin + (exerMin || 0) * exerPerMin + (act.doneKcal || 0);
   const minOut = baseOut + planWalk * walkPerMin + (act.planKcal || 0);
   const deficit = weight * s.rate_pct / 100 * KG_KCAL / 7;
@@ -48,9 +55,9 @@ function calcBase(s, weight, walkMin, exerMin, walkKmh, beers, friedG, act) {
   const maxIntake = Math.max(bmr, maxIntakeRaw), planLimit = Math.max(bmr, planLimitRaw);
   const belowBmr = maxIntakeRaw < bmr, planBelowBmr = planLimitRaw < bmr;
   const walkToBmr = belowBmr ? Math.ceil((bmr - maxIntakeRaw) / walkPerMin) : 0;
-  const drinkKcal = (beers || 0) * BEER_KCAL + (friedG || 0) * FRIED_KCAL_G;
+  const drinkKcal = cheatKcal;
   const foodBudget = Math.max(600, planLimit - drinkKcal);
-  return { bmr, baseOut, walkPerMin, exerPerMin, totalOut: totalOutRaw, minOut, deficit, maxIntake, maxIntakeRaw, planLimit, drinkKcal, foodBudget, kmh, planWalk, belowBmr, planBelowBmr, walkToBmr, effDeficit: totalOutRaw - maxIntake, planKcal: act.planKcal || 0, doneKcal: act.doneKcal || 0 };
+  return { bmr, baseOut, walkPerMin, exerPerMin, totalOut: totalOutRaw, minOut, deficit, maxIntake, maxIntakeRaw, planLimit, drinkKcal, foodBudget, kmh, planWalk, planWalkBase, cheatKcal, cheatWalk, cheatCovered, cheatRest, belowBmr, planBelowBmr, walkToBmr, effDeficit: totalOutRaw - maxIntake, planKcal: act.planKcal || 0, doneKcal: act.doneKcal || 0 };
 }
 const courseTargetSum = s => s.courses.reduce((a, c) => a + c.kcal, 0);
 
@@ -97,9 +104,18 @@ function calcCourse(s, foods, recipes, course, sel, edits, budget) {
   return out;
 }
 
+/* kalorie z volně zapsaného cheatu („2 piva a řízek“) */
+function cheatItemsKcal(day, foods) {
+  return ((day && day.cheat_items) || []).reduce((a, it) => {
+    if (it.kcal != null) return a + (Number(it.kcal) || 0);
+    const f = foods.find(x => x.name === it.food && !x.deleted) || foods.find(x => x.name === it.food);
+    return a + (f ? f.kcal * (Number(it.g) || 0) / 100 : 0);
+  }, 0);
+}
+
 /* Celý den (Dnešní den) */
 function calcDay(s, foods, recipes, day, weight) {
-  const base = calcBase(s, weight, day.walk_min, day.exercise_min, day.walk_kmh, day.beers, day.fried_g, day.act);
+  const base = calcBase(s, weight, day.walk_min, day.exercise_min, day.walk_kmh, day.beers, day.fried_g, day.act, cheatItemsKcal(day, foods));
   const courses = s.courses.map(c => calcCourse(s, foods, recipes, c, (day.meals[c.key] || {}).sel, day.meals[c.key], base.foodBudget));
   const tot = courses.reduce((a, c) => ({ kcal: a.kcal + c.kcal, p: a.p + c.p, c: a.c + c.c, f: a.f + c.f }), { kcal: 0, p: 0, c: 0, f: 0 });
   const activeTargets = courses.reduce((a, c) => a + (c.active ? s.courses.find(x => x.key === c.key).kcal : 0), 0);

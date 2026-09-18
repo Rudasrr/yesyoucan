@@ -446,3 +446,9 @@ body.has-modal .toast{bottom:auto;top:calc(12px + env(safe-area-inset-top))}
 /* ---- jeden sloupec obsahu, na šířku čitelný ---- */
 #main{max-width:1060px;margin:0 auto;width:100%}
 .dgrid{display:block}
+
+/* kontrola uvnitř karty se stavem dne */
+.hcheck{padding:0 18px 16px}
+.hcheck .checks .chk{border-left-width:3px}
+.hcheck .status{margin-top:10px}
+.hcheck summary{padding:6px 0}
