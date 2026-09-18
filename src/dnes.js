@@ -200,14 +200,16 @@ function parseCheat(text) {
    a hlavně mu zvedne cíl chůze tak, aby to večer stálo co nejmíň.
    Nic se tu nepotvrzuje jako „snědeno“ – je to plán, ne zápis. */
 function renderCheatCard(date, day, d) {
-  const b = d.base; const items = day.cheat_items || [];
+  const b = d.base; const items = day.cheat_items || []; const s = S(); const w = currentWeight();
   const foods = Foods();
   const kcalOf = it => { if (it.kcal != null) return Number(it.kcal) || 0; const f = foods.find(x => x.name === it.food); return f ? f.kcal * (Number(it.g) || 0) / 100 : 0; };
+  const tempoDnes = d.dayDeficit * 7 / KG_KCAL;
   const verdict = b.cheatKcal <= 0
     ? `<p class="small muted" style="margin:8px 0 0">Zatím nic navíc. Když víš, že tě večer čeká pivo nebo něco mastného, zapiš to hned ráno – appka podle toho srovná celý den.</p>`
-    : `<div class="alert ${b.cheatRest > 0 ? 'a2' : 'a3'}" style="margin-top:10px">
-        <b>${fmt0(b.cheatKcal)} kcal navíc.</b> Zvedl jsem ti dnešní cíl chůze o <b>${b.cheatWalk} minut na ${b.planWalk}</b> – když je dojdeš, ${b.cheatRest > 0 ? 'pokryješ z toho ' + fmt0(b.cheatCovered) + ' kcal' : 'večer tě to nebude stát nic a tempo zůstane stejné'}.
-        ${b.cheatRest > 0 ? ` Zbylých ${fmt0(b.cheatRest)} kcal se chůzí rozumně pokrýt nedá, o to jsem ti zmenšil porce jídel (bílkovinu nekrátím).` : ''}</div>`;
+    : b.cheatCoverable
+    ? `<div class="alert a3" style="margin-top:10px"><div><b>${fmt0(b.cheatKcal)} kcal navíc – tohle se dá uchodit.</b> Zvedl jsem ti dnešní cíl chůze o <b>${b.cheatWalk} minut na ${b.planWalk}</b>. Když je dojdeš, večer tě to nebude stát nic a tempo zůstane stejné. Porce jídel nechávám, jak byly.</div></div>`
+    : `<div class="alert a2" style="margin-top:10px"><div><b>${fmt0(b.cheatKcal)} kcal navíc – tohle už se uchodit nedá.</b> Musel bys ujít ${b.cheatWalkFull ?? Math.ceil(b.cheatKcal / b.walkPerMin)} minut navíc, což je nesmysl. Tak to neřeším chůzí: přidal jsem ti ${b.cheatWalk} minut (cíl ${b.planWalk}), zmenšil porce jídel, jak to šlo (bílkovinu nekrátím), a zbytek prostě ber.
+        Dneska ti to sebere kus tempa – vyjde ${fmt2(tempoDnes)} kg za týden místo ${fmt2(w * s.rate_pct / 100)}. <b>Jeden takový večer za měsíc nic nezkazí</b>, jen ať z toho není zvyk. Kdyby sis chtěl ubrat, nejlevnější je vynechat jedno pivo nebo přílohu.</div></div>`;
   return `<div class="card" id="cheat"><div class="row between"><h2>🍻 Cheat na dnešek${help('Plán, ne zápis. Když víš, že večer bude pivo, řízek nebo dort, zapiš to sem ráno. Appka to počítá do dnešního plánu a hlavně ti zvedne cíl chůze tak, aby tě to nestálo tempo. Nic se tu potom nepotvrzuje – je to plán na večer, ne záznam snědeného.')}</h2>${b.cheatKcal > 0 ? `<span class="pill">${fmt0(b.cheatKcal)} kcal</span>` : ''}</div>
     <div class="row write" style="margin-top:10px;gap:16px;align-items:flex-end">
       <div class="in"><label class="f">🍺 Piva (0,5 l)</label>${stepper('beers', day.beers || 0, 1, 0, 20, "A.dayField(&quot;beers&quot;,this.value,&quot;Piva zapsána&quot;)")}</div>

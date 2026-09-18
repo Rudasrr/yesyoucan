@@ -40,10 +40,14 @@ function calcBase(s, weight, walkMin, exerMin, walkKmh, beers, friedG, act, extr
   const walkPerMin = (metFor(kmh, s.met) - 1) * 3.5 * weight / 200;
   const exerPerMin = 2.5 * 3.5 * weight / 200;
   const planWalkBase = act.planWalk != null ? act.planWalk : s.walk_min;
-  // cheat (pivo, smažené, cokoli navíc) se přednostně pokrývá pohybem, ne menšími porcemi;
-  // víc než hodinu a půl chůze navíc po nikom chtít nejde, zbytek padne na porce
+  // Cheat (pivo, smažené, cokoli navíc) se přednostně pokrývá pohybem, ne menšími porcemi.
+  // Jde-li uchodit do 90 minut navíc, appka o tolik zvedne cíl chůze a porce zůstanou.
+  // Když je cheat větší, nemá smysl chtít hodiny chůze navíc: přidá se rozumných 30 minut
+  // a zbytek se řekne narovinu – tenhle den prostě něco stojí.
   const cheatKcal = (beers || 0) * BEER_KCAL + (friedG || 0) * FRIED_KCAL_G + (extraKcal || 0);
-  const cheatWalk = cheatKcal > 0 ? Math.min(90, Math.ceil(cheatKcal / walkPerMin)) : 0;
+  const cheatWalkFull = cheatKcal > 0 ? Math.ceil(cheatKcal / walkPerMin) : 0;
+  const cheatCoverable = cheatWalkFull > 0 && cheatWalkFull <= 90;
+  const cheatWalk = cheatKcal <= 0 ? 0 : (cheatCoverable ? cheatWalkFull : 30);
   const planWalk = planWalkBase + cheatWalk;
   const cheatCovered = cheatWalk * walkPerMin;
   const cheatRest = Math.max(0, cheatKcal - cheatCovered);
@@ -57,7 +61,7 @@ function calcBase(s, weight, walkMin, exerMin, walkKmh, beers, friedG, act, extr
   const walkToBmr = belowBmr ? Math.ceil((bmr - maxIntakeRaw) / walkPerMin) : 0;
   const drinkKcal = cheatKcal;
   const foodBudget = Math.max(600, planLimit - drinkKcal);
-  return { bmr, baseOut, walkPerMin, exerPerMin, totalOut: totalOutRaw, minOut, deficit, maxIntake, maxIntakeRaw, planLimit, drinkKcal, foodBudget, kmh, planWalk, planWalkBase, cheatKcal, cheatWalk, cheatCovered, cheatRest, belowBmr, planBelowBmr, walkToBmr, effDeficit: totalOutRaw - maxIntake, planKcal: act.planKcal || 0, doneKcal: act.doneKcal || 0 };
+  return { bmr, baseOut, walkPerMin, exerPerMin, totalOut: totalOutRaw, minOut, deficit, maxIntake, maxIntakeRaw, planLimit, drinkKcal, foodBudget, kmh, planWalk, planWalkBase, cheatKcal, cheatWalk, cheatWalkFull, cheatCovered, cheatRest, cheatCoverable, belowBmr, planBelowBmr, walkToBmr, effDeficit: totalOutRaw - maxIntake, planKcal: act.planKcal || 0, doneKcal: act.doneKcal || 0 };
 }
 const courseTargetSum = s => s.courses.reduce((a, c) => a + c.kcal, 0);
 

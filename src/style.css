@@ -452,3 +452,8 @@ body.has-modal .toast{bottom:auto;top:calc(12px + env(safe-area-inset-top))}
 .hcheck .checks .chk{border-left-width:3px}
 .hcheck .status{margin-top:10px}
 .hcheck summary{padding:6px 0}
+
+/* hlášky s delším textem: normální váha písma, ať se to dá číst */
+.alert{font-weight:600}
+.alert div{font-weight:500;line-height:1.5}
+.alert div b{font-weight:800}
