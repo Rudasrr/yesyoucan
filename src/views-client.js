@@ -207,11 +207,12 @@ VIEWS._spiz = function () {
   const st = f => pantryState(f.name, need[f.name] || 0);
   const pocet = { mam: 0, dochazi: 0, nemam: 0 };
   foods.forEach(f => pocet[st(f)]++);
-  const btn = (f, k) => `<button class="pst ${st(f) === k ? 'on ' + PANTRY_ST[k][1] : ''}" onclick="A.pantry('${esc(f.name)}','${k}')">${PANTRY_ST[k][0]}</button>`;
+  const znam = f => !!pantryRaw()[f.name];   // dokud Robert neťukne, nic nesvítí – červená u 55 položek jen straší
+  const btn = (f, k) => `<button class="pst ${znam(f) && st(f) === k ? 'on ' + PANTRY_ST[k][1] : ''}" onclick="A.pantry('${esc(f.name)}','${k}')">${PANTRY_ST[k][0]}</button>`;
   return `${flow('spiz', ['Projdi to jednou po nákupu', 'Ťukni mám / dochází / nemám', 'Lístek se tím sám zkrátí'], 'Tohle není inventura. Gramy appka nechce – stačí jí vědět, co nemá dávat na nákupní lístek. Odškrtnutím v Nákupu se položka překlopí na „mám“ sama a z tvé spotřeby si spočítá, na kolik týdnů balení vyjde; pak se sama přepne na „dochází“.')}
-  <div class="row between" style="margin-bottom:6px"><h1>Spíž${help('Trvanlivé suroviny, které vydrží doma déle než týden: přílohy, luštěniny, oleje, koření, konzervy, ořechy, protein. Čerstvé (maso, zelenina, mléčné) tu schválně nejsou – ty se kupují na každý týden znovu a evidovat je by byla práce navíc bez užitku.')}</h1></div>
-  <p class="small muted" style="margin-bottom:10px">${foods.length} trvanlivých surovin · mám ${pocet.mam}, dochází ${pocet.dochazi}, nemám ${pocet.nemam}. Co máš, nebude na nákupním lístku.</p>
-  <div class="masonry">${Object.entries(gr).map(([a, fs]) => `<div class="card tight"><h3 style="margin-bottom:4px">${esc(a)}</h3><table class="small">${fs.map(f => `<tr><td class="pcell">${esc(f.name)}${f.pack ? `<div class="tiny muted">balení ${f.pack >= 1000 ? fmt1(f.pack / 1000) + ' kg' : f.pack + ' g'}${need[f.name] ? ` · týdně ${fmt0(need[f.name])} g` : ''}</div>` : ''}</td><td class="n" style="white-space:nowrap">${['mam', 'dochazi', 'nemam'].map(k => btn(f, k)).join('')}</td></tr>`).join('')}</table></div>`).join('')}</div>`;
+  <div class="row between" style="margin-bottom:6px"><h1>Spíž${help('Trvanlivé suroviny, které vydrží doma déle než týden: přílohy, luštěniny, oleje, koření, konzervy, ořechy, protein. Čerstvé (maso, zelenina, mléčné) tu schválně nejsou – ty se kupují na každý týden znovu a evidovat je by byla práce navíc bez užitku. Dokud neťukneš nic, bere se to jako „nemám“ a surovina je na lístku.')}</h1></div>
+  <p class="small muted" style="margin-bottom:10px">${foods.length} trvanlivých surovin · mám ${pocet.mam}, dochází ${pocet.dochazi}, neoznačeno ${pocet.nemam}. Co máš, nebude na nákupním lístku.</p>
+  <div class="card"><div class="plist3">${Object.entries(gr).map(([a, fs]) => `<div class="pgrp"><h3>${esc(a)}</h3>${fs.map(f => `<div class="prow"><div class="pn">${esc(f.name)}${f.pack ? `<span class="tiny muted"> · ${f.pack >= 1000 ? fmt1(f.pack / 1000) + ' kg' : f.pack + ' g'}${need[f.name] ? ` · týdně ${fmt0(need[f.name])} g` : ''}</span>` : ''}</div><div class="pb">${['mam', 'dochazi', 'nemam'].map(k => btn(f, k)).join('')}</div></div>`).join('')}</div>`).join('')}</div></div>`;
 };
 
 /* ---------- NÁKUP ---------- */

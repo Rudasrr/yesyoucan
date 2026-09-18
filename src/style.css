@@ -569,6 +569,15 @@ body.has-modal .toast{bottom:auto;top:calc(12px + env(safe-area-inset-top))}
 .pst{border:1px solid var(--line);background:#fff;border-radius:999px;padding:4px 9px;font-size:12px;font-weight:700;color:var(--ink2);cursor:pointer;margin-left:4px}
 .pst.on{border-color:transparent;color:#fff}
 .pst.on.ok{background:var(--ok)}.pst.on.warn{background:var(--y)}.pst.on.bad{background:var(--bad)}
+.prow{display:flex;align-items:center;gap:8px;padding:4px 0;break-inside:avoid;border-bottom:1px solid var(--line)}
+.prow:last-child{border:0}
+.prow .pn{flex:1;min-width:0;font-size:13px;font-weight:600;overflow-wrap:anywhere}
+.prow .pb{flex:none;white-space:nowrap}
+.plist3{column-count:3;column-gap:24px}
+.plist3 .pgrp{break-inside:auto}
+.plist3 .pgrp h3{break-after:avoid}
+@media(max-width:900px){.plist3{column-count:2}}
+@media(max-width:600px){.plist3{column-count:1}}
 .ptitle{margin-bottom:10px}
 .plist2{column-count:2;column-gap:26px}
 @media(max-width:600px){.plist2{column-count:1}}
