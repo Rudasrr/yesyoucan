@@ -11,6 +11,7 @@ function qtyText(n) { if (n < 0.375) return ['¼', 1]; if (n < 0.625) return ['�
 /* text domácí míry pro dané gramy */
 function measureText(food, g) {
   const m = measureOf(food); if (!g) return '';
+  if (m.ck) g = cookedG(food, g);   // hrnek nabíráš uvařené, recept je v suchém stavu
   let unitG = null, unit = null;
   if (m.c) { const C = containers(); let cu = m.c; let c = C[cu]; unitG = c.g != null ? c.g : c.ml * (m.dens || 1);
     // velké množství → větší nádoba (3+ lžičky → lžíce, 6+ lžic → hrnek)
@@ -30,7 +31,6 @@ function containersCard() { const c = containers(); return `<div class="card"><h
   <p class="hint">Příklady: 1 hrnek (${c.hrnek.ml} ml) ≈ ${fmt0(c.hrnek.ml * 0.8)} g vařené rýže, ${fmt0(c.hrnek.ml * 0.6)} g vařených těstovin, ${fmt0(c.hrnek.ml * 1.03)} g mléka · 1 lžíce (${c.lzice.ml} ml) ≈ ${fmt0(c.lzice.ml * 1.2)} g tvarohu, ${fmt0(c.lzice.ml * 0.5)} g vloček, ${fmt0(c.lzice.ml * 0.65)} g oříšků.</p></div>`; }
 
 /* zaokrouhlení porcí: příloha na 10 g (odchylka od sešitu: MROUND 5) */
-function roundPortion(g, scale) { return scale ? Math.round(g / 10) * 10 : g; }
 
 /* ===== Tolerance nahlas: „sedí“ do ±60 kcal ===== */
 function toleranceText(kcal, target) { const d = kcal - target; if (Math.abs(d) <= 60) return { ok: true, text: 'sedí' }; return { ok: false, text: d > 0 ? `o ${fmt0(d)} kcal víc` : `${fmt0(-d)} kcal volných` }; }

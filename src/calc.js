@@ -7,6 +7,16 @@ const KG_KCAL = 7700;
 const COURSE_KEYS = ['snidane', 'obed', 'svacina', 'vecere1', 'vecere2'];
 
 const fmt0 = n => Math.round(n).toLocaleString('cs-CZ');
+/* Zaokrouhlení porce na 10 g. U surovin, které se kupují suché a vaří (rýže, těstoviny, luštěniny),
+   se zaokrouhluje hmotnost NA TALÍŘI, ne hmotnost suché suroviny – jinak by krok 10 g suché rýže
+   znamenal skoro 30 g na talíři. Výtěžnost (yld) říká, kolikrát surovina vařením ztěžkne. */
+function yieldOf(f) { return (f && f.yld) || 1; }
+const SEED_YLD = Object.fromEntries(SEED.foods.filter(f => f.yld).map(f => [f.name, f.yld]));
+/* hmotnost hotového jídla ze suroviny v syrovém/suchém stavu */
+function cookedG(food, g) { return g * (SEED_YLD[food] || 1); }
+/* gramy na displeji: uvnitř počítáme přesně (rýže 74,074 g), člověku ukazujeme celé gramy */
+const gShow = g => { const n = Number(g) || 0; return n >= 10 ? Math.round(n) : Math.round(n * 10) / 10; };
+function roundPortion(g, scale, f) { if (!scale) return g; const y = yieldOf(f); return Math.round(g * y / 10) * 10 / y; }
 const fmt1 = n => (Math.round(n * 10) / 10).toLocaleString('cs-CZ', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 const fmt2 = n => (Math.round(n * 100) / 100).toLocaleString('cs-CZ', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const signed0 = n => (n >= 0 ? '+' : '−') + fmt0(Math.abs(n));
@@ -90,7 +100,7 @@ function calcCourse(s, foods, recipes, course, sel, edits, budget) {
     const swaps = (edits && edits.swaps) || {}, grams = (edits && edits.grams) || {};
     const foodName = swaps[i] || it.food;
     const f = fk(foodName);
-    let g = it.scale ? roundPortion(it.g * out.factor, true) : it.g;
+    let g = it.scale ? roundPortion(it.g * out.factor, true, f) : it.g;
     let manual = false;
     if (grams[i] !== undefined && grams[i] !== null && grams[i] !== '') { g = Number(grams[i]); manual = true; }
     if (swaps[i]) out.edited++;

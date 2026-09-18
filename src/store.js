@@ -26,6 +26,38 @@ const Store = {
     this.lastSync = LS.get('lastSync', null);
   },
   save(t) { LS.set('t:' + t, this.db[t]); },
+  /* Přechod na suché gramy (18. 9. 2026): přílohy a luštěniny se dřív evidovaly vařené.
+     Přejmenují se a gramy se vydělí výtěžností – kalorie jídla zůstanou stejné. */
+  migrateDry() {
+    if (LS.get('mig:sucho', 0)) return 0;
+    const M = { 'Rýže vařená': ['Rýže', 2.7], 'Rýže basmati vařená': ['Rýže basmati', 2.7], 'Rýžové nudle vařené': ['Rýžové nudle', 3.3],
+      'Těstoviny vařené': ['Těstoviny', 2.5], 'Špagety celozrnné vařené': ['Špagety celozrnné', 2.5], 'Bulgur vařený': ['Bulgur', 3],
+      'Jáhly vařené': ['Jáhly', 3.3], 'Kuskus vařený': ['Kuskus', 3.2], 'Pohanka vařená': ['Pohanka', 2.9], 'Quinoa vařená': ['Quinoa', 3],
+      'Cizrna vařená': ['Cizrna suchá', 2.5], 'Čočka vařená': ['Čočka', 3], 'Čočka červená vařená': ['Čočka červená', 3.2],
+      'Fazole vařené': ['Fazole suché', 2.9], 'Hrách vařený': ['Hrách suchý', 3.1], 'Brambory vařené': ['Brambory', 0.95], 'Batáty pečené': ['Batáty', 0.9] };
+    let n = 0;
+    const touch = (t, r) => { r.updated_at = new Date().toISOString(); this.queue(t, r); n++; };
+    this.db.recipes.forEach(r => { let ch = 0;
+      (r.data.items || []).forEach(it => { const m = M[it.food]; if (m) { it.food = m[0]; it.g = Math.round(it.g / m[1] * 1e4) / 1e4; ch = 1; } });
+      if (ch) touch('recipes', r); });
+    this.db.foods.forEach(r => { const m = M[r.data.name]; if (!m) return;
+      r.data.name = m[0]; ['kcal', 'p', 'c', 'f'].forEach(k => { if (r.data[k] != null) r.data[k] = Math.round(r.data[k] * m[1] * 1e4) / 1e4; });
+      r.data.yld = m[1]; touch('foods', r); });
+    this.db.days.forEach(r => { let ch = 0;
+      Object.values(r.data.meals || {}).forEach(ml => {
+        const e = ml.edits || {};
+        Object.entries(e.swaps || {}).forEach(([i, v]) => { const m = M[v]; if (m) { e.swaps[i] = m[0]; ch = 1; if (e.grams && e.grams[i]) e.grams[i] = Math.round(e.grams[i] / m[1]); } });
+        (ml.extra || []).forEach(ex => { const m = M[ex.food]; if (m) { ex.food = m[0]; ex.g = Math.round(ex.g / m[1]); ch = 1; } });
+      });
+      if (ch) touch('days', r); });
+    this.db.shopping.forEach(r => { let ch = 0; const c = r.data.checked || {};
+      Object.keys(c).forEach(k => { const m = M[k]; if (m) { c[m[0]] = c[k]; delete c[k]; ch = 1; } });
+      if (ch) touch('shopping', r); });
+    TABLES.forEach(t => this.save(t));
+    LS.set('mig:sucho', 1);
+    return n;
+  },
+
   rows(t, uid) { return this.db[t].filter(r => !r.deleted && (uid === undefined || r.user_id === uid)); },
   /* aktuální uživatel, ke kterému data patří (klient sám, nebo vybraný klient trenéra) */
   ownerId() { return this.profile && this.profile.role === 'coach' ? this.clientId : this.uid(); },

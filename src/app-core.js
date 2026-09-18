@@ -253,6 +253,7 @@ function registerSW() {
 async function boot() {
   registerSW();
   Store.load();
+  Store.migrateDry();
   let cloud = false;
   try { cloud = await Store.initCloud(); }
   catch (e) {  // bez internetu se knihovna nenačte – jedeme z lokální kopie dat

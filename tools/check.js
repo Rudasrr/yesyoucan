@@ -1,7 +1,6 @@
 const fs=require('fs');const h=fs.readFileSync(require('path').join(__dirname,'..','out','index.html'),'utf8');const js=h.split('<script>')[1].split('</script>')[0];
 const cut=js.indexOf('/* ===== Úložiště');
-const extra=js.slice(js.indexOf('function roundPortion'), js.indexOf('\n', js.indexOf('function roundPortion')));
-const code=js.slice(0,cut).replace('const CLOUD_CONFIG','var CLOUD_CONFIG')+extra+`
+const code=js.slice(0,cut).replace('const CLOUD_CONFIG','var CLOUD_CONFIG')+`
 const s={...SEED.settings,met:SEED.met,phase_thresholds:SEED.phase_thresholds};
 const sw=SEED.sample_week['Středa'];
 const day={date:'2026-09-09',meals:Object.fromEntries(['snidane','obed','svacina','vecere1','vecere2'].map((k,i)=>[k,{sel:sw[i]}])),walk_min:65,walk_kmh:5,exercise_min:0,beers:0,fried_g:0};
