@@ -67,7 +67,7 @@ VIEWS.dnes = function () {
     <div class="herob ${tone}"><div class="tiny" style="opacity:.9;font-weight:700;letter-spacing:.04em;text-transform:uppercase">${planned ? (reserve < -30 ? 'O kolik jsi nad limitem' : 'Kolik ti zbývá do limitu') : 'Limit dne'} <button class="ibtn" style="border-color:rgba(255,255,255,.6);background:transparent;color:#fff" onclick="event.stopPropagation();UI.pop(this,'Hlavní číslo = rezerva naplánovaných jídel proti limitu dne. Limit dne = celkový výdej (klidový výdej × 1,34 + cílený pohyb) − plánovaný deficit. Ukazatel: plná část snědeno, světlá naplánováno. Snědené značíš u jídla nebo v úkolech.')">i</button></div><div class="big">${big}</div><div class="lbl">${lbl}</div>
       <div class="bar2" style="margin-top:14px"><i class="e" style="width:${pctE}%"></i><i class="p" style="width:${pctP}%"></i></div>
       <div class="row between small" style="margin-top:6px"><span>■ snědeno ${fmt0(prog.eaten)} · ▢ ještě naplánováno ${fmt0(prog.planned)}${d.base.drinkKcal ? ` · pití ${fmt0(d.base.drinkKcal)}` : ''}</span><span>limit ${fmt0(d.base.maxIntake)}</span></div></div>
-    <div class="stats3 wk">
+    <div class="stats3 four">
       <div><b class="${prog.eaten + d.base.drinkKcal > d.base.maxIntake ? 'bad' : ''}">${fmt0(prog.eaten + d.base.drinkKcal)} <small>/ ${fmt0(d.base.maxIntake)}</small></b><span><span class="mdot kcal"></span>snědeno z limitu</span></div>
       <div><b>${fmt0(d.intake)} <small>/ ${fmt0(d.base.maxIntake)}</small></b><span><span class="mdot kcal"></span>celý plán dne</span></div>
       <div><b class="${d.tot.p > 0 ? (d.tot.p >= d.protTarget ? 'ok' : 'bad') : ''}">${fmt0(d.tot.p)} <small>/ ${d.protTarget || s.protein_min}</small></b><span><span class="mdot prot"></span>bílkoviny (g)</span></div>
@@ -75,6 +75,13 @@ VIEWS.dnes = function () {
     </div>
    </div>
    ${renderActivityCard(App.date, day, d)}
+  </div><div class="colR">
+   <div class="card ga-tasks"><div class="row between"><h2>Úkoly dne${help('Seznam toho, co dnes udělat: zvážit se, sníst pět jídel, ujít svoje minuty, odškrtat trénink. Ťuknutím se úkol odškrtne, u jídla se rovnou zapíše, že jsi ho snědl. Pořadí je podle času, ne podle důležitosti.')}</h2><span class="small muted">${doneN}/${tasks.length}</span></div>
+    <div class="bar" style="margin:8px 0 10px;height:6px"><i style="width:${doneN / tasks.length * 100}%"></i></div>
+    <div class="tasks">${tasks.map(t => `<div class="task ${t.done ? 'done' : ''} ${t.now ? 'now' : ''}" onclick="${t.meal ? `A.eaten('${t.meal}',${!t.done})` : t.id === 'walk' || t.id === 'training' ? `document.getElementById('aktivita').scrollIntoView({behavior:'smooth',block:'start'})` : `${t.week ? `App.week='${t.week}';` : ''}${t.view === 'dnes' ? "document.querySelector('#meals').scrollIntoView({behavior:'smooth'})" : `go('${t.view}')`}`}">
+      <span class="ck">${t.done ? '✓' : ''}</span><span style="font-size:18px">${t.em}</span><div><div class="tx">${esc(t.tx)}</div>${t.sub ? `<div class="sub">${esc(t.sub)}</div>` : ''}</div><span class="go">${t.done ? '' : (t.meal ? (t.chosen ? 'snědl jsem' : 'vybrat') : 'otevřít')}${t.at && !t.done ? ` · ${t.at}` : ''}</span></div>`).join('')}</div></div>
+   ${noteCard(App.date, day)}
+  </div></div>
    <div class="card"><h2>Kontrola dne${help('Čtyři až pět řádků, které říkají, jestli den vyjde. Zelená je v pořádku, červená říká, co je špatně, o kolik, co to udělá s hubnutím a jak to spravit. Dole je shrnutí a rozpis, ze kterého se limit počítá.')}</h2>
    <div class="checks" style="margin-top:6px">${d.checks.map(ch => `<div class="chk k${ch.state}"><span class="nm ${ch.name === 'Kalorie' ? 'm-kcal' : (ch.name === 'Bílkoviny' ? 'm-prot' : '')}">${ch.name}</span><div class="cb">${ch.label ? `<span class="tag">${esc(ch.label)}</span>` : ''}<span class="ct">${esc(ch.text)}</span></div></div>`).join('')}</div>
    <div class="status day st${d.ok ? 2 : (planned ? 1 : 0)}" style="margin-top:10px">${esc(d.summary)}</div>
@@ -89,13 +96,6 @@ VIEWS.dnes = function () {
    <tr><td>Limit podle plánu (s cílem chůze a tréninkem)</td><td class="n">${fmt0(d.base.planLimit)} kcal</td></tr>
    <tr><td><span class="mdot carb"></span>Sacharidy / <span class="mdot fat"></span>tuky</td><td class="n"><b class="m-carb">${fmt0(d.tot.c)} g</b> / <b class="m-fat">${fmt0(d.tot.f)} g</b></td></tr></table></details>
    </div>
-  </div><div class="colR">
-   <div class="card ga-tasks"><div class="row between"><h2>Úkoly dne${help('Seznam toho, co dnes udělat: zvážit se, sníst pět jídel, ujít svoje minuty, odškrtat trénink. Ťuknutím se úkol odškrtne, u jídla se rovnou zapíše, že jsi ho snědl. Pořadí je podle času, ne podle důležitosti.')}</h2><span class="small muted">${doneN}/${tasks.length}</span></div>
-    <div class="bar" style="margin:8px 0 10px;height:6px"><i style="width:${doneN / tasks.length * 100}%"></i></div>
-    <div class="tasks">${tasks.map(t => `<div class="task ${t.done ? 'done' : ''} ${t.now ? 'now' : ''}" onclick="${t.meal ? `A.eaten('${t.meal}',${!t.done})` : t.id === 'walk' || t.id === 'training' ? `document.getElementById('aktivita').scrollIntoView({behavior:'smooth',block:'start'})` : `${t.week ? `App.week='${t.week}';` : ''}${t.view === 'dnes' ? "document.querySelector('#meals').scrollIntoView({behavior:'smooth'})" : `go('${t.view}')`}`}">
-      <span class="ck">${t.done ? '✓' : ''}</span><span style="font-size:18px">${t.em}</span><div><div class="tx">${esc(t.tx)}</div>${t.sub ? `<div class="sub">${esc(t.sub)}</div>` : ''}</div><span class="go">${t.done ? '' : (t.meal ? (t.chosen ? 'snědl jsem' : 'vybrat') : 'otevřít')}${t.at && !t.done ? ` · ${t.at}` : ''}</span></div>`).join('')}</div></div>
-   ${noteCard(App.date, day)}
-  </div></div>
 
   <div id="meals" class="row between" style="margin:8px 0 8px"><h2>🍽️ Jídla dne${help('Pět jídel dne. Řádek ukazuje, co máš naplánované a za kolik kalorií; klikem se rozbalí a dá se upravit – vyměnit jídlo (💡 jiné), vyměnit nebo odebrat surovinu, přepsat gramy, přidat něco navíc. Přílohu appka škáluje sama podle limitu, bílkovinu nekrátí.')} <span class="muted small" style="font-weight:600">${s.courses.some(c => day.meals[c.key].planned) ? `plán na ${dn.toLowerCase()}` : 'bez plánu z Týdne'}</span></h2>
     <div class="row noprint">${prog.missing.length ? `<button class="btn sm write" onclick="A.suggestDay()">💡 Navrhnout ${prog.missing.length === 5 ? 'den' : 'chybějící'}</button>` : ''}<button class="btn sec sm write" onclick="A.resetDay()">Vrátit plán z Týdne</button></div></div>

@@ -435,3 +435,6 @@ body.has-modal .toast{bottom:auto;top:calc(12px + env(safe-area-inset-top))}
   .checks .chk{grid-template-columns:1fr;gap:4px;padding-left:10px}
   .checks .chk .nm{font-size:12px;text-transform:uppercase;letter-spacing:.03em}
 }
+
+/* čtyři údaje pod hrdinským číslem – stejné odsazení jako zbytek karty */
+.stats3.four{grid-template-columns:repeat(auto-fit,minmax(150px,1fr));padding:14px 18px;gap:10px 16px}
