@@ -464,3 +464,23 @@ body.has-modal .toast{bottom:auto;top:calc(12px + env(safe-area-inset-top))}
 .fulfil .fgoal{font-size:13px;font-weight:700;color:var(--ink2);flex:1;min-width:0}
 .fulfil .row.between{gap:12px;align-items:baseline}
 .fulfil .in{margin:0}
+
+/* ---- Týden: den je karta, jídla jsou řádky jako v Dnes ---- */
+.wdays{display:flex;flex-direction:column;gap:10px}
+.wday{background:var(--glass);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);border:1px solid var(--glassb);border-radius:20px;box-shadow:0 10px 30px -22px rgba(16,24,40,.45),var(--hl);border-left:4px solid var(--line)}
+.wday.st1{border-left-color:var(--bad)}.wday.st2{border-left-color:var(--ok)}.wday.st0{border-left-color:var(--line)}
+.wday.today{outline:2px solid var(--p);outline-offset:-2px}
+.wdh{display:flex;align-items:center;gap:14px;padding:12px 16px;cursor:pointer;min-height:56px;flex-wrap:wrap}
+.wdn{font-weight:800;font-size:16px;flex:none}
+.wdsum{font-size:13px;color:var(--ink2);font-weight:600;flex:1;min-width:0}
+.wdh .stt{font-size:12px;font-weight:800;padding:3px 10px;border-radius:999px;flex:none}
+.wdb{padding:0 16px 14px}
+.wrow{display:flex;align-items:center;gap:12px;padding:8px 0;border-top:1px solid var(--line2)}
+.wrow .wem{font-size:18px;flex:none}
+.wrow .wtime{font-size:12px;color:var(--ink2);font-weight:700;width:44px;flex:none}
+.wrow .wpick{flex:1;min-width:0}
+.wrow .wkc{font-weight:800;white-space:nowrap;flex:none}
+@media(max-width:560px){
+  .wdh{gap:8px}.wdsum{flex:1 0 100%;order:9}
+  .wrow{flex-wrap:wrap}.wrow .wpick{flex:1 0 100%;order:9}
+}

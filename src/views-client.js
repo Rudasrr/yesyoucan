@@ -161,10 +161,24 @@ VIEWS.tyden = function () {
     ${isThis ? `<div><b>${closedOk} <small>/ ${closed.length}</small></b><span>dnů zatím v pořádku</span></div><div><b>${weighed} <small>/ 7</small></b><span>ranních vážení</span></div><div><b>${fmt0(walked)} <small>min</small></b><span>chůze (${fmt0(walked * base.walkPerMin)} kcal)</span></div>` : ''}
   </div></div>
   <div class="row noprint" style="margin-bottom:10px"><button class="btn sm write" onclick="A.genWeek('all')">💡 Naplánuj mi týden</button><span class="chip ${routineOn() ? 'on' : ''}" onclick="A.toggleRoutine()" title="stejná snídaně a svačina celý týden – méně vážení, dvě jídla zpaměti">${routineOn() ? '✓ ' : ''}rutina</span>${filled && filled < 35 ? `<button class="btn sec sm write" onclick="A.genWeek('empty')">Doplnit prázdná místa</button>` : ''}${prevHas ? `<button class="btn sec sm write" onclick="A.copyWeek()">Zkopírovat minulý týden</button>` : ''}${filled ? `<button class="btn sec sm write" onclick="A.clearWeek()">Vyprázdnit</button>` : ''}<span class="sp"></span><span class="small muted">Limit ${fmt0(base.planLimit)} kcal počítá s ${s.walk_min} min chůze při ${fmt1(s.walk_kmh)} km/h. Piva a smažené zadáváš až v ten den na Dnes.</span></div>
-  <div class="wkgrid7">${days.map(d => { const past = d.date < today; return `<div class="wkday ${d.date === today ? 'today' : ''}" ${past ? 'style="opacity:.75"' : ''}><div class="dh"><b>${DAY_NAMES[d.i]} <span class="tiny muted" style="font-weight:600">${czDateShort(d.date)}</span></b><button class="xbtn write" title="navrhnout tento den znovu" onclick="A.genDay(${d.i})">💡</button></div>
-    ${s.courses.map((c, ci) => `<div class="lbl">${COURSE_EMOJI[c.key]} ${c.time}${d.r.courses[ci].active || d.r.courses[ci].situace ? ` · ${fmt0(d.r.courses[ci].kcal)} kcal` : ''}</div>${pbtn(d, ci)}`).join('')}
-    <div class="stt st${d.r.state}">${d.r.filled ? `${fmt0(d.r.kcal)} kcal · ${fmt0(d.r.p)} g · limit ${fmt0(d.r.planLimit)}<br>` : ''}${esc(d.r.status)}</div>${(() => { const mm = dayMismatch(d.date); return mm && d.date >= today ? `<button class="btn sec sm write" style="margin-top:6px;width:100%" onclick="A.fitDay('${d.date}')">💡 ${mm.diff > 0 ? 'přidat ' + fmt0(mm.diff) : 'ubrat ' + fmt0(-mm.diff)} kcal</button>` : ''; })()}</div>`; }).join('')}</div>`;
+  <div class="wdays">${days.map(d => { const past = d.date < today; const open = (App.weekOpen == null ? (days.find(x => x.date === today) || days[0]).i : App.weekOpen) === d.i;
+    const mm = dayMismatch(d.date);
+    return `<div class="wday ${d.date === today ? 'today' : ''} ${open ? 'open' : ''} st${d.r.state}" ${past ? 'style="opacity:.8"' : ''}>
+      <div class="wdh" onclick="A.weekDay(${d.i})">
+        <span class="wdn">${DAY_NAMES[d.i]} <span class="muted" style="font-weight:600">${czDateShort(d.date)}</span></span>
+        <span class="wdsum">${d.r.filled ? `${fmt0(d.r.kcal)} kcal · ${fmt0(d.r.p)} g bílkovin · limit ${fmt0(d.r.planLimit)}` : 'zatím nic naplánováno'}</span>
+        <span class="stt st${d.r.state}">${esc(d.r.status)}</span>
+        <span class="cotog">${open ? '▴' : '▾'}</span></div>
+      ${!open ? '' : `<div class="wdb">
+        ${s.courses.map((c, ci) => `<div class="wrow">
+          <span class="wem">${COURSE_EMOJI[c.key]}</span><span class="wtime">${c.time}</span>
+          <div class="wpick">${pbtn(d, ci)}</div>
+          <span class="wkc m-kcal">${d.r.courses[ci].active || d.r.courses[ci].situace ? fmt0(d.r.courses[ci].kcal) + ' kcal' : '–'}</span></div>`).join('')}
+        <div class="row between" style="margin-top:10px">
+          <button class="btn sec sm write" onclick="A.genDay(${d.i})">💡 Navrhnout celý den znovu</button>
+          ${mm && d.date >= today ? `<button class="btn sec sm write" onclick="A.fitDay('${d.date}')">💡 ${mm.diff > 0 ? 'přidat ' + fmt0(mm.diff) : 'ubrat ' + fmt0(-mm.diff)} kcal</button>` : ''}</div></div>`}</div>`; }).join('')}</div>`;
 };
+A.weekDay = i => { App.weekOpen = App.weekOpen === i ? -1 : i; render(); };
 A.planSel = (di, ci, v) => Undo.run('Plán', () => { const wk = getWeek(App.week); wk.plan[di][ci] = v || null; saveWeek(wk); noteRecent(v); render(); }, () => { const r = calcPlanDay(S(), Foods(), Recipes(), getWeek(App.week).plan[di], currentWeight()); return `${DAY_NAMES[di]}: ${S().courses[ci].name.toLowerCase()} → ${v === SITUACE ? 'podle situace' : v === VYNECHAT ? 'vynechat' : v}. ${r.filled === 5 ? 'Den ' + r.status + '.' : 'Zbývá vybrat ' + (5 - r.filled) + ' jídel.'}`; });
 A.copyWeek = () => Undo.run('Kopie týdne', () => { const prev = getWeek(addDays(App.week, -7)); const wk = getWeek(App.week); wk.plan = JSON.parse(JSON.stringify(prev.plan)); saveWeek(wk); render(); }, 'Minulý týden zkopírován. Uprav, co chceš jinak.');
 A.clearWeek = () => Undo.run('Vyprázdnit týden', () => { const wk = getWeek(App.week); wk.plan = wk.plan.map(() => [null, null, null, null, null]); saveWeek(wk); render(); }, 'Týden vyprázdněn.');
