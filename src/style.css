@@ -484,3 +484,9 @@ body.has-modal .toast{bottom:auto;top:calc(12px + env(safe-area-inset-top))}
   .wdh{gap:8px}.wdsum{flex:1 0 100%;order:9}
   .wrow{flex-wrap:wrap}.wrow .wpick{flex:1 0 100%;order:9}
 }
+
+/* seznamy krátkých karet: sloupcová sazba, obsah se rozlije a nezůstane díra */
+.masonry{column-gap:12px}
+@media(min-width:760px){.masonry{column-count:2}}
+@media(min-width:1100px){.masonry{column-count:3}}
+.masonry > *{break-inside:avoid;margin-bottom:12px;display:block}

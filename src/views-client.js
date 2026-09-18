@@ -77,35 +77,32 @@ VIEWS.prehled = function () {
    <div class="bar" style="margin:12px 0 6px"><i style="width:${ov.progress * 100}%"></i></div>
    <div class="small muted">${String(s.start_weight).replace('.', ',')} kg → ${s.goal_weight} kg · pas pod ${s.goal_waist} cm · ${T.avg_note}</div>
   </div>
-  <div class="grid g2">
-   <div class="card"><h2>Statistika</h2><table class="small" style="margin-top:6px">
-     <tr><td>Poslední zápis</td><td class="n">${ov.last ? czDate(ov.last.date) : '–'}</td></tr><tr><td>Počet zapsaných vážení</td><td class="n">${ov.count}</td></tr><tr><td>Dní od startu</td><td class="n">${ov.daysSinceStart ?? '–'}</td></tr>
-     <tr><td>Průměrný úbytek za týden</td><td class="n">${ov.avgWeekLoss != null ? fmt2(ov.avgWeekLoss) + ' kg' : 'zatím málo dat'}</td></tr>
-     <tr><td>Pas dělený výškou (cíl pod 0,50)</td><td class="n">${ov.waistRatio != null ? fmt2(ov.waistRatio) : '–'}</td></tr>
-     <tr><td>Tímto tempem cíl dosažen</td><td class="n b">${ov.forecast || '–'}</td></tr>
-     <tr><td>Jsi před plánem o</td><td class="n ${ov.dev != null ? (ov.dev >= 0 ? 'ok' : 'bad') : ''}">${ov.dev != null ? fmt2(ov.dev) + ' kg' : '–'}</td></tr></table>
-     <p class="hint">${T.prognosis_note}</p></div>
-   <div class="card"><h2>Týdenní ohlédnutí</h2><div class="status st${ov.weekBack.state}" style="margin-top:8px">${esc(ov.weekBack.text)}</div><p class="hint">${T.week_note}</p>
-     <h3 style="margin-top:12px">Tvoje fáze: ${esc(ov.phase)}</h3><p class="small muted" style="margin-top:4px">Hodina chůze ti při ${fmt1(ov.cur)} kg udělá asi ${fmt0(60 * b.walkPerMin)} kcal, svižnějším tempem zhruba o třetinu víc. Rychlejší chůze je tedy levnější než delší.</p></div>
-  </div>
+
+  <div class="card"><h2>Jak si vedeš${help('Vlevo co říká plán, vpravo co ukazuje váha. Prognóza vychází z dosavadního tempa – ke konci se hubnutí vždycky zpomalí, takže reálné datum bývá o něco později.')}</h2>
+   <table class="small vs" style="margin-top:8px"><tr><th>Ukazatel</th><th class="n">Plán</th><th class="n">Skutečnost</th></tr>
+    <tr><td>Váha</td><td class="n">${fmt1(planWeightAt(s, ov.daysSinceStart || 0))} kg</td><td class="n b">${fmt1(ov.cur)} kg</td></tr>
+    <tr><td>Shozeno od startu</td><td class="n">${fmt1(Math.max(0, s.start_weight - planWeightAt(s, ov.daysSinceStart || 0)))} kg</td><td class="n b ${ov.dev != null && ov.dev >= 0 ? 'ok' : 'bad'}">${fmt1(Math.max(0, s.start_weight - ov.cur))} kg</td></tr>
+    <tr><td>Úbytek za týden</td><td class="n">${fmt2(ov.cur * s.rate_pct / 100)} kg</td><td class="n b">${ov.avgWeekLoss != null ? fmt2(ov.avgWeekLoss) + ' kg' : 'zatím málo dat'}</td></tr>
+    <tr><td>Cíl dosažen</td><td class="n">${(() => { for (let i = 0; i < 1500; i++) if (planWeightAt(s, i) <= s.goal_weight) return czDate(addDays(s.start_date, i)); return '–'; })()}</td><td class="n b">${ov.forecast || '–'}</td></tr>
+    <tr><td>Pas</td><td class="n">${s.goal_waist} cm (cíl)</td><td class="n b">${(() => { const m = Meas().filter(x => x.waist).sort((a, b) => b.date.localeCompare(a.date))[0]; return m ? fmt1(m.waist) + ' cm' : '–'; })()}</td></tr>
+    <tr><td>Pas dělený výškou</td><td class="n">pod 0,50</td><td class="n b">${ov.waistRatio != null ? fmt2(ov.waistRatio) : '–'}</td></tr>
+    <tr><td>Cílová váha</td><td class="n">${s.goal_weight} kg</td><td class="n">zbývá ${fmt1(Math.max(0, ov.cur - s.goal_weight))} kg</td></tr>
+    <tr><td>Vážení</td><td class="n">každé ráno</td><td class="n">${ov.count}× za ${ov.daysSinceStart ?? '–'} dní</td></tr></table>
+   <p class="hint" style="margin-top:8px">Jsi ${ov.dev != null ? (ov.dev >= 0 ? '<b class="ok">před plánem o ' + fmt2(ov.dev) + ' kg</b>' : '<b class="bad">za plánem o ' + fmt2(-ov.dev) + ' kg</b>') : 'zatím bez srovnání'}. ${T.prognosis_note}</p></div>
+  <div class="card"><h2>Týdenní ohlédnutí</h2><div class="status st${ov.weekBack.state}" style="margin-top:8px">${esc(ov.weekBack.text)}</div><p class="hint">${T.week_note}</p></div>
   <div class="card"><h2>Váha proti plánu</h2>
    ${lineChart({ series: [{ name: 'plán', color: '#9aa7ab', dash: true, pts: planPts }, { name: 'ranní váha', color: '#a8c6e4', pts: rawPts, thin: true }, { name: 'průměr 7 dní', color: '#1478d4', pts: realPts, dots: true }], xLabel: 'dní od startu', yUnit: 'kg', hLine: { y: s.goal_weight, label: 'cíl ' + s.goal_weight + ' kg', color: '#2f8f5b' } })}
   </div>
-  <div class="grid g2">
+  <div class="grid">
    <div class="card"><h2>Pas</h2>${waistRows.length ? lineChart({ series: [{ name: 'pas (cm)', color: '#1478d4', pts: waistRows, dots: true }], xLabel: 'dní od startu', yUnit: 'cm', hLine: { y: s.goal_waist, label: 'cíl ' + s.goal_waist + ' cm', color: '#2f8f5b' }, h: 220 }) : '<p class="muted small">Zatím žádný obvod pasu. Změř v neděli.</p>'}</div>
    <div class="card"><h2>Ostatní obvody</h2>${lineChart({ series: [{ name: 'boky', color: '#1478d4', pts: circ('hips'), dots: true }, { name: 'hrudník', color: '#5b8c3e', pts: circ('chest'), dots: true }, { name: 'stehno', color: '#b7791f', pts: circ('thigh'), dots: true }, { name: 'paže', color: '#8a5a9e', pts: circ('arm'), dots: true }], xLabel: 'dní od startu', yUnit: 'cm', h: 220 })}</div>
   </div>
-  <div class="grid g2">
+  <div class="grid">
    <div class="card"><h2>Plán proti realitě</h2><p class="small muted" style="margin:4px 0 8px">${T.plan_vs_reality_intro.replace('0,70', String(s.rate_pct).replace('.', ','))}</p>
     <table class="small"><tr><th>Za jak dlouho</th><th class="n">Teoreticky</th><th class="n">Reálně čekej</th><th class="n">Skutečnost</th></tr>
     ${ov.pvr.map(r => `<tr><td>${r.weeks} ${r.weeks === 1 ? 'týden' : (r.weeks < 5 ? 'týdny' : 'týdnů')}</td><td class="n">${fmt2(r.theory)} kg</td><td class="n">${fmt2(r.expect)} kg</td><td class="n ${typeof r.real === 'number' ? (r.real >= r.expect ? 'ok b' : 'bad b') : 'muted'}">${fmtReal(r.real)}${typeof r.real === 'number' ? ' kg' : ''}</td></tr>`).join('')}</table>
     <p class="hint">${T.table_note}</p></div>
-   <div class="card"><h2>Tempo chůze – kam se posouvat</h2><p class="small muted" style="margin:4px 0 8px">Tempo poznáš i bez hodinek: svižně znamená, že se ještě udýcháš na hovor, ale nezazpíváš si.</p>
-    <div class="tbl"><table class="small"><tr><th>Fáze</th><th>Váha</th><th>Tempo</th><th>Cíl fáze</th></tr>
-    ${SEED.phases.map(p => `<tr class="${ov.phase.startsWith(p.name[0]) ? 'today' : ''}"><td class="b">${esc(p.name)}</td><td>${esc(p.weight)}</td><td>${esc(p.pace)}<div class="tiny muted">${esc(p.per_hour)}${p.steps !== '—' ? ' · ' + esc(p.steps) + ' kroků' : ''}</div></td><td>${esc(p.goal)}</td></tr>`).join('')}</table></div>
-    <p class="hint">${T.phase_note}</p></div>
-  </div>
-  <div class="card"><h2>Cíle</h2><table class="small" style="margin-top:6px"><tr><td>Výška</td><td class="n">${s.height} cm</td></tr><tr><td>Startovní váha</td><td class="n">${s.start_weight} kg</td></tr><tr><td>Cílová váha</td><td class="n">${s.goal_weight} kg</td></tr><tr><td>Cíl úbytku za týden</td><td class="n">${fmt2(ov.weekTarget)} kg (${String(s.rate_pct).replace('.', ',')} % váhy)</td></tr><tr><td>Cílový obvod pasu</td><td class="n">${s.goal_waist} cm</td></tr><tr><td>Minimální bílkoviny</td><td class="n">${s.protein_min} g</td></tr><tr><td>Denní cíl chůze</td><td class="n">${s.walk_min} min · ${fmt1(s.walk_kmh)} km/h</td></tr></table></div>`;
+     <div class="card"><h2>Cíle</h2><table class="small" style="margin-top:6px"><tr><td>Výška</td><td class="n">${s.height} cm</td></tr><tr><td>Startovní váha</td><td class="n">${s.start_weight} kg</td></tr><tr><td>Cílová váha</td><td class="n">${s.goal_weight} kg</td></tr><tr><td>Cíl úbytku za týden</td><td class="n">${fmt2(ov.weekTarget)} kg (${String(s.rate_pct).replace('.', ',')} % váhy)</td></tr><tr><td>Cílový obvod pasu</td><td class="n">${s.goal_waist} cm</td></tr><tr><td>Minimální bílkoviny</td><td class="n">${s.protein_min} g</td></tr><tr><td>Denní cíl chůze</td><td class="n">${s.walk_min} min · ${fmt1(s.walk_kmh)} km/h</td></tr></table></div>`;
 };
 
 /* ---------- TÝDEN ---------- */
@@ -193,7 +190,7 @@ VIEWS.nakup = function () {
   const cats = [...new Set(list.map(x => x.cat))];
   const done = list.filter(x => shop.checked[x.food]).length;
   return `<h1 style="margin-bottom:6px">Nákup${help('Seznam surovin pro naplánovaný týden, sečtený přes všechny dny a přepočítaný na tvoji váhu. Odškrtávej „mám“ – stav se ukládá. Vejce jsou v kusech, nad kilo v kilogramech.')}</h1><p class="small muted" style="margin-bottom:8px">Množství jsou syrové suroviny, jak se váží před přípravou, přepočítané na tvoji aktuální váhu – stejně jako rozpis Vaření. Mám ${done} z ${list.length}.</p>${weekNav}
-  <div class="grid g2 print-cols">${cats.map(c => `<div class="card tight"><h3 style="margin-bottom:4px">${esc(c)}</h3><table class="small">${list.filter(x => x.cat === c).map(x => `<tr class="${shop.checked[x.food] ? 'muted' : ''}"><td style="width:34px"><input type="checkbox" ${shop.checked[x.food] ? 'checked' : ''} onchange="A.shopCheck('${esc(x.food)}',this.checked)" style="width:20px;height:20px;min-height:0"></td><td style="${shop.checked[x.food] ? 'text-decoration:line-through' : ''}">${esc(x.food)}${x.uses > 1 && (['Ořechy a semínka', 'Uzeniny'].includes(x.cat) || /Sýr|Eidam|Gouda|Feta|Šunka/.test(x.food)) ? `<div class="tiny muted">rozděl po nákupu na ${x.uses} porcí po ${fmt0(x.g / x.uses)} g</div>` : ''}</td><td class="n b">${x.buy}</td><td class="n muted tiny noprint">${x.buy === fmt0(x.g) + ' g' ? '' : fmt0(x.g) + ' g'}</td></tr>`).join('')}</table></div>`).join('')}</div>
+  <div class="masonry print-cols">${cats.map(c => `<div class="card tight"><h3 style="margin-bottom:4px">${esc(c)}</h3><table class="small">${list.filter(x => x.cat === c).map(x => `<tr class="${shop.checked[x.food] ? 'muted' : ''}"><td style="width:34px"><input type="checkbox" ${shop.checked[x.food] ? 'checked' : ''} onchange="A.shopCheck('${esc(x.food)}',this.checked)" style="width:20px;height:20px;min-height:0"></td><td style="${shop.checked[x.food] ? 'text-decoration:line-through' : ''}">${esc(x.food)}${x.uses > 1 && (['Ořechy a semínka', 'Uzeniny'].includes(x.cat) || /Sýr|Eidam|Gouda|Feta|Šunka/.test(x.food)) ? `<div class="tiny muted">rozděl po nákupu na ${x.uses} porcí po ${fmt0(x.g / x.uses)} g</div>` : ''}</td><td class="n b">${x.buy}</td><td class="n muted tiny noprint">${x.buy === fmt0(x.g) + ' g' ? '' : fmt0(x.g) + ' g'}</td></tr>`).join('')}</table></div>`).join('')}</div>
   <div class="row noprint"><button class="btn sec sm write" onclick="A.shopReset()">Odškrtnout vše zpět</button></div>`;
 };
 A.shopCheck = (food, v) => { const shop = getShop(App.week); shop.checked[food] = v; Store.put('shopping', oid('s', App.week), shop); render(); const sd = shoppingDone(App.week); if (sd.done >= sd.total) UI.toast('Nákup kompletní. Vaření máš v rozpisu.'); };

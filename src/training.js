@@ -176,6 +176,13 @@ A.tpOverride = date => { const cur = trainingOverride(date) || { ...dayActivityP
 }
 
 /* ===== Robert: karta Aktivita dne ===== */
+/* tempo chůze a fáze – dřív samostatná karta v Přehledu, teď nápověda u zadávání chůze */
+function tempoNapoveda() {
+  const ov = calcOverview(S(), Meas());
+  const faze = SEED.phases.map(p => `${p.name} (${p.weight}): ${p.pace}${p.steps !== '—' ? ', ' + p.steps + ' kroků' : ''} – ${p.goal}`).join('. ');
+  return `Tempo poznáš i bez hodinek: svižně znamená, že se ještě udýcháš na hovor, ale nezazpíváš si. Teď jsi ve fázi ${ov.phase}. Rychlejší chůze je levnější než delší – hodina ti při ${fmt1(ov.cur)} kg udělá asi ${fmt0(60 * calcBase(S(), ov.cur, S().walk_min, 0, S().walk_kmh, 0, 0).walkPerMin)} kcal, svižnějším tempem zhruba o třetinu víc. Fáze: ${faze}.`;
+}
+
 function renderActivityCard(date, day, d) {
   const s = S();
   const b_cheat = d.base.cheatWalk ? ` (v tom ${d.base.cheatWalk} min za cheat)` : ''; const act = day.act || {}; const items = act.items || []; const done = (day.training && day.training.done) || {};
@@ -188,7 +195,7 @@ function renderActivityCard(date, day, d) {
   return `<div class="card ga-walk" id="aktivita"><div class="row between"><h2>🚶 Aktivita dnes${help('Chůze a trénink zvedají celkový výdej, a tím i limit jídla – plánovaný deficit zůstává stejný, takže hubneš pořád stejně rychle, jen se víc najíš. Zapiš, co jsi skutečně udělal. Bez pohybu limit klesne na spodní hranici; appka ti řekne, kolik minut chybí.')}</h2><span class="pill">cílený pohyb ${fmt0(d.base.totalOut - d.base.baseOut)} kcal</span>${isCoach() ? `<button class="btn sec sm" style="pointer-events:auto" onclick="A.tpOverride('${date}')">Jednorázová změna</button>` : ''}</div>
     ${act.note ? `<div class="notice" style="margin:8px 0">${esc(act.note)}</div>` : ''}
     <div class="fulfil write">
-      <div class="row between"><span class="fgoal">🚶 Chůze – cíl ${wt} min${b_cheat}</span><b class="${wm >= wt ? 'ok' : ''}">${wm} z ${wt} min${wm ? ` · ${fmt0(wm * d.base.walkPerMin)} kcal` : ''}</b></div>
+      <div class="row between"><span class="fgoal">🚶 Chůze – cíl ${wt} min${b_cheat}${help(tempoNapoveda())}</span><b class="${wm >= wt ? 'ok' : ''}">${wm} z ${wt} min${wm ? ` · ${fmt0(wm * d.base.walkPerMin)} kcal` : ''}</b></div>
       <div class="bar" style="margin:6px 0 8px;height:6px"><i style="width:${clamp(wm / Math.max(1, wt) * 100, 0, 100)}%"></i></div>
       <div class="row" style="gap:10px;align-items:flex-end">
         <div class="row" style="gap:6px">${[15, 30, 60].map(n => `<button class="btn sec sm write" onclick="A.addWalk(${n})">+${n} min</button>`).join('')}</div>
