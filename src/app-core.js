@@ -117,9 +117,12 @@ const NAV_CLIENT = [['dnes', 'Dnes'], ['tyden', 'Týden'], ['jidlo', 'Jídlo'], 
    surovin v receptu. V menu jen zabíraly místo, tak jsou pod Více. */
 const MORE_CLIENT = [['recepty', 'Recepty'], ['suroviny', 'Suroviny'], ['navod', 'Start a návod'], ['ucet', 'Nastavení']];
 const NAV_CLIENT_OLD = [['dnes', 'Dnes'], ['tyden', 'Týden'], ['prehled', 'Přehled'], ['mereni', 'Měření'], ['nakup', 'Nákup'], ['vareni', 'Vaření'], ['recepty', 'Recepty'], ['suroviny', 'Suroviny'], ['navod', 'Návod']];
-const NAV_COACH = [['klient', 'Dashboard'], ['zprava', 'Zpráva'], ['trenink', 'Trénink'], ['nastaveni', 'Plán a cíle'], ['databaze', 'Databáze'], ['dnes', 'Dnes'], ['tyden', 'Týden'], ['jidlo', 'Jídlo'], ['mereni', 'Měření'], ['navod', 'Návod']];
+/* Trenér měl v menu dvanáct položek – lámalo se to do dvou řad a překrývalo obsah.
+   Nahoře zůstalo pět trenérských obrazovek, Robertovy jsou pod Více. */
+const NAV_COACH = [['klient', 'Dashboard'], ['zprava', 'Zpráva'], ['trenink', 'Trénink'], ['nastaveni', 'Plán a cíle'], ['databaze', 'Databáze']];
+const MORE_COACH = [['dnes', 'Dnes u Roberta'], ['tyden', 'Týden'], ['jidlo', 'Jídlo'], ['mereni', 'Měření'], ['recepty', 'Recepty'], ['suroviny', 'Suroviny'], ['navod', 'Návod'], ['ucet', 'Nastavení']];
 const MOB_MAIN_CLIENT = ['dnes', 'tyden', 'jidlo', 'mereni'];
-const MOB_MAIN_COACH = ['klient', 'trenink', 'nastaveni', 'dnes'];
+const MOB_MAIN_COACH = ['klient', 'zprava', 'trenink', 'nastaveni'];
 const ICONS = {
   dnes: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
   mereni: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="M12 12l3-3"/><path d="M7 15h10"/></svg>',
@@ -144,7 +147,7 @@ function go(v) { App.view = v; App.moreOpen = false; UI.closeModal(); render(); 
 function renderShell() {
   const items = nav();
   const main = isCoach() ? MOB_MAIN_COACH : MOB_MAIN_CLIENT;
-  const label = v => items.find(x => x[0] === v)[1];
+  const label = v => (items.find(x => x[0] === v) || [v, v])[1];
   const deskItems = items;
   $('#nav-desk').innerHTML = deskItems.map(([v, l]) => `<button class="${App.view === v ? 'on' : ''}" onclick="go('${v}')">${l}</button>`).join('') + `<button class="${App.view === 'ucet' ? 'on' : ''}" onclick="go('ucet')" title="Připomínky, kalendář, záloha, odhlášení">⚙︀ Nastavení</button>` + (realCoach() ? `<button class="${App.preview ? 'on' : ''}" onclick="A.togglePreview()" title="Náhled Robertova rozhraní">👁️ ${App.preview ? 'Zpět do trenéra' : 'Pohled Roberta'}</button>` : '');
   $('#nav-mob').innerHTML = main.map(v => `<button class="${App.view === v ? 'on' : ''}" onclick="go('${v}')">${ICONS[v]}${label(v)}</button>`).join('') +

@@ -77,9 +77,37 @@ function popEl(sel) { const el = document.querySelector(sel); if (!el) return; e
 function coachReply(date) { const r = TrainingRows().find(x => x.id === oid('note', date)); return r ? r.data : null; }
 A.saveNote = (date, text) => { Undo.run(text ? 'Poznámka uložena – trenér ji uvidí' : 'Poznámka smazána', () => { const day = getDay(date); day.note = text || null; day.noteAt = new Date().toISOString(); saveDay(day); }); render(); };
 A.saveReply = (date, text) => { Undo.run(text ? 'Odpověď odeslána Robertovi' : 'Odpověď smazána', () => Store.put('training', oid('note', date), { reply: text || null, at: new Date().toISOString() })); render(); };
+/* Hlad je jediný signál, který trenérovi chybí. Pět dní vlčího hladu v řadě znamená,
+   že tempo je moc rychlé – a to z čísel nepoznáš, dokud to Robert nenapíše do poznámky. */
+const HLAD = [['ok', '🙂 v pohodě'], ['hlad', '😐 hlad'], ['vlk', '😖 vlčí hlad']];
+A.setHunger = (date, v) => Undo.run('Hlad', () => { const day = getDay(date); day.hunger = day.hunger === v ? null : v; saveDay(day); render(); },
+  v === 'vlk' ? 'Zapsáno. Když to bude pět dní v řadě, trenér to uvidí a zpomalí tempo.' : 'Zapsáno.');
+function hungerRow(date, day) {
+  return `<div class="fulfil write" style="margin-bottom:10px"><div class="row between"><span class="fgoal">Jak ti dnes bylo s jídlem?${help('Jedno ťuknutí denně. Pro trenéra je to cennější než většina čísel: když máš hlad pět dní v řadě, je tempo moc rychlé a patří zpomalit dřív, než to vzdáš.')}</span></div>
+    <div class="row" style="gap:6px;margin-top:6px">${HLAD.map(([k, l]) => `<span class="chip ${day.hunger === k ? 'on' : ''}" onclick="A.setHunger('${date}','${k}')">${l}</span>`).join('')}</div></div>`;
+}
+/* Vlákno vzkazů: poznámky ke dnům a odpovědi trenéra v jedné niti, ne rozeseté po dnech. */
+function threadItems(limit) {
+  const uid = Store.ownerId();
+  const out = [];
+  Store.rows('days', uid).forEach(r => { const d = r.data;
+    if (d.note) out.push({ date: d.date, at: d.noteAt, who: 'robert', text: d.note });
+  });
+  Store.rows('training', uid).forEach(r => {   // id má tvar note:<uid>:<datum>
+    const p = r.id.split(':'); if (p[0] !== 'note' || !r.data || !r.data.reply) return;
+    out.push({ date: p[2], at: r.data.at, who: 'trener', text: r.data.reply }); });
+  return out.sort((a, b) => (b.at || b.date).localeCompare(a.at || a.date)).slice(0, limit || 20);
+}
+function threadCard(limit) {
+  const it = threadItems(limit);
+  if (!it.length) return `<div class="card"><h2>💬 Vzkazy</h2><p class="small muted" style="margin-top:6px">Zatím nic. Poznámky ke dnům a odpovědi se sbíhají sem.</p></div>`;
+  return `<div class="card"><h2>💬 Vzkazy${help('Všechny poznámky ke dnům a odpovědi na jednom místě, od nejnovější. Psát se dá u konkrétního dne – tam zůstává kontext.')}</h2>
+    <div class="thread">${it.map(x => `<div class="nb ${x.who === 'robert' ? 'rob' : 'coach'}"><b>${x.who === 'robert' ? 'Robert' : 'Trenér'} · <a href="#" onclick="App.date='${x.date}';go('dnes');return false">${czDateShort(x.date)}</a>:</b> ${esc(x.text)}</div>`).join('')}</div></div>`;
+}
 function noteCard(date, day) {
   const rep = coachReply(date); const coach = realCoach() && !App.preview;
   return `<div class="card"><h2>💬 Poznámka ke dni${help('Napiš trenérovi, co se dělo – bolest, únava, jídlo mimo plán, proč něco nevyšlo. Trenér odpoví přímo sem. Pár slov stačí.')}</h2>
+    ${coach ? '' : hungerRow(date, day)}
     ${coach ? `<div class="notebox">${day.note ? `<div class="nb rob"><b>Robert${day.noteAt ? ' · ' + czDateShort(isoDate(new Date(day.noteAt))) : ''}:</b> ${esc(day.note)}</div>` : '<div class="small muted">Robert k tomuto dni nic nenapsal.</div>'}
       <div class="row" style="margin-top:8px"><input type="text" id="rep-${date}" value="${esc(rep && rep.reply || '')}" placeholder="odpověď Robertovi…" style="flex:1;min-width:200px;pointer-events:auto"><button class="btn sm" style="pointer-events:auto" onclick="A.saveReply('${date}',document.getElementById('rep-${date}').value.trim())">Odeslat</button></div></div>`
     : `<div class="notebox"><textarea id="note-${date}" rows="2" placeholder="např. bolelo koleno, běh jsem vynechal; v práci byl dort…" style="resize:vertical">${esc(day.note || '')}</textarea><div class="row" style="margin-top:6px"><button class="btn sm write" onclick="A.saveNote('${date}',document.getElementById('note-${date}').value.trim())">Uložit poznámku</button></div>

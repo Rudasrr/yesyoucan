@@ -77,6 +77,7 @@ VIEWS.dnes = function () {
     <button class="daynav" onclick="A.stripShift(7)" ${mon >= thisMon ? 'disabled style="opacity:.35"' : ''} title="další týden">›</button></div>
   ${mon !== thisMon ? `<p class="tiny muted" style="margin:-6px 0 10px">Koukáš na týden od ${czDateShort(mon)} <button class="btn sec sm" onclick="A.stripShift(0)">zpět na tento týden</button></p>` : ''}
   ${flow('dnes', ['Zvaž se ráno', 'Odškrtávej jídla', 'Zapiš chůzi', 'Večer mrkni na kontrolu dne'], 'Karta Teď nahoře ti vždycky řekne jeden další krok – když nevíš, drž se jí.')}
+  ${isMaintWeek(s, App.date) ? `<div class="alert a3" style="margin-bottom:10px"><div style="flex:1"><b>Tenhle týden je udržovací.</b> Deficit je nula, limit sedí na celkovém výdeji – najíš se víc a váha se skoro nehne. Není to pauza: jídlo, chůze i trénink jedou dál. Po něm se vrací normální tempo.</div></div>` : ''}
   ${isToday ? catchUpAlert() : ''}
   ${isToday ? mismatchAlert(App.date) : ''}
   ${now}

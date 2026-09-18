@@ -146,7 +146,13 @@ function cheatItemsKcal(day, foods) {
 }
 
 /* Celý den (Dnešní den) */
-function calcDay(s, foods, recipes, day, weight) {
+/* Udržovací týden: deficit je nula, limit sedí na celkovém výdeji. Osm měsíců deficitu
+   v kuse nikdo neudrží – hlad roste, výdej klesá a váha se zasekne. Udržovací týden
+   po šesti až deseti týdnech to resetuje a prognózu posune jen o pár týdnů. */
+function isMaintWeek(s, date) { return !!(s.maint_weeks || []).includes(mondayOf(date)); }
+function effSettings(s, date) { return isMaintWeek(s, date) ? { ...s, rate_pct: 0 } : s; }
+function calcDay(s0, foods, recipes, day, weight) {
+  const s = effSettings(s0, day.date);
   const base = calcBase(s, weight, day.walk_min, day.exercise_min, day.walk_kmh, day.beers, day.fried_g, day.act, cheatItemsKcal(day, foods));
   const courses = s.courses.map(c => calcCourse(s, foods, recipes, c, (day.meals[c.key] || {}).sel, day.meals[c.key], base.foodBudget));
   const tot = courses.reduce((a, c) => ({ kcal: a.kcal + c.kcal, p: a.p + c.p, c: a.c + c.c, f: a.f + c.f }), { kcal: 0, p: 0, c: 0, f: 0 });

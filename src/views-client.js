@@ -113,7 +113,7 @@ VIEWS._prehled = function () {
    <p class="hint" style="margin-top:8px">Jsi ${ov.dev != null ? (ov.dev >= 0 ? '<b class="ok">před plánem o ' + fmt2(ov.dev) + ' kg</b>' : '<b class="bad">za plánem o ' + fmt2(-ov.dev) + ' kg</b>') : 'zatím bez srovnání'}. ${T.prognosis_note}</p></div>
   <div class="card"><h2>Týdenní ohlédnutí</h2><div class="status st${ov.weekBack.state}" style="margin-top:8px">${esc(ov.weekBack.text)}</div><p class="hint">${T.week_note}</p></div>
   <div class="card"><h2>Váha proti plánu</h2>
-   ${lineChart({ series: [{ name: 'plán', color: '#9aa7ab', dash: true, pts: planPts }, { name: 'ranní váha', color: '#a8c6e4', pts: rawPts, thin: true }, { name: 'průměr 7 dní', color: '#1478d4', pts: realPts, dots: true }], xLabel: 'dní od startu', yUnit: 'kg', hLine: { y: s.goal_weight, label: 'cíl ' + s.goal_weight + ' kg', color: '#2f8f5b' } })}
+   ${lineChart({ series: [{ name: 'plán', color: '#9aa7ab', dash: true, pts: planPts }, { name: 'ranní váha', color: '#a8c6e4', pts: rawPts, thin: true }, { name: 'průměr 7 dní', color: '#1478d4', pts: realPts, dots: true }], xLabel: 'dní od startu', yUnit: 'kg', hLine: { y: s.goal_weight, label: 'cíl ' + s.goal_weight + ' kg', color: '#2f8f5b' }, marks: (s.log || []).map(l => ({ x: daysBetween(s.start_date, l.at), label: l.pop.split(' ')[0] + ' ' + l.to })) })}
   </div>`;
 };
 
@@ -143,7 +143,7 @@ VIEWS.tyden = function () {
   const toggle = weekToggle();
   const wk = getWeek(App.week); const today = todayISO();
   if (wk.auto && !wk.reviewed && !App.ro) { wk.reviewed = true; saveWeek(wk); }
-  const days = wk.plan.map((sels, i) => ({ i, date: addDays(App.week, i), sels, r: calcPlanDay(s, foods, recipes, sels, w, planActFor(addDays(App.week, i), w)) }));
+  const days = wk.plan.map((sels, i) => ({ i, date: addDays(App.week, i), sels, r: calcPlanDay(effSettings(s, addDays(App.week, i)), foods, recipes, sels, w, planActFor(addDays(App.week, i), w)) }));
   const filled = days.reduce((a, d) => a + d.r.filled, 0);
   const full = days.filter(d => d.r.filled === 5);
   const base = calcBase(s, w, s.walk_min, 0, s.walk_kmh, 0, 0);
@@ -333,8 +333,8 @@ App.fsort = '';
 VIEWS.recepty = function () { return VIEWS._recepty(); };
 VIEWS.suroviny = function () { return VIEWS._suroviny(); };
 VIEWS.more = function () {
-  const items = isCoach() ? nav().filter(([v]) => !MOB_MAIN_COACH.includes(v)) : MORE_CLIENT;
-  const desc = { nakup: 'seznam z plánu týdne', vareni: 'rozpis na týden, tisk', recepty: 'vlastní jídla', suroviny: 'databáze potravin', navod: 'pravidla, čísla, postup', ucet: 'připomínky, kalendář, záloha', mereni: 'váha a obvody', prehled: 'grafy a statistika', tyden: 'plán 7 dní', klient: 'stav klienta', nastaveni: 'parametry plánu', databaze: 'editace databáze', dnes: 'skládání dne' };
+  const items = isCoach() ? MORE_COACH.concat(NAV_COACH.filter(([v]) => !MOB_MAIN_COACH.includes(v))) : MORE_CLIENT;
+  const desc = { nakup: 'seznam z plánu týdne', vareni: 'rozpis na týden, tisk', recepty: 'vlastní jídla', suroviny: 'databáze potravin', navod: 'pravidla, čísla, postup', ucet: 'připomínky, kalendář, záloha', mereni: 'váha a obvody', prehled: 'grafy a statistika', tyden: 'plán 7 dní', klient: 'stav klienta', nastaveni: 'parametry plánu', zprava: 'týdenní shrnutí', trenink: 'plán cvičení', jidlo: 'nákup, spíž, vaření', databaze: 'editace databáze', dnes: 'skládání dne' };
   const col = { nakup: 'var(--grad2)', vareni: 'var(--grad)', recepty: 'var(--grad3)', suroviny: 'var(--y)', navod: 'var(--v)', ucet: 'var(--line2)', mereni: 'var(--p)', prehled: 'var(--grad)', tyden: 'var(--grad3)', dnes: 'var(--grad)' };
   const em = { nakup: '🛒', vareni: '🍳', recepty: '📖', suroviny: '🥦', navod: '📘', ucet: '⚙️', mereni: '⚖️', prehled: '📈', tyden: '🗓️', dnes: '☀️', klient: '📊', nastaveni: '⚙️', databaze: '🗄️' };
   return `<h1 style="margin-bottom:10px">Více${help('Obrazovky, které se nevešly do spodního menu. Na mobilu jsou v menu jen Dnes, Týden, Jídlo a Měření – zbytek najdeš tady.')}</h1>${realCoach() ? `<button class="btn sm" style="margin-bottom:10px;pointer-events:auto" onclick="A.togglePreview()">👁️ ${App.preview ? 'Zpět do trenéra' : 'Pohled Roberta'}</button>` : ''}<div class="more">${items.map(([v, l]) => `<button onclick="go('${v}')"><i style="background:${col[v] || 'var(--line2)'};display:flex;align-items:center;justify-content:center;font-size:18px">${em[v] || ''}</i>${l}<span>${desc[v] || ''}</span></button>`).join('')}<button onclick="go('ucet')"><i style="background:var(--line2);display:flex;align-items:center;justify-content:center;font-size:18px">🔔</i>Nastavení<span>upozornění, kalendář, záloha</span></button></div>`;
@@ -388,7 +388,7 @@ function weightAt(s, date) { const rows = calcMeasurements(s, Meas()).filter(r =
 function downloadBlob(blob, name) { const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500); }
 
 /* ---------- SVG graf ---------- */
-function lineChart({ series, xLabel, yUnit, hLine, h = 260 }) {
+function lineChart({ series, xLabel, yUnit, hLine, marks, h = 260 }) {
   const W = 720, H = h, L = 44, R = 12, T = 12, B = 34;
   const all = series.flatMap(sr => sr.pts);
   if (!all.length) return '<p class="muted small">Zatím žádná data.</p>';
@@ -407,6 +407,10 @@ function lineChart({ series, xLabel, yUnit, hLine, h = 260 }) {
   series.forEach(sr => { if (!sr.pts.length) return; const d = sr.pts.map((p, i) => `${i ? 'L' : 'M'}${X(p[0]).toFixed(1)},${Y(p[1]).toFixed(1)}`).join('');
     g += `<path d="${d}" fill="none" stroke="${sr.color}" stroke-width="${sr.thin ? 1.2 : 2.2}" ${sr.dash ? 'stroke-dasharray="6 5"' : ''} stroke-linejoin="round"/>`;
     if (sr.dots) sr.pts.forEach(p => { g += `<circle cx="${X(p[0])}" cy="${Y(p[1])}" r="3" fill="${sr.color}"/>`; }); });
+  /* svislé značky: zásahy trenéra – bez nich nepoznáš, jestli změna tempa něco udělala */
+  (marks || []).forEach(m => { if (m.x < x0 || m.x > x1) return;
+    g += `<line x1="${X(m.x)}" x2="${X(m.x)}" y1="${T}" y2="${H - B}" stroke="#8a5a9e" stroke-width="1.2" stroke-dasharray="2 3"/>`
+      + `<text x="${X(m.x) + 3}" y="${T + 11}" font-size="10" fill="#8a5a9e">${esc(m.label)}</text>`; });
   g += '</svg>';
   return g + `<div class="legend">${series.filter(sr => sr.pts.length).map(sr => `<span><i style="background:${sr.color}"></i>${sr.name}</span>`).join('')}${yUnit ? `<span class="muted">osa: ${yUnit}</span>` : ''}</div>`;
 }
