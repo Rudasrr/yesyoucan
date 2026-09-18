@@ -119,7 +119,10 @@ with sync_playwright() as p:
     w = 131.4
     robert.evaluate("go('mereni')")
     robert.fill('#m_weight', str(w)); robert.fill('#m_waist', '119')
-    robert.click('text=Uložit zápis'); robert.wait_for_timeout(300)
+    robert.click('text=Uložit zápis'); robert.wait_for_timeout(400)
+    # appka se u nezvyklé váhy ptá – testovací data se od reálných liší, potvrdíme
+    if robert.query_selector('.modal'):
+        robert.click('text=Je to správně, ulož'); robert.wait_for_timeout(400)
     mid = robert.evaluate("Store.rows('measurements').find(r=>r.data.date===todayISO()).id")
     created.append(('measurements', mid))
     sync(robert); sync(coach)
