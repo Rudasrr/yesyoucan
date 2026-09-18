@@ -168,7 +168,7 @@ VIEWS._vareni = function () {
   const list = Object.values(agg).sort((a, b) => (s.courses.findIndex(c => c.name === a.course) - s.courses.findIndex(c => c.name === b.course)) || b.covers.length - a.covers.length);
 
   if (App.vMode === 'days') {
-    return head + chips + zbytkyHtml + `<p class="small muted" style="margin:0 0 8px">Gramy jsou v nákupním stavu (rýže suchá, maso syrové), přepočítané na ${fmt1(w)} kg a aktivitu dne.</p>
+    return head + chips + zbytkyHtml + `<p class="small muted" style="margin:0 0 8px">Přepočítáno na ${fmt1(w)} kg.</p>
     <div class="masonry">${sel.map(d => { const day = effectiveDay(d); const dd = calcDay(s, foods, recipes, day, weightAt(s, d)); if (!dd.tot.kcal) return '';
       return `<div class="card tight"><div class="row between"><h3>${DAY_NAMES[dayIndex(d)]} <span class="muted small" style="font-weight:600">${czDateShort(d)}</span></h3><span class="small muted">${fmt0(dd.tot.kcal)} kcal</span></div>
       <table class="small" style="margin-top:4px">${dd.courses.map((c, ci) => `<tr><td class="muted" style="width:52px">${s.courses[ci].time}</td><td><b>${c.sel ? esc(c.sel) : '<span class="muted">–</span>'}</b>${cookFor(d, c.key) ? ' <span class="pill ok">🍱 uvařeno</span>' : ''}${c.active ? `<div class="muted">${c.items.map(it => `${esc(it.food)} ${fmt0(it.g)} g`).join(' · ')}</div>` : ''}</td></tr>`).join('')}</table></div>`; }).join('')}</div>`;
@@ -191,7 +191,7 @@ VIEWS._vareni = function () {
         <table class="small"><tr><th>Surovina</th><th class="n">na porci</th><th class="n">do hrnce ${n}×</th></tr>
         ${Object.entries(a.items).map(([f, g]) => `<tr><td>${modeBadge(f)} ${esc(f)} <span class="tiny muted">${measureText(f, g / n)}</span></td><td class="n">${fmt0(g / n)} g</td><td class="n b">${g >= 1000 ? fmt1(g / 1000) + ' kg' : fmt0(g) + ' g'}</td></tr>`).join('')}
         <tr class="sum"><td class="b">hotová dávka (odhad)</td><td class="n">${fmt0(a.gc / n)} g/porce</td><td class="n b">${fmt0(a.gc)} g</td></tr></table>
-        <p class="hint">Uvař, zvaž hotovou dávku a rozděl na ${n} stejných porcí – je to přesnější než dělit od oka. Odhad ${fmt0(a.gc)} g počítá s tím, že rýže a luštěniny nasáknou vodu a maso ji ztratí.</p>
+        <p class="hint">Zvaž hotovou dávku a rozděl na ${n} stejných porcí${help('Vážení hotové dávky je přesnější než dělení od oka. Odhad počítá s tím, že rýže a luštěniny nasáknou vodu a maso ji ztratí – skutečná hmotnost se může lišit o desetinu.')}</p>
         ${rozsah > sd ? `<div class="alert a2" style="margin-top:8px"><div style="flex:1">Vaříš na ${rozsah} dnů, ale ${sd === 3 ? 'maso a rýže vydrží' : 'tohle vydrží'} v lednici zhruba ${sd} dny. Uvař to klidně naráz, ale co je nad ${sd} dny, dej hned do mrazáku.</div></div>` : ''}
         <p class="tiny muted" style="margin-top:6px">Kdybys přidal ještě ${czDateShort(dalsi)}, vaříš stejně dlouho – jen přidáš suroviny na jednu porci.</p>
       </div>` : ''}</div>`; }).join('')}</div>`;

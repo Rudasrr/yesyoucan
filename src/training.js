@@ -193,7 +193,7 @@ function renderActivityCard(date, day, d) {
     ${trSummaryLine(date)}
     ${(() => { const t = trState(date); const zapsal = Object.keys(t.log || {}).length; return zapsal && !t.finished ? `<div class="row" style="margin-top:8px"><button class="btn sec sm write" onclick="A.trFinish()">Dokončit zápis tréninku</button></div>` : ''; })()}
     ${!act.doneAll ? `<div class="row" style="margin-top:8px"><button class="btn write" onclick="A.trRun(0)">▶︎ Začít cvičit</button><button class="btn sec sm write" onclick="A.trainDoneAll()">✓ Odškrtnout celý trénink</button></div>
-      <p class="tiny muted" style="margin-top:6px">Cvičení tě provede sérii po sérii, hlídá pauzy a zapíše, kolik jsi opravdu udělal.</p>` : ''}` : '';
+      ` : ''}` : '';
   return `<div class="card ga-walk" id="aktivita"><div class="row between"><h2>🚶 Aktivita dnes${help('Chůze a trénink zvedají celkový výdej, a tím i limit jídla – plánovaný deficit zůstává stejný, takže hubneš pořád stejně rychle, jen se víc najíš. Zapiš, co jsi skutečně udělal. Bez pohybu limit klesne na spodní hranici; appka ti řekne, kolik minut chybí.')}</h2><span class="pill">cílený pohyb ${fmt0(d.base.totalOut - d.base.baseOut)} kcal</span>${isCoach() ? `<button class="btn sec sm" style="pointer-events:auto" onclick="A.tpOverride('${date}')">Jednorázová změna</button>` : ''}</div>
     ${act.note ? `<div class="notice" style="margin:8px 0">${esc(act.note)}</div>` : ''}
     <div class="fulfil write">
@@ -202,7 +202,7 @@ function renderActivityCard(date, day, d) {
       <div class="row" style="gap:10px;align-items:flex-end">
         <div class="row" style="gap:6px">${[15, 30, 60].map(n => `<button class="btn sec sm write" onclick="A.addWalk(${n})">+${n} min</button>`).join('')}</div>
         <div class="in"><label class="f">nebo přesně</label>${stepper('walk-in', wm, 5, 0, 480, "A.setWalk(this.value)")}</div></div>
-      <p class="tiny muted" style="margin-top:6px">Cíl ti dává trenér. Ty jen zapisuješ, kolik jsi opravdu ušel.</p></div>
+      </div>
     ${d.base.belowBmr ? `<div class="alert a2" style="margin-top:8px">Zatím máš málo cíleného pohybu – limit by vyšel pod klidový výdej, tak ho držím na spodní hranici. Chůze klidový výdej nezvedá, ale zvedá celkový výdej: od ${d.base.walkToBmr}. minuty ti začne růst i limit.</div>` : ''}
     ${items_html}
 <details style="margin-top:10px"><summary class="small muted" style="cursor:pointer">Kroky, tempo, piva a smažené</summary>

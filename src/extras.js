@@ -305,9 +305,21 @@ function catchUpAlert() {
     const jidlo = S().courses.some(c => (day.meals[c.key] || {}).eaten);
     if (!jidlo && !meas && !(day.walk_min > 0)) miss.push(dt); }
   if (!miss.length) return '';
-  const first = miss[miss.length - 1];
-  return `<div class="alert a2" style="margin-bottom:10px"><div style="flex:1">${miss.length === 1 ? `Za ${czDateShort(miss[0])} nemáš zapsáno nic – ani váhu, ani jídlo, ani chůzi.` : `Chybí ti zápisy za ${miss.length} dny: ${miss.slice().reverse().map(czDateShort).join(', ')}.`} Doplň aspoň váhu, průměr se pak srovná.</div><button class="btn sm" onclick="App.date='${first}';App.stripWeek=mondayOf('${first}');go('dnes')">Doplnit ${czDateShort(first)}</button></div>`;
+  /* Dřív tu bylo tlačítko „Doplnit“, které jen skočilo na jiný den – vypadalo to,
+     že se nestalo nic. Váhu jde zapsat rovnou tady, pole na den. */
+  return `<div class="card soft">
+    <div class="row between" style="margin-bottom:8px"><h2>⏳ Chybí zápisy${help('Appka počítá s průměrem posledních sedmi vážení. Když pár dní vypadne, průměr zestárne a limit dne je nepřesný. Stačí doplnit váhu – jídlo ani chůzi zpětně dohánět nemusíš.')}</h2><span class="small muted">${miss.length} ${miss.length === 1 ? 'den' : (miss.length < 5 ? 'dny' : 'dnů')}</span></div>
+    <div class="fillrow">${miss.slice().reverse().map(d => `<label class="fillday"><span>${DAY_SHORT[dayIndex(d)]} ${parseISO(d).getDate()}.${parseISO(d).getMonth() + 1}.</span>
+      <input type="number" step="0.1" min="40" max="300" inputmode="decimal" placeholder="kg" onchange="A.fillWeight('${d}',this.value)"></label>`).join('')}</div></div>`;
 }
+A.fillWeight = (date, v) => {
+  const n = Number(String(v).replace(',', '.'));
+  if (!(n > 0)) return;
+  const m = Meas().find(x => x.date === date) || { date };
+  saveMeas({ ...m, weight: n });
+  UI.toast(`${czDateShort(date)}: ${fmt1(n)} kg zapsáno.`); render();
+};
+
 function mismatchAlert(date) { const m = dayMismatch(date); if (!m) return ''; return `<div class="alert ${m.diff > 0 ? 'a2' : 'a1'}" style="margin-bottom:10px"><div style="flex:1">${m.trainingChanged ? '🏋️ Trenér změnil trénink. ' : ''}Limit dne je <b>${fmt0(m.limit)} kcal</b>, plán jídel má <b>${fmt0(m.planned)}</b> – ${m.diff > 0 ? `<b>přidej ${fmt0(m.diff)} kcal</b>, jinak jsi v moc velkém deficitu` : `<b>uber ${fmt0(-m.diff)} kcal</b>, jinak jsi přes`}.</div><button class="btn sm write" onclick="A.fitDay('${date}')">💡 Dorovnat</button></div>`; }
 
 /* ===== Běžná denní chůze (kroky) – jen informace pro trenéra, nepočítá se do cíle ani limitu ===== */

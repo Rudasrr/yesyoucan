@@ -249,7 +249,7 @@ function renderCheatCard(date, day, d) {
   const kcalOf = it => { if (it.kcal != null) return Number(it.kcal) || 0; const f = foods.find(x => x.name === it.food); return f ? f.kcal * (Number(it.g) || 0) / 100 : 0; };
   const tempoDnes = d.dayDeficit * 7 / KG_KCAL;
   const verdict = b.cheatKcal <= 0
-    ? `<p class="small muted" style="margin:8px 0 0">Zatím nic navíc. Když víš, že tě večer čeká pivo nebo něco mastného, zapiš to hned ráno – appka podle toho srovná celý den.</p>`
+    ? `<p class="small muted" style="margin:8px 0 0">Zatím nic navíc.</p>`
     : b.cheatCoverable
     ? `<div class="alert a3" style="margin-top:10px"><div><b>${fmt0(b.cheatKcal)} kcal navíc – tohle se dá uchodit.</b> Zvedl jsem ti dnešní cíl chůze o <b>${b.cheatWalk} minut na ${b.planWalk}</b>. Když je dojdeš, večer tě to nebude stát nic a tempo zůstane stejné. Porce jídel nechávám, jak byly.</div></div>`
     : `<div class="alert a2" style="margin-top:10px"><div><b>${fmt0(b.cheatKcal)} kcal navíc – tohle už se uchodit nedá.</b> Musel bys ujít ${b.cheatWalkFull ?? Math.ceil(b.cheatKcal / b.walkPerMin)} minut navíc, což je nesmysl. Tak to neřeším chůzí: přidal jsem ti ${b.cheatWalk} minut (cíl ${b.planWalk}), zmenšil porce jídel, jak to šlo (bílkovinu nekrátím), a zbytek prostě ber.
