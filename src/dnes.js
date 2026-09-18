@@ -53,7 +53,7 @@ VIEWS.dnes = function () {
   // karta Teď
   const now = renderNow(cl, d, day, tasks, s);
   return `
-  <div class="row between" style="margin-bottom:8px"><h1>${isToday ? 'Dnes' : dn} <span class="muted" style="font-weight:600;font-size:15px">${czDate(App.date)}</span></h1>
+  <div class="row between" style="margin-bottom:8px"><h1>${isToday ? 'Dnes' : dn}${help('Jeden den odshora dolů: Teď říká jediný další krok, Stav dne sčítá snědené proti limitu a dole hlásí, co nesedí. Pak úkoly, plán cheatu, aktivita, jídla a poznámka pro trenéra. Limit dne není strop příjmu – je to hranice, do které vyjde plánovaný deficit; chůze a trénink ji zvedají.')} <span class="muted" style="font-weight:600;font-size:15px">${czDate(App.date)}</span></h1>
     <div class="row">${st >= 2 ? `<span class="streak">🔥 ${st} dnů v řadě</span>` : ''}${ws >= 3 ? `<span class="streak" style="background:var(--p-bg);color:var(--p-ink)">⚖️ ${ws}× vážení</span>` : ''}</div></div>
   <div class="row" style="gap:6px;margin-bottom:12px"><button class="daynav" onclick="A.stripShift(-7)" title="předchozí týden">‹</button>
     <div class="calstrip noprint" style="flex:1;margin:0">${strip.join('')}</div>

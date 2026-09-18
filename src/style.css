@@ -201,7 +201,8 @@ svg.chart{width:100%;height:auto;display:block}
 .note{display:flex;gap:12px;align-items:flex-start;background:#fff;border-left:4px solid var(--v);border-radius:16px;padding:12px 16px;margin-bottom:12px;box-shadow:var(--sh);font-weight:600}.note .em{font-size:22px}
 .ftab th,.ftab td{white-space:nowrap}.ftab td:first-child{white-space:normal;min-width:180px}
 .modal .box>.row.between{flex-wrap:nowrap;align-items:flex-start}.modal .box>.row.between h2{flex:1}
-@media(max-width:600px){.ftab .hm{display:none}}
+@media(max-width:600px){.hm{display:none}.tbl table{width:100%}
+.tbl table.small td,.tbl table.small th{padding-left:5px;padding-right:5px}}
 
 /* segmentový přepínač (iOS) */
 .seg{display:inline-flex;background:rgba(28,35,64,.07);border-radius:12px;padding:3px;gap:2px;flex-wrap:wrap}
