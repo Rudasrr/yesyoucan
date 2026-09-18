@@ -117,7 +117,7 @@ VIEWS._recepty = function () {
   const list = recipeList(all);
   return `${flow('recepty', ['Najdi recept', 'Uprav si ho', 'Ulož jako svoji verzi'], 'Trenérovy recepty zůstanou nedotčené – tvoje úprava platí jen pro tebe.')}
   <div class="row between" style="margin-bottom:8px"><h1>Recepty${help('Všech 200 receptů ze sešitu plus tvoje vlastní. Řádek ukazuje chod, kalorie a bílkoviny; rozbalením uvidíš suroviny s gramy. Hvězdička = oblíbené (panel výběru je řadí nahoru, generátor týdne je zařazuje častěji). Upravit můžeš i výchozí recept – vznikne tvoje verze, trenérova databáze zůstává.')}</h1><button class="btn sm write" onclick="A.editOwn()">+ nový recept</button></div>
-  <div class="row small muted" style="margin-bottom:8px"><span class="pill">${all.filter(r => !r.deleted).length} receptů</span><span class="pill">📖 ${own.length} mých</span><span class="pill">⭐ ${favs} oblíbených</span><span class="sp"></span><span>${list.count} zobrazeno</span></div>
+  <div class="row small muted" style="margin-bottom:8px"><span class="pill">${all.filter(r => !r.deleted).length} ${sklon(all.filter(r => !r.deleted).length, 'recept', 'recepty', 'receptů')}</span><span class="pill">📖 ${own.length} mých</span><span class="pill">⭐ ${favs} oblíbených</span><span class="sp"></span><span>${list.count} zobrazeno</span></div>
   ${recipeFilterBar(all)}<div class="card tight" style="margin-top:10px">${list.html}</div>`;
 };
 
@@ -176,7 +176,7 @@ VIEWS._vareni = function () {
   if (!list.length) return head + chips + zbytkyHtml + `<div class="card">${zbytky.length ? 'Na vybrané dny máš všechno uvařené. Přidej další den, nebo si dej pauzu.' : 'Na vybrané dny nemáš naplánovaná jídla. Vyber je v Týdnu.'}</div>`;
 
   const dalsi = addDays(sel[sel.length - 1], 1);   // co by stál den navíc
-  return head + chips + zbytkyHtml + `<p class="small muted" style="margin:0 0 8px">${list.length} ${list.length === 1 ? 'jídlo' : (list.length < 5 ? 'jídla' : 'jídel')} na ${sel.length} ${sel.length === 1 ? 'den' : (sel.length < 5 ? 'dny' : 'dnů')}. Gramy jsou suché a syrové, jak suroviny kupuješ. ⚖️ zvaž · 🥄 odměř · ✋ od oka.</p>
+  return head + chips + zbytkyHtml + `<p class="small muted" style="margin:0 0 8px">${list.length} ${sklon(list.length, 'jídlo', 'jídla', 'jídel')} na ${sel.length} ${DEN(sel.length)}${help('Gramy jsou v nákupním stavu – rýže a luštěniny suché, maso syrové. Ikona u suroviny říká, jak ji odměřit: ⚖️ zvaž, 🥄 odměř, ✋ od oka.')}</p>
   <div class="card tight">${list.map(a => {
     const open = App.rOpen['v:' + a.name]; const n = a.covers.length;
     const sd = shelfDays(a.items, foods);
@@ -184,7 +184,7 @@ VIEWS._vareni = function () {
     const dny = a.covers.map(x => DAY_SHORT[dayIndex(x.d)]).join(' ');
     return `<div class="rrow ${open ? 'open' : ''}"><div class="rhead" onclick="App.rOpen['v:${esc(a.name)}']=!App.rOpen['v:${esc(a.name)}'];render()">
       <span class="rtag">${COURSE_EMOJI[a.key]} ${esc(a.course)}</span>
-      <span class="rname">${esc(a.name)} <span class="pill">${n}× · ${dny}</span>${rozsah > sd ? ` <span class="pill warn">${rozsah} dnů – zamrazit</span>` : ''}</span>
+      <span class="rname">${esc(a.name)} <span class="pill">${n}× · ${dny}</span>${rozsah > sd ? ` <span class="pill warn">${rozsah} ${DEN(rozsah)} – zamrazit</span>` : ''}</span>
       <button class="btn sec sm write" onclick="event.stopPropagation();A.cookDone(${JSON.stringify(a.name).replace(/"/g, '&quot;')},${n},${JSON.stringify(a.covers).replace(/"/g, '&quot;')},${Math.round(a.gc)})">🍱 uvařeno ${n}×</button>
       <span class="rk"><b>${fmt0(a.kcal / n)}</b> kcal/porce · ${fmt0(a.gc / n)} g</span><span class="muted">${open ? '▾' : '▸'}</span></div>
       ${open ? `<div class="rbody">
@@ -192,7 +192,7 @@ VIEWS._vareni = function () {
         ${Object.entries(a.items).map(([f, g]) => `<tr><td>${modeBadge(f)} ${esc(f)} <span class="tiny muted">${measureText(f, g / n)}</span></td><td class="n">${fmt0(g / n)} g</td><td class="n b">${g >= 1000 ? fmt1(g / 1000) + ' kg' : fmt0(g) + ' g'}</td></tr>`).join('')}
         <tr class="sum"><td class="b">hotová dávka (odhad)</td><td class="n">${fmt0(a.gc / n)} g/porce</td><td class="n b">${fmt0(a.gc)} g</td></tr></table>
         <p class="hint">Zvaž hotovou dávku a rozděl na ${n} stejných porcí${help('Vážení hotové dávky je přesnější než dělení od oka. Odhad počítá s tím, že rýže a luštěniny nasáknou vodu a maso ji ztratí – skutečná hmotnost se může lišit o desetinu.')}</p>
-        ${rozsah > sd ? `<div class="alert a2" style="margin-top:8px"><div style="flex:1">Vaříš na ${rozsah} dnů, ale ${sd === 3 ? 'maso a rýže vydrží' : 'tohle vydrží'} v lednici zhruba ${sd} dny. Uvař to klidně naráz, ale co je nad ${sd} dny, dej hned do mrazáku.</div></div>` : ''}
+        ${rozsah > sd ? `<div class="alert a2" style="margin-top:8px"><div style="flex:1">Vaříš na ${rozsah} ${DEN(rozsah)}, ale ${sd === 3 ? 'maso a rýže vydrží' : 'tohle vydrží'} v lednici zhruba ${sd} ${DEN(sd)}. Uvař to klidně naráz, ale co je nad ${sd} ${DEN(sd)}, dej hned do mrazáku.</div></div>` : ''}
         <p class="tiny muted" style="margin-top:6px">Kdybys přidal ještě ${czDateShort(dalsi)}, vaříš stejně dlouho – jen přidáš suroviny na jednu porci.</p>
       </div>` : ''}</div>`; }).join('')}</div>`;
 };

@@ -133,6 +133,9 @@ const ICONS = {
   klient: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>',
   nastaveni: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 0 0-.2-1.6l2-1.5-2-3.4-2.3.9a7 7 0 0 0-2.8-1.6L13.3 2h-2.6l-.4 2.8a7 7 0 0 0-2.8 1.6l-2.3-.9-2 3.4 2 1.5A7 7 0 0 0 5 12c0 .5.1 1.1.2 1.6l-2 1.5 2 3.4 2.3-.9a7 7 0 0 0 2.8 1.6l.4 2.8h2.6l.4-2.8a7 7 0 0 0 2.8-1.6l2.3.9 2-3.4-2-1.5c.1-.5.2-1.1.2-1.6z"/></svg>',
   databaze: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg>',
+  jidlo: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 3v8a2 2 0 0 0 2 2h0a2 2 0 0 0 2-2V3"/><path d="M8 13v8"/><path d="M16 3c-1.5 1.5-2 3-2 5s.5 3 2 3v10"/></svg>',
+  navod: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H19v15H6.5A2.5 2.5 0 0 0 4 20.5z"/><path d="M8 7h7M8 11h7"/></svg>',
+  ucet: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1"/></svg>',
   more: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg>'
 };
 
@@ -150,7 +153,7 @@ function renderShell() {
   const label = v => (items.find(x => x[0] === v) || [v, v])[1];
   const deskItems = items;
   $('#nav-desk').innerHTML = deskItems.map(([v, l]) => `<button class="${App.view === v ? 'on' : ''}" onclick="go('${v}')">${l}</button>`).join('') + `<button class="${App.view === 'ucet' ? 'on' : ''}" onclick="go('ucet')" title="Připomínky, kalendář, záloha, odhlášení">⚙︀ Nastavení</button>` + (realCoach() ? `<button class="${App.preview ? 'on' : ''}" onclick="A.togglePreview()" title="Náhled Robertova rozhraní">👁️ ${App.preview ? 'Zpět do trenéra' : 'Pohled Roberta'}</button>` : '');
-  $('#nav-mob').innerHTML = main.map(v => `<button class="${App.view === v ? 'on' : ''}" onclick="go('${v}')">${ICONS[v]}${label(v)}</button>`).join('') +
+  $('#nav-mob').innerHTML = main.map(v => `<button class="${App.view === v ? 'on' : ''}" onclick="go('${v}')">${ICONS[v] || ICONS.more}${label(v)}</button>`).join('') +
     `<button class="${!main.includes(App.view) ? 'on' : ''}" onclick="go('more')">${ICONS.more}Více</button>`;
   $('#who').textContent = App.preview ? 'náhled Roberta' : (isCoach() ? 'trenér' : 'Robert');
   if (!realCoach()) autoClosePast();

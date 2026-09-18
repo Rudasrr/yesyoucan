@@ -72,7 +72,7 @@ function praise(date) {
   const fails = ev.d.checks.filter(c => c.state === 1).map(c => fixes[c.name]).filter(Boolean);
   if (!isToday) out.push(ev.ok ? { tone: 'good', em: '✅', text: `Tenhle den byl v pořádku. Deficit ${fmt0(ev.d.dayDeficit)} kcal.` } : { tone: 'push', em: '📌', text: ev.d.tot.kcal === 0 ? 'Bez zapsaných jídel.' : 'Den nesedl: ' + fails.join('; ') + '.' });
   else if (isToday && ev.ok) out.push({ tone: 'good', em: '💪', text: 'Dnešek sedí ve všem – kalorie, bílkoviny i chůze. Večer to jen uzavři.' });
-  if (st >= 3) out.push({ tone: 'good', em: '🔥', text: `${st} dnů v řadě v pořádku. Tohle je ten návyk, ne dieta.` });
+  if (st >= 3) out.push({ tone: 'good', em: '🔥', text: `${st} ${st < 5 ? 'dny' : 'dnů'} v řadě v pořádku. Tohle je ten návyk, ne dieta.` });
   if (ws >= 7) out.push({ tone: 'good', em: '⚖️', text: `Vážíš se ${ws} dnů v kuse – proto ti průměr říká pravdu.` });
   if (!out.length) out.push({ tone: 'neutral', em: '🚀', text: isToday ? 'Nový den. Zvaž se, vyber jídla, dojdi si svých 60 minut.' : 'Doplň, co si pamatuješ – i neúplný den je lepší než prázdný.' });
   return out;

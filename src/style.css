@@ -250,7 +250,16 @@ tr.cath td{background:rgba(28,35,64,.05);font-weight:800;cursor:pointer;padding:
 .rtag{font-size:11px;font-weight:800;color:var(--p-ink);background:var(--p-bg);border-radius:999px;padding:3px 8px;white-space:nowrap;flex:none}
 .rname{flex:1;min-width:0;font-weight:700}.rk{white-space:nowrap;font-size:13px;color:var(--ink2)}.rk b{color:var(--ink);font-size:15px}
 .rbody{padding:4px 8px 12px 8px;background:#fafbfe;border-radius:12px;margin:0 4px 8px}
-@media(max-width:600px){.rk{font-size:12px}.rtag{display:none}}
+/* na telefonu se řádek receptu skládá pod sebe – ve flexu se název lámal po slovech
+   a překrýval tlačítko */
+@media(max-width:600px){
+  .rk{font-size:12px}.rtag{display:none}
+  .rhead{flex-wrap:wrap;row-gap:6px;align-items:flex-start}
+  .rhead .rname{flex:1 0 100%;order:1}
+  .rhead .rk{order:2;flex:1 1 auto}
+  .rhead .btn{order:3;margin-left:auto}
+  .rhead .star,.rhead .muted{order:4}
+}
 
 .hsec{background:rgba(255,255,255,.75);backdrop-filter:blur(10px);border-radius:20px;margin-bottom:10px;box-shadow:var(--sh)}
 .hsec summary{list-style:none;display:flex;align-items:center;gap:14px;padding:14px 18px;cursor:pointer}.hsec summary::-webkit-details-marker{display:none}
@@ -258,7 +267,7 @@ tr.cath td{background:rgba(28,35,64,.05);font-weight:800;cursor:pointer;padding:
 .hsec .hb{padding:0 18px 16px}
 .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}
 .tile{background:rgba(255,255,255,.58);border:1px solid rgba(255,255,255,.8);border-radius:18px;padding:12px 14px;box-shadow:var(--sh),var(--hl)}.tile .tt{font-weight:800;font-size:15px}.tile .tb{font-size:13px;color:var(--ink2);margin-top:2px}.tile .ts{font-size:12px;color:var(--ink2);margin-top:6px;border-top:1px solid #eef0f6;padding-top:6px}
-.tile.big{background:var(--grad);color:#fff}.tile.big .tt{font-size:26px}.tile.big .tb{color:rgba(255,255,255,.9)}
+.tile.big{background:linear-gradient(160deg,var(--gl-p2),var(--gl-p))}.tile.big .tt{font-size:26px;color:var(--p-ink)}.tile.big .tb{color:var(--ink2)}
 .steps{display:grid;gap:8px}.step{display:flex;gap:12px;align-items:flex-start;background:rgba(255,255,255,.58);border:1px solid rgba(255,255,255,.8);border-radius:16px;padding:10px 12px}.step .sn{width:28px;height:28px;border-radius:50%;background:var(--grad);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-weight:800;flex:none}.step .tt{font-weight:800}.step .ts{font-size:13px;color:var(--ink2)}
 .rules2{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:8px}.rule{display:flex;gap:10px;background:rgba(255,255,255,.58);border:1px solid rgba(255,255,255,.8);border-radius:16px;padding:10px 12px;font-size:14px}.rule .rem{font-size:20px;flex:none}
 @media(max-width:600px){.items .sw{min-width:150px}.items td{padding:5px 2px}}
@@ -331,7 +340,10 @@ body.has-modal .toast{bottom:auto;top:calc(12px + env(safe-area-inset-top))}
 .gstep input.g{width:62px;text-align:center}
 /* „snědl jsem“ je nejčastější úkon dne */
 .eat.big{padding:10px 16px;font-size:14px;font-weight:800}
-@media(max-width:560px){.course .hd{flex-wrap:wrap}.eat.big{flex:1 0 100%;justify-content:center;margin-top:6px}}
+@media(max-width:560px){.course .hd{flex-wrap:wrap}.eat.big{flex:1 0 100%;justify-content:center;margin-top:6px}
+  /* hvězdička zůstávala sama na řádku – oblíbené se dají nastavit v Receptech */
+  .course .hd .star{display:none}
+  .course .hd .k{margin-left:auto;text-align:right}}
 
 /* posun po týdnech v pásu dní */
 .daynav{width:40px;min-height:44px;flex:none;border:1px solid rgba(255,255,255,.8);background:rgba(255,255,255,.55);border-radius:14px;font-size:20px;font-weight:800;color:var(--ink);cursor:pointer;box-shadow:var(--hl)}
@@ -483,6 +495,9 @@ body.has-modal .toast{bottom:auto;top:calc(12px + env(safe-area-inset-top))}
 .fulfil + .fulfil{margin-top:10px}
 .fulfil .fgoal{font-size:13px;font-weight:700;color:var(--ink2);flex:1;min-width:0}
 .fulfil .row.between{gap:12px;align-items:baseline}
+/* na úzkém displeji patří popisek a hodnota pod sebe – jinak se „min ⓘ“ zalomí doprostřed */
+@media(max-width:600px){.fulfil .row.between{flex-direction:column;align-items:flex-start;gap:2px}
+  .fulfil .row.between > b{font-size:15px}}
 .fulfil .in{margin:0}
 
 /* ---- Týden: den je karta, jídla jsou řádky jako v Dnes ---- */

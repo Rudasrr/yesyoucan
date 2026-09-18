@@ -17,6 +17,10 @@ function cookedG(food, g) { return g * (SEED_YLD[food] || 1); }
 /* gramy na displeji: uvnitř počítáme přesně (rýže 74,074 g), člověku ukazujeme celé gramy */
 /* hodnoty surovin na displeji: převod na suchý stav dal rýži 351 kcal a čočce 27 g bílkovin
    – v tabulce stačí jedno desetinné místo, přesné číslo si drží výpočet */
+/* české skloňování po číslovce: 1 den · 2–4 dny · 5+ dnů */
+function sklon(n, j, d, m) { const a = Math.abs(Math.round(Number(n) || 0)); return a === 1 ? j : (a >= 2 && a <= 4 ? d : m); }
+const DEN = n => sklon(n, 'den', 'dny', 'dnů');
+const DNE = n => sklon(n, 'dne', 'dnů', 'dnů');
 const vShow = n => (Math.round((Number(n) || 0) * 10) / 10).toLocaleString('cs-CZ');
 const gShow = g => { const n = Number(g) || 0; return n >= 10 ? Math.round(n) : Math.round(n * 10) / 10; };
 function roundPortion(g, scale, f) { if (!scale) return g; const y = yieldOf(f); return Math.round(g * y / 10) * 10 / y; }

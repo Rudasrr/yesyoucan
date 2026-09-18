@@ -77,7 +77,7 @@ VIEWS._prehled = function () {
   <div class="card">
    <div class="kpi"><div><div class="v">${fmt1(ov.cur)}</div><div class="l">aktuální váha (kg)</div></div><div><div class="v ok">${fmt1(ov.lost)}</div><div class="l">shozeno (kg)</div></div><div><div class="v">${fmt1(ov.remaining)}</div><div class="l">zbývá (kg)</div></div><div><div class="v">${Math.round(ov.progress * 100)} %</div><div class="l">cesty za tebou</div></div></div>
    <div class="bar" style="margin:12px 0 6px"><i style="width:${ov.progress * 100}%"></i></div>
-   <div class="small muted">${String(s.start_weight).replace('.', ',')} kg → ${s.goal_weight} kg · pas pod ${s.goal_waist} cm · ${T.avg_note}</div>
+   <div class="small muted">${String(s.start_weight).replace('.', ',')} kg → ${s.goal_weight} kg · pas pod ${s.goal_waist} cm${help(T.avg_note)}</div>
   </div>
 
   <div class="card"><h2>Jak si vedeš${help('Vlevo co říká plán, vpravo co ukazuje váha. Prognóza vychází z dosavadního tempa – ke konci se hubnutí vždycky zpomalí, takže reálné datum bývá o něco později.')}</h2>
@@ -128,14 +128,14 @@ function weekMessages(days, s, filled, w) {
   const M = []; const okDays = days.filter(d => d.r.state === 2).length, bad = days.filter(d => d.r.state === 1 && d.r.filled === 5), sit = days.reduce((a, d) => a + d.sels.filter(x => x === SITUACE).length, 0);
   const totalDef = days.filter(d => d.r.filled === 5).reduce((a, d) => a + (d.r.planLimit + calcBase(s, w, s.walk_min, 0, s.walk_kmh, 0, 0).deficit - d.r.kcal), 0);
   if (filled === 0) M.push({ tone: 'neutral', em: '🗓️', text: 'Prázdný týden. Deset minut plánování teď ti ušetří sedm dní rozhodování s prázdným žaludkem.' });
-  else if (filled < 35) M.push({ tone: 'push', em: '✍️', text: `Chybí ${35 - filled} jídel. Doplň je – bez plánu se den skládá naslepo a to je přesně chvíle, kdy se sáhne po něčem jiném.` });
+  else if (filled < 35) M.push({ tone: 'push', em: '✍️', text: `Chybí ${35 - filled} ${sklon(35 - filled, 'jídlo', 'jídla', 'jídel')}. Doplň je – bez plánu se den skládá naslepo a to je přesně chvíle, kdy se sáhne po něčem jiném.` });
   else if (okDays === 7) M.push({ tone: 'good', em: '🏆', text: `Všech sedm dní sedí do limitu. Tímto plánem jsi za týden dole o ${fmt2(totalDef / KG_KCAL)} kg – zbývá to jen sníst a dojít.` });
   else if (bad.length) M.push({ tone: 'push', em: '🎯', text: `${bad.length === 1 ? 'Jeden den' : bad.length + ' dny'} (${bad.map(d => DAY_NAMES[d.i]).join(', ')}) ${bad.length === 1 ? 'nesedí' : 'nesedí'}. Vyměň jednu variantu za lehčí a je to.` });
   else M.push({ tone: 'good', em: '👍', text: 'Týden je naplánovaný a sedí. Teď nákup, ať to není jen plán.' });
   if (sit >= 5) M.push({ tone: 'push', em: '🎲', text: `${sit}× „vyřeším podle situace“ – to je ${sit} loterií. Zkus aspoň polovinu nahradit konkrétním jídlem.` });
   else if (sit > 0 && filled === 35) M.push({ tone: 'neutral', em: '🎲', text: `${sit}× „podle situace“ – v pořádku, drž u nich cíl jídla a bílkovinu.` });
   const ws = weighStreak(), st = streakOk();
-  if (st >= 3) M.push({ tone: 'good', em: '🔥', text: `${st} dnů v řadě v pořádku. Plán je jen papír – ty ho plníš.` });
+  if (st >= 3) M.push({ tone: 'good', em: '🔥', text: `${st} ${st < 5 ? 'dny' : 'dnů'} v řadě v pořádku. Plán je jen papír – ty ho plníš.` });
   return M;
 }
 VIEWS.tyden = function () {
@@ -256,7 +256,7 @@ VIEWS._nakup = function () {
 
   const aisles = [...new Set(koupit.map(x => x.aisle))];
   const radek = x => `<tr class="${shop.checked[x.food] ? 'muted' : ''}"><td style="width:34px" class="noprint"><input type="checkbox" ${shop.checked[x.food] ? 'checked' : ''} onchange="A.shopCheck('${esc(x.food)}',this.checked,${x.g})" style="width:22px;height:22px;min-height:0"></td>
-    <td class="pcell" style="${shop.checked[x.food] ? 'text-decoration:line-through' : ''}">${esc(x.food)}${x.pstate === 'dochazi' ? ' <span class="pill">dochází</span>' : ''}${x.uses > 1 && (['Ořechy a semínka', 'Uzeniny'].includes(x.cat) || /Sýr|Eidam|Gouda|Feta|Šunka/.test(x.food)) ? `<div class="tiny muted">rozděl po nákupu na ${x.uses} porcí po ${fmt0(x.g / x.uses)} g</div>` : ''}</td>
+    <td class="pcell" style="${shop.checked[x.food] ? 'text-decoration:line-through' : ''}">${esc(x.food)}${x.pstate === 'dochazi' ? ' <span class="pill">dochází</span>' : ''}${x.uses > 1 && (['Ořechy a semínka', 'Uzeniny'].includes(x.cat) || /Sýr|Eidam|Gouda|Feta|Šunka/.test(x.food)) ? `<div class="tiny muted">rozděl po nákupu na ${x.uses} ${sklon(x.uses, 'porci', 'porce', 'porcí')} po ${fmt0(x.g / x.uses)} g</div>` : ''}</td>
     <td class="n b">${x.buy}</td><td class="n muted tiny noprint">${x.packs ? `potřeba ${fmt0(x.g)} g` : ''}</td></tr>`;
 
   if (App.shopMode === 'tisk') {
@@ -345,7 +345,7 @@ VIEWS.more = function () {
 };
 VIEWS.ucet = function () {
   return `<h1 style="margin-bottom:10px">Nastavení${help('Stav přihlášení a synchronizace, připomínky do prohlížeče, export dne nebo týdne do kalendáře a záloha všech dat do souboru. Záloha se hodí před větší změnou – obnovením se data vrátí do stavu ze zálohy.')}</h1>
-  <div class="card"><h2>Stav</h2><p class="small muted" style="margin-top:4px">${Store.localMode() ? 'Aplikace běží bez cloudu – data jsou jen v tomto prohlížeči. Udělej si zálohu.' : `Přihlášen: ${esc(Store.session ? Store.session.user.email : '')} · role ${isCoach() ? 'trenér' : 'klient'}${Store.outbox.length ? ` · ${Store.outbox.length} změn čeká na odeslání` : ' · vše odesláno'}`}</p>
+  <div class="card"><h2>Stav</h2><p class="small muted" style="margin-top:4px">${Store.localMode() ? 'Aplikace běží bez cloudu – data jsou jen v tomto prohlížeči. Udělej si zálohu.' : `Přihlášen: ${esc(Store.session ? Store.session.user.email : '')} · role ${isCoach() ? 'trenér' : 'klient'}${Store.outbox.length ? ` · ${Store.outbox.length} ${sklon(Store.outbox.length, 'změna čeká', 'změny čekají', 'změn čeká')} na odeslání` : ' · vše odesláno'}`}</p>
     <div class="row" style="margin-top:8px">${Store.localMode() ? '' : '<button class="btn sec sm" onclick="Store.sync().then(()=>{render();UI.toast(\'Synchronizováno\')})">Synchronizovat teď</button>'}<button class="btn sec sm" onclick="A.logout()">Odhlásit</button></div></div>
   ${!isCoach() && !Meas().length ? `<div class="card"><h2>Historie ze sešitu</h2><p class="small muted" style="margin-top:4px">Zatím nemáš žádné vážení. Můžeš si nahrát 14 vážení a obvody z Excelu (27. 8. – 9. 9. 2026), ať grafy navazují.</p><div class="row" style="margin-top:8px"><button class="btn sec sm" onclick="A.seedMeas()">Nahrát vážení ze sešitu</button></div></div>` : ''}
   ${isCoach() ? '' : `<div class="card"><h2>🔔 Připomínky</h2><p class="small muted" style="margin-top:4px">Appka připomíná úkoly dne (vážení ${WEIGH_TIME}, jídla podle časů chodů, chůze, shrnutí dne ${CLOSE_TIME}, nedělní plánování), když je otevřená. Aby ti dala vědět i zavřená, přidej si připomínky do kalendáře telefonu – jednou stáhneš, kalendář pak budí sám.</p>
