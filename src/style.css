@@ -579,3 +579,6 @@ body.has-modal .toast{bottom:auto;top:calc(12px + env(safe-area-inset-top))}
 .pln .nm{flex:1;overflow-wrap:anywhere}
 .pln b{font-weight:800;white-space:nowrap}
 @media print{.plist2{column-count:2}.pln{font-size:12px;padding:1px 0}.pgrp{margin-bottom:8px}}
+
+.gub{border:1px solid var(--line);background:#fff;border-radius:8px;padding:2px 7px;font-size:11px;font-weight:800;color:var(--p-ink);cursor:pointer}
+.gub:hover{background:var(--p-bg)}

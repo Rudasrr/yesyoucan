@@ -108,7 +108,7 @@ const UI = {
     if (m._guard && m._guard()) { m._guard = null; UI.confirm('Zavřít bez uložení? Rozdělané změny se ztratí.', () => m.remove(), 'Zavřít a zahodit'); return; }
     m.remove();
   },
-  closeModal() { const all = document.querySelectorAll('.modal'); UI.tryClose(all[all.length - 1]); },
+  closeModal() { window._redraw = null; const all = document.querySelectorAll('.modal'); UI.tryClose(all[all.length - 1]); },
   confirm(text, onYes, yesLabel) { const m = this.modal(`<p>${esc(text)}</p><div class="row"><button class="btn danger" id="cy">${esc(yesLabel || 'Ano')}</button><button class="btn sec" onclick="UI.closeModal()">Zpět</button></div>`); m.querySelector('#cy').onclick = () => { m.remove(); onYes(); }; }
 };
 

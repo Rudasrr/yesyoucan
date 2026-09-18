@@ -24,6 +24,33 @@ function measureText(food, g) {
   const [q, pn] = qtyText(g / unitG);
   return `${MODE_EM[m.m]} ≈ ${q} ${plural(pn, unit)}`;
 }
+/* Zadávání v domácích mírách. Pravda zůstává v gramech – míra je jen vstupní a
+   zobrazovací vrstva. Kdyby recept ukládal „2 hrnky“, tak by přeměření hrnku tiše
+   změnilo kalorie ve všech jídlech, kde ho máš; a trenérův recept by u každého
+   znamenal něco jiného. Proto se míra hned převede na gramy a jednotka se pamatuje
+   jen jako štítek. */
+function unitOf(food) {
+  const m = measureOf(food); if (!m) return null;
+  let unitG = null, unit = null;
+  if (m.c) { const C = containers(); const c = C[m.c]; if (!c) return null; unitG = c.g != null ? c.g : c.ml * (m.dens || 1); unit = m.c; }
+  else if (m.kus) { unitG = m.g; unit = m.kus; }
+  else if (m.hrst) { unitG = m.hrst; unit = 'hrst'; }
+  if (!unitG) return null;
+  if (m.ck) unitG = unitG / (SEED_YLD[food] || 1);   // míra platí pro hotové jídlo, recept je v suchém stavu
+  return { unit, g: unitG, label: plural(1, unit), mode: m.m };
+}
+App.unitOn = {};
+A.unitToggle = id => { App.unitOn[id] = !App.unitOn[id]; if (window._redraw) window._redraw(); else render(); };
+/* políčko gramů s přepínačem jednotky */
+function gInput(id, food, g, onchange, cls) {
+  const u = unitOf(food);
+  const on = u && App.unitOn[id];
+  const val = on ? Math.round(g / u.g * 4) / 4 : gShow(g);
+  const step = on ? 0.25 : 5;
+  const handler = on ? `${onchange.replace('this.value', `(this.value*${u.g})`)}` : onchange;
+  return `<span class="gstep">${on ? '' : `<button class="gb" onclick="A.gnudge(this,-10)">−</button>`}<input class="g ${cls || ''}" type="number" min="0" step="${step}" value="${val || ''}" onchange="${handler}">${on ? '' : `<button class="gb" onclick="A.gnudge(this,10)">+</button>`}${u ? `<button class="gu gub" title="přepnout na ${on ? 'gramy' : u.label}" onclick="A.unitToggle('${esc(id)}')">${on ? u.label : 'g'}</button>` : '<span class="gu">g</span>'}</span>${on ? `<div class="tiny muted">${fmt0(g)} g</div>` : ''}`;
+}
+
 function modeBadge(food) { const m = measureOf(food); return `<span class="mbadge m-${m.m}" title="${MODE_LABEL[m.m]}">${MODE_EM[m.m]}</span>`; }
 /* karta Moje nádoby */
 function containersCard() { const c = containers(); return `<div class="card"><h2>🥄 Moje nádoby${help('Šest nádob, které používáš doma. Nastav jejich skutečnou velikost (hrnek změř: nalij vodu a přelij do odměrky) a appka podle nich přepočítá všechny míry v receptech. Lžička a lžíce jsou standardní 5 a 15 ml.')}</h2><p class="small muted" style="margin:4px 0 10px">Podle těchto velikostí se počítají míry „≈ 1 hrnek“ v receptech. Změř jednou, platí všude.</p>
