@@ -111,7 +111,7 @@ function recipeFilterBar(recipes) { const s = S(); const prefs = Prefs();
 window._rq = v => { App.rq = v; render(); }; window._rs = v => { App.rsort = v; render(); };
 window._rf = k => { if (k === '__clear') App.rfil = {}; else if (k.startsWith('c:')) { const on = !App.rfil[k]; Object.keys(App.rfil).forEach(x => { if (x.startsWith('c:')) delete App.rfil[x]; }); if (on) App.rfil[k] = true; } else App.rfil[k] = !App.rfil[k]; render(); };
 
-VIEWS.recepty = function () {
+VIEWS._recepty = function () {
   const all = Recipes(); const own = all.filter(r => (r.own || r.overridden) && !r.deleted); const favs = Prefs().favs.length;
   const list = recipeList(all);
   return `<div class="row between" style="margin-bottom:8px"><h1>Recepty${help('Všech 200 receptů ze sešitu plus tvoje vlastní. Řádek ukazuje chod, kalorie a bílkoviny; rozbalením uvidíš suroviny s gramy. Hvězdička = oblíbené (panel výběru je řadí nahoru, generátor týdne je zařazuje častěji). Upravit můžeš i výchozí recept – vznikne tvoje verze, trenérova databáze zůstává.')}</h1><button class="btn sm write" onclick="A.editOwn()">+ nový recept</button></div>
@@ -121,7 +121,7 @@ VIEWS.recepty = function () {
 
 /* ===== Vaření: podle dnů / podle receptů ===== */
 App.vMode = 'recipes';
-VIEWS.vareni = function () {
+VIEWS._vareni = function () {
   const s = S(), foods = Foods(), recipes = Recipes(), w = currentWeight();
   const wk = getWeek(App.week);
   const weekNav = `<div class="row noprint" style="margin-bottom:10px">${weekToggle()}<div class="seg"><button class="${App.vMode === 'recipes' ? 'on' : ''}" onclick="App.vMode='recipes';render()">podle receptů</button><button class="${App.vMode === 'days' ? 'on' : ''}" onclick="App.vMode='days';render()">podle dnů</button></div><span class="sp"></span><button class="btn sec sm" onclick="window.print()">Tisk</button></div>`;

@@ -3,7 +3,7 @@ const VIEWS = {};
 
 /* ---------- MĚŘENÍ ---------- */
 App.measDate = todayISO();
-VIEWS.mereni = function () {
+VIEWS._mereni = function () {
   const s = S(), ov = calcOverview(s, Meas());
   const meas = Meas(); const byDate = Object.fromEntries(meas.map(m => [m.date, m]));
   const rows = ov.rows; const rowMap = Object.fromEntries(rows.map(r => [r.date, r]));
@@ -56,7 +56,7 @@ A.delMeas = d => UI.confirm(`Smazat zápis z ${czDate(d)}?`, () => A.delMeas0(d)
 A.delMeas0 = d => Undo.run('Smazat zápis', () => { Store.remove('measurements', oid('m', d)); render(); }, `Zápis z ${czDate(d)} smazán.`);
 
 /* ---------- PŘEHLED ---------- */
-VIEWS.prehled = function () {
+VIEWS._prehled = function () {
   const s = S(), meas = Meas(), ov = calcOverview(s, meas);
   const b = calcBase(s, ov.cur, s.walk_min, 0, s.walk_kmh, 0, 0);
   const T = SEED.texts.prehled;
@@ -181,7 +181,7 @@ A.copyWeek = () => Undo.run('Kopie týdne', () => { const prev = getWeek(addDays
 A.clearWeek = () => Undo.run('Vyprázdnit týden', () => { const wk = getWeek(App.week); wk.plan = wk.plan.map(() => [null, null, null, null, null]); saveWeek(wk); render(); }, 'Týden vyprázdněn.');
 
 /* ---------- NÁKUP ---------- */
-VIEWS.nakup = function () {
+VIEWS._nakup = function () {
   const s = S(), foods = Foods(), recipes = Recipes(), w = currentWeight();
   const wk = getWeek(App.week); const shop = getShop(App.week); const thisMon = mondayOf(todayISO());
   const list = calcShopping(s, foods, recipes, wk.plan, w, weekActs(App.week, w));
@@ -236,7 +236,7 @@ VIEWS.navod = function () {
 /* ---------- SUROVINY (náhled) ---------- */
 App.fq = '';
 App.fcol = {};
-VIEWS.suroviny = function () {
+VIEWS._suroviny = function () {
   const foods = Foods(); const q = App.fq.toLowerCase().trim(); const coach = isCoach();
   const list = foods.filter(f => !q || f.name.toLowerCase().includes(q) || f.cat.toLowerCase().includes(q)).sort((a, b) => App.fsort === 'kcal' ? a.kcal - b.kcal : App.fsort === 'p' ? b.p - a.p : a.name.localeCompare(b.name, 'cs'));
   const cats = [...new Set(foods.map(f => f.cat))].sort((a, b) => a.localeCompare(b, 'cs'));
@@ -344,3 +344,29 @@ function barChart(vals, labels, goal) {
   if (goal) g += `<line x1="${L}" x2="${W - R}" y1="${Y(goal)}" y2="${Y(goal)}" stroke="#16a34a" stroke-dasharray="3 4"/><text x="${L - 4}" y="${Y(goal) + 4}" font-size="10" fill="#16a34a" text-anchor="end">${goal}</text>`;
   return g + '</svg>';
 }
+
+/* ===== Jídlo: nákup, vaření, recepty a suroviny pod jednou záložkou =====
+   Jeden tok: co koupit → co uvařit → z čeho to je → z čeho se recepty skládají. */
+const JIDLO_TABS = [
+  ['nakup', '🛒 Nákup', 'Co koupit na naplánovaný týden'],
+  ['vareni', '🍳 Vaření', 'Co uvařit dopředu, ať máš hotovo'],
+  ['recepty', '📖 Recepty', 'Z čeho se skládají tvoje jídla'],
+  ['suroviny', '🥦 Suroviny', 'Databáze potravin a jejich hodnot'],
+];
+App.jidloTab = 'nakup';
+A.jidlo = tab => { App.jidloTab = tab; go('jidlo'); };
+A.mereni = tab => { App.merTab = tab; go('mereni'); };
+VIEWS.jidlo = function () {
+  const t = JIDLO_TABS.find(x => x[0] === App.jidloTab) ? App.jidloTab : 'nakup';
+  const podzalozky = `<div class="subtabs noprint">${JIDLO_TABS.map(([k, l]) => `<button class="${k === t ? 'on' : ''}" onclick="App.jidloTab='${k}';render()">${l}</button>`).join('')}</div>`;
+  return podzalozky + VIEWS['_' + t]();
+};
+
+/* ===== Měření: zápis i přehled pod jednou záložkou ===== */
+const MER_TABS = [['zapis', '⚖️ Zápis a historie', 'Ranní váha a obvody'], ['prehled', '📈 Přehled', 'Jak si vedeš proti plánu']];
+App.merTab = 'zapis';
+VIEWS.mereni = function () {
+  const t = MER_TABS.find(x => x[0] === App.merTab) ? App.merTab : 'zapis';
+  const podzalozky = `<div class="subtabs noprint">${MER_TABS.map(([k, l]) => `<button class="${k === t ? 'on' : ''}" onclick="App.merTab='${k}';render()">${l}</button>`).join('')}</div>`;
+  return podzalozky + (t === 'zapis' ? VIEWS._mereni() : VIEWS._prehled());
+};

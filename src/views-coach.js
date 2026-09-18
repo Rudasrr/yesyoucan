@@ -128,10 +128,10 @@ VIEWS.databaze = function () {
   let body;
   if (App.dbTab === 'recipes') {
     const list = recipeList(recipes); body = recipeFilterBar(recipes) + `<div class="card tight" style="margin-top:10px">${list.html}</div><p class="hint">Úpravy platí pro všechny. Přejmenování receptu se propíše do Robertových plánů.</p>`;
-  } else { go('suroviny'); return ''; 
+  } else { A.jidlo('suroviny'); return ''; 
   }
   return `<h1 style="margin-bottom:8px">Recepty a suroviny${help('Globální databáze pro Roberta. Recepty i suroviny tady měníš pro všechny; Robertovy vlastní recepty, suroviny a jeho verze výchozích položek se nedotknou. Suroviny edituj na obrazovce Suroviny (stejný seznam).')}</h1>${seedNote}
-  <div class="row" style="margin-bottom:10px"><div class="chips"><span class="chip ${App.dbTab === 'recipes' ? 'on' : ''}" onclick="App.dbTab='recipes';render()">Recepty (${recipes.length})</span><span class="chip ${App.dbTab === 'foods' ? 'on' : ''}" onclick="go('suroviny')">Suroviny (${foods.length}) ›</span></div>
+  <div class="row" style="margin-bottom:10px"><div class="chips"><span class="chip ${App.dbTab === 'recipes' ? 'on' : ''}" onclick="App.dbTab='recipes';render()">Recepty (${recipes.length})</span><span class="chip ${App.dbTab === 'foods' ? 'on' : ''}" onclick="A.jidlo('suroviny')">Suroviny (${foods.length}) ›</span></div>
     <span class="sp"></span><button class="btn sm" onclick="${App.dbTab === 'recipes' ? "A.editRecipe()" : "A.editFood()"}">${App.dbTab === 'recipes' ? 'Nový recept' : 'Nová surovina'}</button></div>${body}`;
 };
 A.editFood = (id, mode, after) => {

@@ -112,9 +112,10 @@ const UI = {
   confirm(text, onYes, yesLabel) { const m = this.modal(`<p>${esc(text)}</p><div class="row"><button class="btn danger" id="cy">${esc(yesLabel || 'Ano')}</button><button class="btn sec" onclick="UI.closeModal()">Zpět</button></div>`); m.querySelector('#cy').onclick = () => { m.remove(); onYes(); }; }
 };
 
-const NAV_CLIENT = [['dnes', 'Dnes'], ['tyden', 'Týden'], ['prehled', 'Přehled'], ['mereni', 'Měření'], ['nakup', 'Nákup'], ['vareni', 'Vaření'], ['recepty', 'Recepty'], ['suroviny', 'Suroviny'], ['navod', 'Návod']];
-const NAV_COACH = [['klient', 'Dashboard'], ['zprava', 'Zpráva'], ['trenink', 'Trénink'], ['nastaveni', 'Nastavení'], ['databaze', 'Databáze'], ['dnes', 'Dnes'], ['tyden', 'Týden'], ['prehled', 'Přehled'], ['mereni', 'Měření'], ['nakup', 'Nákup'], ['vareni', 'Vaření'], ['recepty', 'Recepty'], ['suroviny', 'Suroviny'], ['navod', 'Návod']];
-const MOB_MAIN_CLIENT = ['dnes', 'tyden', 'prehled', 'mereni'];
+const NAV_CLIENT = [['dnes', 'Dnes'], ['tyden', 'Týden'], ['jidlo', 'Jídlo'], ['mereni', 'Měření'], ['navod', 'Návod']];
+const NAV_CLIENT_OLD = [['dnes', 'Dnes'], ['tyden', 'Týden'], ['prehled', 'Přehled'], ['mereni', 'Měření'], ['nakup', 'Nákup'], ['vareni', 'Vaření'], ['recepty', 'Recepty'], ['suroviny', 'Suroviny'], ['navod', 'Návod']];
+const NAV_COACH = [['klient', 'Dashboard'], ['zprava', 'Zpráva'], ['trenink', 'Trénink'], ['nastaveni', 'Nastavení'], ['databaze', 'Databáze'], ['dnes', 'Dnes'], ['tyden', 'Týden'], ['jidlo', 'Jídlo'], ['mereni', 'Měření'], ['navod', 'Návod']];
+const MOB_MAIN_CLIENT = ['dnes', 'tyden', 'jidlo', 'mereni'];
 const MOB_MAIN_COACH = ['klient', 'trenink', 'nastaveni', 'dnes'];
 const ICONS = {
   dnes: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',

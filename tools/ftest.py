@@ -6,7 +6,7 @@ with sync_playwright() as p:
     pg.goto(URL); pg.wait_for_timeout(200)
     pg.evaluate('localLogin("client")')
     # měření – uložit dnešní váhu přes UI
-    pg.evaluate("go('mereni')"); pg.fill('#m_weight','131.9'); pg.fill('#m_waist','119'); pg.click('text=Uložit zápis'); pg.wait_for_timeout(100)
+    pg.evaluate("A.mereni('zapis')"); pg.fill('#m_weight','131.9'); pg.fill('#m_waist','119'); pg.click('text=Uložit zápis'); pg.wait_for_timeout(100)
     print('meas saved:', pg.evaluate("Meas().length"), pg.evaluate("Meas()[0]"))
     # týden – vybrat snídani přes UI select v pondělí
     pg.evaluate("go('tyden')"); pg.evaluate("A.planSel(0,0,'Tvarohová mísa s ovocem a oříšky')"); pg.wait_for_timeout(100)
@@ -35,7 +35,7 @@ with sync_playwright() as p:
     pg.evaluate("A.editFood(null,'own')"); pg.fill('#fn','Moje proteinová tyčinka'); pg.fill('#fk','380'); pg.fill('#fp','30'); pg.fill('#fs','35'); pg.fill('#ff','12'); pg.click('#fsave'); pg.wait_for_timeout(100); print('own food:', pg.evaluate("Foods().filter(f=>f.own).map(f=>f.name+':'+f.kcal)"))
     print('after reset:', pg.evaluate("JSON.stringify(getDay(App.date).meals.snidane)"))
     # vlastní recept
-    pg.evaluate("go('recepty');A.editOwn()"); pg.fill('#re-n','Testovací omeleta'); pg.evaluate("window._reAdd()"); pg.wait_for_timeout(150); pg.fill('#fp-q','vejce'); pg.wait_for_timeout(100); print('food picker hits:', pg.evaluate("document.querySelectorAll('.pitem').length")); pg.evaluate("window._fppick('Vejce')"); pg.evaluate("window._reG(0,300)")
+    pg.evaluate("A.jidlo('recepty');A.editOwn()"); pg.fill('#re-n','Testovací omeleta'); pg.evaluate("window._reAdd()"); pg.wait_for_timeout(150); pg.fill('#fp-q','vejce'); pg.wait_for_timeout(100); print('food picker hits:', pg.evaluate("document.querySelectorAll('.pitem').length")); pg.evaluate("window._fppick('Vejce')"); pg.evaluate("window._reG(0,300)")
     pg.evaluate("window._reAdd()"); pg.wait_for_timeout(150); pg.evaluate("window._fppick('Chléb konzumní (Šumava)')"); pg.evaluate("window._reG(1,80)"); pg.wait_for_timeout(100)
     print('own hint:', pg.evaluate("document.querySelector('.modal .status').textContent"))
     pg.click('#re-save'); pg.wait_for_timeout(100); print('own recipes:', pg.evaluate("Recipes().filter(r=>r.own).map(r=>r.name)"), 'in menu:', pg.evaluate("recipesFor('Snídaně').some(r=>r.name==='Testovací omeleta')"))

@@ -2,7 +2,8 @@ import json, sys
 from playwright.sync_api import sync_playwright
 import os; URL='file://'+os.path.abspath(os.path.join(os.path.dirname(__file__),'..','out','index.html'))
 SETUP=open(os.path.join(os.path.dirname(__file__),'shots.py')).read().split("SETUP_CLIENT='''")[1].split("'''")[0]
-VIEWS_C=['dnes','tyden','prehled','mereni','nakup','vareni','recepty','suroviny','navod','more','ucet']
+VIEWS_C=['dnes','tyden','jidlo','mereni','navod','more','ucet']
+SUBTABS=[('jidlo','jidloTab',['nakup','vareni','recepty','suroviny']),('mereni','merTab',['zapis','prehled'])]
 VIEWS_K=['klient','zprava','trenink','nastaveni','databaze','dnes','tyden']
 WIDTHS=[390,768,1440]
 CHECK_JS='''(() => {
@@ -15,6 +16,15 @@ CHECK_JS='''(() => {
     const pocet=par=>[...par.children].reduce((n,c)=>{const d=getComputedStyle(c).display;return d==='none'?n:d==='contents'?n+pocet(c):n+1;},0);
     const kids=pocet(el);
     if(cols>1 && kids>0 && kids<cols) out.holes.push('prázdné sloupce: '+(el.className||el.tagName)+' '+kids+'/'+cols);
+  }
+  // překryv ovládacích prvků: dvě tlačítka nebo pole přes sebe = rozbité rozvržení
+  const ovl=[...document.querySelectorAll('#main button, #main input, #main select, #main .chip')].filter(e=>e.getBoundingClientRect().width>0 && (!e.checkVisibility || e.checkVisibility({checkOpacity:true,checkVisibilityCSS:true})));
+  for(let i=0;i<ovl.length;i++)for(let j=i+1;j<ovl.length;j++){
+    const a=ovl[i], b=ovl[j];
+    if(a.contains(b)||b.contains(a)) continue;
+    const r=a.getBoundingClientRect(), q=b.getBoundingClientRect();
+    const prek=Math.max(0,Math.min(r.right,q.right)-Math.max(r.left,q.left))*Math.max(0,Math.min(r.bottom,q.bottom)-Math.max(r.top,q.top));
+    if(prek>16) out.holes.push('překryv prvků: '+((a.className||a.tagName)+'').slice(0,18)+' × '+((b.className||b.tagName)+'').slice(0,18));
   }
   for(const el of document.querySelectorAll('#main .grid > .card, #main .dgrid > * > .card')){
     const r=el.getBoundingClientRect();
@@ -51,6 +61,12 @@ with sync_playwright() as p:
             for v in views:
                 pg.evaluate(f"go('{v}')"); pg.wait_for_timeout(120)
                 res=pg.evaluate(CHECK_JS)
+                for sv,prop,tabs in SUBTABS:          # projít i podzáložky
+                    if sv!=v: continue
+                    for t in tabs:
+                        pg.evaluate(f"App.{prop}='{t}';render()"); pg.wait_for_timeout(120)
+                        r2=pg.evaluate(CHECK_JS)
+                        rows.append((role,w,f'{v}/{t}',r2['overflow'],len(r2['offscreen']),r2['offscreen'][:2],len(r2['contrast']),r2['contrast'][:2],len(r2['tiny']),0,len(errs),len(r2['sidescroll']) if w==390 else 0,r2['sidescroll'][:2],len(r2['holes']),r2['holes'][:2]))
                 # click all buttons that don't navigate/destroy (sample)
                 nbtn=pg.evaluate("document.querySelectorAll('#main button').length")
                 rows.append((role,w,v,res['overflow'],len(res['offscreen']),res['offscreen'][:2],len(res['contrast']),res['contrast'][:2],len(res['tiny']),nbtn,len(errs),len(res['sidescroll']) if w==390 else 0,res['sidescroll'][:2],len(res['holes']),res['holes'][:2]))

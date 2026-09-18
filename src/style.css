@@ -139,7 +139,7 @@ ol.rules{padding-left:20px}
 svg.chart{width:100%;height:auto;display:block}
 .legend{display:flex;gap:14px;font-size:12px;color:var(--ink2);flex-wrap:wrap}.legend i{display:inline-block;width:14px;height:3px;vertical-align:middle;margin-right:5px;border-radius:2px}
 .more{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-@media(min-width:900px){.more{grid-template-columns:repeat(4,1fr)}}
+@media(min-width:900px){.more{grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}}
 .more button{background:var(--glass);backdrop-filter:blur(14px);border:1px solid var(--glassb);border-radius:20px;padding:16px;text-align:left;cursor:pointer;font-weight:800;box-shadow:var(--sh)}
 .more button span{display:block;font-size:12px;color:var(--ink2);font-weight:500;margin-top:3px}
 .more button i{display:block;width:34px;height:34px;border-radius:10px;margin-bottom:8px}
@@ -288,7 +288,8 @@ tr.cath td{background:rgba(28,35,64,.05);font-weight:800;cursor:pointer;padding:
 .step2{display:flex;align-items:center;gap:8px}
 .step2 .sbtn{width:46px;height:46px;flex:none;border-radius:15px;border:1px solid rgba(255,255,255,.85);background:rgba(255,255,255,.62);color:var(--ink);font-size:24px;font-weight:800;line-height:1;cursor:pointer;box-shadow:var(--hl)}
 .step2 .sbtn:active{background:var(--p-bg)}
-.step2 input{width:92px;text-align:center;font-size:19px;font-weight:800;min-height:46px}
+.step2{width:100%}
+.step2 input{flex:1 1 auto;width:auto;min-width:56px;text-align:center;font-size:19px;font-weight:800;min-height:46px}
 input[type=range]{appearance:auto;-webkit-appearance:auto;accent-color:var(--p);width:100%;height:30px;min-height:30px;background:transparent;border:0;padding:0;margin:0;cursor:pointer}
 .rng{display:flex;align-items:center;gap:10px}.rng b{min-width:74px;text-align:right;font-variant-numeric:tabular-nums}
 
@@ -355,7 +356,7 @@ body.has-modal .toast{bottom:auto;top:calc(12px + env(safe-area-inset-top))}
   .daynav{width:32px}
   /* měření: jeden sloupec, užší tlačítka – jinak stepper přeteče */
   .step2 .sbtn{width:40px;height:42px;font-size:21px}
-  .step2 input{width:72px;font-size:17px;min-height:42px}
+  .step2 input{min-width:48px;font-size:17px;min-height:42px}
   .mgrid{grid-template-columns:1fr !important}
 }
 @media(max-width:560px){
@@ -490,3 +491,14 @@ body.has-modal .toast{bottom:auto;top:calc(12px + env(safe-area-inset-top))}
 @media(min-width:760px){.masonry{column-count:2}}
 @media(min-width:1100px){.masonry{column-count:3}}
 .masonry > *{break-inside:avoid;margin-bottom:12px;display:block}
+
+/* plnění: tlačítka a přesný zápis se musí umět zalomit, jinak vyteče ven z karty */
+.fulfil .row{flex-wrap:wrap}
+.fulfil .in{flex:1 1 180px;min-width:150px}
+.fulfil .step2{max-width:220px}
+
+/* podzáložky uvnitř obrazovky */
+.subtabs{display:flex;gap:6px;flex-wrap:wrap;padding:4px;background:rgba(255,255,255,.5);border:1px solid rgba(255,255,255,.8);border-radius:999px;box-shadow:var(--hl)}
+.subtabs button{border:0;background:transparent;border-radius:999px;padding:9px 16px;font-weight:700;color:var(--ink2);cursor:pointer;min-height:42px;font-size:14px}
+.subtabs button.on{background:var(--p);color:#fff}
+.subtabs button:hover:not(.on){background:rgba(255,255,255,.7);color:var(--ink)}
