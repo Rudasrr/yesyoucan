@@ -226,18 +226,20 @@ async function afterLogin() {
 function stepper(id, value, step, min, max, onchange) {
   const st = step || 1;
   return `<div class="step2"><button class="sbtn" type="button" onclick="A.num('${id}',${-st},${min ?? ''},${max ?? ''})" aria-label="míň">−</button>` +
-    `<input type="number" id="${id}" value="${value}" step="${st}" ${min != null ? `min="${min}"` : ''} ${max != null ? `max="${max}"` : ''}${onchange ? ` onchange="${onchange}"` : ''}>` +
+    /* Desetinná pole jsou text s číselnou klávesnicí – „131,4“ z české klávesnice
+       prohlížeč v type=number tiše zahodí a Robertovi se nic neuloží. */
+    `<input type="${st < 1 ? 'text' : 'number'}" inputmode="decimal" id="${id}" value="${value}" ${st < 1 ? '' : `step="${st}"`} ${min != null && st >= 1 ? `min="${min}"` : ''} ${max != null && st >= 1 ? `max="${max}"` : ''}${onchange ? ` onchange="${onchange}"` : ''}>` +
     `<button class="sbtn" type="button" onclick="A.num('${id}',${st},${min ?? ''},${max ?? ''})" aria-label="víc">+</button></div>`;
 }
 /* posun hodnoty v políčku vedle tlačítka (gramáž v jídle) */
 A.gnudge = (btn, d) => {
   const inp = btn.parentElement.querySelector('input'); if (!inp) return;
-  inp.value = Math.max(0, (Number(inp.value) || 0) + d);
+  inp.value = Math.max(0, (cislo(inp.value) || 0) + d);
   inp.dispatchEvent(new Event('change', { bubbles: true }));
 };
 A.num = (id, d, min, max) => {
   const el = document.getElementById(id); if (!el) return;
-  let v = (Number(el.value) || 0) + d;
+  let v = (cislo(el.value) || 0) + d;
   if (min !== '' && min != null) v = Math.max(min, v);
   if (max !== '' && max != null) v = Math.min(max, v);
   el.value = Math.round(v * 100) / 100;

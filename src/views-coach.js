@@ -168,10 +168,16 @@ A.maintWeek = m => { const s = S(); const mw = (s.maint_weeks || []).slice();
   saveSettings({ ...s, maint_weeks: mw.sort() }); render();
   UI.toast(i >= 0 ? `Týden od ${czDateShort(m)} zase v deficitu.` : `Týden od ${czDateShort(m)} je udržovací – deficit nula, limit na celkovém výdeji.`); };
 A.saveSettings = () => {
-  const s = S(); const g = k => Number($('#st_' + k).value);
+  const s = S();
+  /* Meze, aby překlep nerozbil výpočet: věk −5 a bílkoviny 0 se dřív uložily. */
+  const MEZ = { height: [120, 230], age: [15, 100], activity: [1.1, 2], start_weight: [40, 400], goal_weight: [40, 400],
+    goal_waist: [50, 200], rate_pct: [0.3, 1.2], walk_kmh: [2, 9], walk_min: [0, 600], rest_sec: [15, 600], protein_min: [60, 400] };
+  let mimo = [];
+  const g = k => { const el = $('#st_' + k); const m = MEZ[k] || [-1e9, 1e9]; const r = omez(el ? el.value : '', m[0], m[1]); if (r.mimo) mimo.push(k); return r.n; };
   const d = { height: g('height'), age: g('age'), activity: g('activity'), start_weight: g('start_weight'), goal_weight: g('goal_weight'), goal_waist: g('goal_waist'), rate_pct: g('rate_pct'), walk_kmh: g('walk_kmh'), walk_min: g('walk_min'), rest_sec: g('rest_sec'), protein_min: g('protein_min'), start_date: $('#st_start_date').value,
-    courses: s.courses.map((c, i) => ({ ...c, kcal: g('c' + i) })) };
-  if (!d.start_date || d.height < 100 || d.goal_weight >= d.start_weight) { UI.toast('Zkontroluj hodnoty (výška, váhy, datum)'); return; }
+    courses: s.courses.map((c, i) => ({ ...c, kcal: omez($('#st_c' + i) ? $('#st_c' + i).value : c.kcal, 0, 2000).n ?? c.kcal })) };
+  if (!d.start_date || d.height == null || d.goal_weight == null || d.goal_weight >= d.start_weight) { UI.toast('Zkontroluj hodnoty: cílová váha musí být nižší než startovní a datum startu vyplněné.'); return; }
+  if (mimo.length) UI.toast('Některé hodnoty byly mimo rozumný rozsah – srovnal jsem je na nejbližší povolenou.');
   /* Záznam zásahu: bez něj za měsíc nevíš, jestli změna tempa pomohla. */
   const POP = { rate_pct: 'tempo hubnutí (%)', walk_min: 'cíl chůze (min)', protein_min: 'bílkoviny (g)', goal_weight: 'cílová váha (kg)', activity: 'faktor běžného výdeje', walk_kmh: 'tempo chůze (km/h)', goal_waist: 'cíl pasu (cm)' };
   const log = (s.log || []).slice();

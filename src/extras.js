@@ -310,11 +310,12 @@ function catchUpAlert() {
   return `<div class="card soft">
     <div class="row between" style="margin-bottom:8px"><h2>⏳ Chybí zápisy${help('Appka počítá s průměrem posledních sedmi vážení. Když pár dní vypadne, průměr zestárne a limit dne je nepřesný. Stačí doplnit váhu – jídlo ani chůzi zpětně dohánět nemusíš.')}</h2><span class="small muted">${miss.length} ${miss.length === 1 ? 'den' : (miss.length < 5 ? 'dny' : 'dnů')}</span></div>
     <div class="fillrow">${miss.slice().reverse().map(d => `<label class="fillday"><span>${DAY_SHORT[dayIndex(d)]} ${parseISO(d).getDate()}.${parseISO(d).getMonth() + 1}.</span>
-      <input type="number" step="0.1" min="40" max="300" inputmode="decimal" placeholder="kg" onchange="A.fillWeight('${d}',this.value)"></label>`).join('')}</div></div>`;
+      <input type="text" inputmode="decimal" placeholder="kg" onchange="A.fillWeight('${d}',this.value)"></label>`).join('')}</div></div>`;
 }
 A.fillWeight = (date, v) => {
-  const n = Number(String(v).replace(',', '.'));
-  if (!(n > 0)) return;
+  const r = omez(v, 30, 400); const n = r.n;
+  if (n == null) return;
+  if (r.mimo) UI.toast('Váha mimo rozumný rozsah – zapsal jsem nejbližší hodnotu.');
   const m = Meas().find(x => x.date === date) || { date };
   saveMeas({ ...m, weight: n });
   UI.toast(`${czDateShort(date)}: ${fmt1(n)} kg zapsáno.`); render();

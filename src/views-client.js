@@ -46,8 +46,12 @@ VIEWS._mereni = function () {
   </div>`;
 };
 A.saveMeas = () => {
-  const g = f => { const v = $('#m_' + f).value; return v === '' ? null : Number(v); };
+  /* Robert píše na české klávesnici čárku – „131,4“ se dřív tiše zahodilo. */
+  const MEZ = { weight: [30, 400], waist: [40, 250], hips: [40, 250], chest: [40, 250], thigh: [20, 150], arm: [10, 100] };
+  let upraveno = null;
+  const g = f => { const el = $('#m_' + f); const r = omez(el ? el.value : '', MEZ[f][0], MEZ[f][1]); if (r.mimo) upraveno = f; return r.n; };
   const m = { date: App.measDate, weight: g('weight'), waist: g('waist'), hips: g('hips'), chest: g('chest'), thigh: g('thigh'), arm: g('arm'), note: $('#m_note').value || null };
+  if (upraveno) { UI.toast('Tohle číslo mi nesedí – zkontroluj ho, zapsal jsem nejbližší rozumnou hodnotu.'); }
   if (m.weight == null && m.waist == null) { UI.toast('Zapiš aspoň váhu'); return; }
   const pl = m.weight != null ? weightPlausible(m.weight, m.date) : { ok: true };
   if (!pl.ok && !A._forceMeas) { const mm = UI.modal(`<h2>Sedí to?</h2><p class="muted" style="margin-top:8px">Zapisuješ <b>${fmt1(m.weight)} kg</b>, ale průměr posledních dnů je <b>${fmt1(pl.prev.avg)} kg</b> (rozdíl ${(pl.diff > 0 ? '+' : '−') + fmt1(Math.abs(pl.diff))} kg je nezvyklý). Překlep, nebo jiná váha?</p><div class="row" style="margin-top:12px"><button class="btn sec" onclick="UI.closeModal()">Opravím</button><button class="btn" id="mfy">Je to správně, ulož</button></div>`); mm.querySelector('#mfy').onclick = () => { mm.remove(); A._forceMeas = true; A.saveMeas(); A._forceMeas = false; }; return; }

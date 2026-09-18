@@ -17,6 +17,16 @@ function cookedG(food, g) { return g * (SEED_YLD[food] || 1); }
 /* gramy na displeji: uvnitř počítáme přesně (rýže 74,074 g), člověku ukazujeme celé gramy */
 /* hodnoty surovin na displeji: převod na suchý stav dal rýži 351 kcal a čočce 27 g bílkovin
    – v tabulce stačí jedno desetinné místo, přesné číslo si drží výpočet */
+/* Hlídač zadaných čísel. Appka musí přežít překlep: „5000“ minut chůze zvedalo limit
+   na 34 000 kcal, záporné gramy dělaly záporné kalorie. Číslo se vždycky ořízne do
+   rozumného rozsahu a uživatel se to dozví. Čárka se bere jako desetinná tečka. */
+function cislo(v) { if (v === '' || v == null) return null; const n = Number(String(v).replace(',', '.').replace(/\s/g, '')); return Number.isFinite(n) ? n : null; }
+function omez(v, min, max) {
+  const n = cislo(v);
+  if (n == null) return { n: null, mimo: false };
+  const o = Math.min(max, Math.max(min, n));
+  return { n: o, mimo: o !== n };
+}
 /* české skloňování po číslovce: 1 den · 2–4 dny · 5+ dnů */
 function sklon(n, j, d, m) { const a = Math.abs(Math.round(Number(n) || 0)); return a === 1 ? j : (a >= 2 && a <= 4 ? d : m); }
 const DEN = n => sklon(n, 'den', 'dny', 'dnů');
