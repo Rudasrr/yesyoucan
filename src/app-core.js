@@ -79,7 +79,7 @@ Store.remove = function (t, id) { Undo.record(t, id); return _rm(t, id); };
 
 /* ---- UI ---- */
 const UI = {
-  toast(msg, undoFn, btnLabel) { const t = $('#toast'); t.innerHTML = `<span>${esc(msg)}</span>${undoFn ? `<button class="ubtn" id="undo-btn">${esc(btnLabel || 'Zpět')}</button>` : ''}`; if (undoFn) t.querySelector('#undo-btn').onclick = () => { t.classList.remove('on'); undoFn(); }; t.classList.add('on'); clearTimeout(this._t); this._t = setTimeout(() => t.classList.remove('on'), undoFn ? 9000 : 3000); },
+  toast(msg, undoFn, btnLabel) { const t = $('#toast'); if (!t) return; t.innerHTML = `<span>${esc(msg)}</span>${undoFn ? `<button class="ubtn" id="undo-btn">${esc(btnLabel || 'Zpět')}</button>` : ''}`; if (undoFn) t.querySelector('#undo-btn').onclick = () => { t.classList.remove('on'); undoFn(); }; t.classList.add('on'); clearTimeout(this._t); this._t = setTimeout(() => t.classList.remove('on'), undoFn ? 9000 : 3000); },
   syncBadge() {
     const el = $('#syncb'); if (!el) return;
     if (Store.localMode()) { el.innerHTML = '<span class="dot off"></span>bez cloudu'; return; }

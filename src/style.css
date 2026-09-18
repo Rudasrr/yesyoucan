@@ -236,7 +236,7 @@ svg.chart{width:100%;height:auto;display:block}
 tr.cath td{background:rgba(28,35,64,.05);font-weight:800;cursor:pointer;padding:8px}
 .herob{border-radius:22px 22px 0 0}
 .card.grad,.card.grad2,.card.grad3{border:0}
-@media(max-width:600px){.stats3 b{font-size:17px}.stats3 b small{font-size:11px}.stats3{gap:6px;padding:12px 14px}}
+@media(max-width:600px){.stats3 b{font-size:17px}.stats3 b small{font-size:11px}.stats3{gap:8px 10px;padding:12px 14px;grid-template-columns:repeat(2,1fr)}}
 .ebtn{border:0;background:transparent;color:var(--p-ink);font-size:16px;cursor:pointer;padding:2px 6px}
 .ibtn{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;border:1.5px solid #b7bfd0;background:#fff;color:#5b6480;font-size:12px;font-weight:800;margin-left:8px;cursor:pointer;vertical-align:middle;font-family:Georgia,serif;font-style:italic}
 .pop{position:absolute;z-index:70;background:#1c2340;color:#fff;border-radius:14px;padding:12px 14px;font-size:13px;line-height:1.45;font-weight:500;box-shadow:0 14px 40px -14px rgba(0,0,0,.5)}
@@ -358,6 +358,7 @@ body.has-modal .toast{bottom:auto;top:calc(12px + env(safe-area-inset-top))}
   table.items td{display:block;padding:0;border:0;text-align:left;width:auto}
   table.items td:first-child{flex:1 0 100%;font-weight:700;display:flex;align-items:center;gap:6px}
   table.items td.n[data-l]::before{content:attr(data-l) " ";font-size:11px;color:var(--ink2);font-weight:700}
+  table.items td.scl{display:flex;align-items:center;gap:6px}
   table.items td:first-child .pickbtn{width:auto !important;flex:1;min-width:0}
   .eat.big{padding:9px 14px;font-size:14px}
   table.items .gstep{margin-right:auto}
