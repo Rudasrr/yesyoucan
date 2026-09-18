@@ -191,8 +191,12 @@ A.fitDay = date => { const s = S(), foods = Foods(), recipes = Recipes(), w = cu
 function mismatchAlert(date) { const m = dayMismatch(date); if (!m) return ''; return `<div class="alert ${m.diff > 0 ? 'a2' : 'a1'}" style="margin-bottom:10px"><div style="flex:1">${m.trainingChanged ? '🏋️ Trenér změnil trénink. ' : ''}Limit dne je <b>${fmt0(m.limit)} kcal</b>, plán jídel má <b>${fmt0(m.planned)}</b> – ${m.diff > 0 ? `<b>přidej ${fmt0(m.diff)} kcal</b>, jinak jsi v moc velkém deficitu` : `<b>uber ${fmt0(-m.diff)} kcal</b>, jinak jsi přes`}.</div><button class="btn sm write" onclick="A.fitDay('${date}')">💡 Dorovnat</button></div>`; }
 
 /* ===== Běžná denní chůze (kroky) – jen informace pro trenéra, nepočítá se do cíle ani limitu ===== */
-function defaultSteps() { const p = Prefs(); return p.defaultSteps || 5000; }
-function daySteps(day) { return day.steps != null ? day.steps : defaultSteps(); }
+/* cíl kroků (nastavuje se jednou) vs. co Robert opravdu ušel (zapisuje každý den).
+   Dřív se tyhle dvě věci mísily: dokud nic nezapsal, tvářil se cíl jako skutečnost
+   a trenér podle vymyšlených čísel ladil faktor aktivity. */
+function stepsGoal() { const p = Prefs(); return p.defaultSteps || 5000; }
+function defaultSteps() { return stepsGoal(); }
+function daySteps(day) { return day.steps != null ? day.steps : null; }
 A.setSteps = (v, isDefault) => { const n = Number(v) || 0; if (isDefault) { const p = Prefs(); p.defaultSteps = n; savePrefs(p); UI.toast(`Výchozí běžná chůze: ${fmt0(n)} kroků/den`); }
   else Undo.run(`Běžná chůze dnes: ${fmt0(n)} kroků`, () => { const day = getDay(App.date); day.steps = n; saveDay(day); }, 'Jen pro trenéra – do cíle chůze se nepočítá.'); render(); };
 function stepsStat(days) { const uid = Store.ownerId(); const vals = days.map(dt => { const r = Store.rows('days', uid).find(x => x.data.date === dt); return r ? daySteps(r.data) : null; }).filter(v => v != null); return vals.length ? { avg: vals.reduce((a, b) => a + b, 0) / vals.length, n: vals.length, min: Math.min(...vals) } : null; }

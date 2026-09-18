@@ -457,3 +457,10 @@ body.has-modal .toast{bottom:auto;top:calc(12px + env(safe-area-inset-top))}
 .alert{font-weight:600}
 .alert div{font-weight:500;line-height:1.5}
 .alert div b{font-weight:800}
+
+/* plnění cíle: co dal trenér nahoře, co Robert splnil pod tím */
+.fulfil{margin-top:12px;padding:12px 14px;border-radius:16px;background:rgba(255,255,255,.55);border:1px solid rgba(255,255,255,.8)}
+.fulfil + .fulfil{margin-top:10px}
+.fulfil .fgoal{font-size:13px;font-weight:700;color:var(--ink2);flex:1;min-width:0}
+.fulfil .row.between{gap:12px;align-items:baseline}
+.fulfil .in{margin:0}

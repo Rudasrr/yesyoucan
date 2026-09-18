@@ -48,6 +48,9 @@ Den se ukládá průběžně, o půlnoci se uzavře sám; každá změna má hl�
 ## Cheat na dnešek (nové 18. 9. 2026, změna výpočtu)
 Robert zapíše ráno, co ho večer čeká (piva, smažené, volný text). Appka to počítá do dne jako **plán, ne zápis** – nic se večer nepotvrzuje jako snědené. Klíčová změna: **cheat se přednostně pokrývá pohybem, ne menšími porcemi.** Když se cheat dá uchodit do 90 minut navíc, `calcBase` o tolik zvedne plánovanou chůzi a porce zůstanou. Když ne, appka nepředstírá, že to jde: přidá rozumných 30 minut, zmenší porce a řekne narovinu, že tenhle den něco stojí a kolik (kg za týden proti plánu). U dvou piv (410 kcal) to znamená +64 minut chůze a porce zůstanou; u 6 piv a 200 g smaženého se pokryje 586 kcal a zbytek padne na porce. Volný text nejdřív hledá v `CHEAT_LIB` (18 typických hříchů s kcal za porci), pak v surovinách, a co appka nezná, si Robert odhadne v okně. Kontrolní číslo pátku (1 890,0 kcal) se nezměnilo – porce tam drží spodní mez.
 
+## Plán vs. plnění (pravidlo, 18. 9. 2026)
+Trenér plánuje, Robert hlásí skutečnost. Robert plánuje jen jídla na další dny a cheat na večer. **Opravená chyba:** `daySteps()` vracel cíl (5 000), dokud Robert nic nezapsal – kroky se tedy tvářily jako splněné a `stepsStat` z nich počítal průměr, podle kterého appka trenérovi doporučovala faktor aktivity. Teď vrací `null` a v Dashboardu je „–“. Cíl kroků je `stepsGoal()`. Posuvníky u chůze a kroků nahradilo plnění: pruh k cíli, tlačítka +15/+30/+60 a přesný zápis.
+
 ## Odchylky od sešitu (záměrné)
 Nákup škálovaný na aktuální váhu · datované týdny · pojistka bazálu · příloha na 10 g · „kolik co stojí“ počítáno živě (statické hodnoty v sešitu si nesedí) · start 134,4 (texty říkaly 129) · tolerance „sedí“ ±60 kcal v UI.
 
