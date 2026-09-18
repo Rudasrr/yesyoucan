@@ -23,6 +23,7 @@ Pořadí skládání (neměnit): style.css → seed.js → calc.js → store.js 
 - Výpočty v `calc.js` jsou 1:1 podle sešitu, kromě zdokumentovaných odchylek (STAV.md → „Odchylky od sešitu“). Změna výpočtu = změna zadání, nikdy vedlejší efekt.
 - Offline-first: localStorage + fronta `outbox` + last-write-wins podle `updated_at`, soft-delete `deleted`. Id záznamů obsahují uid.
 - Robert edituje výchozí suroviny/recepty jako vlastní verzi; trenér globálně. Tempo hubnutí mění jen trenér.
+- Rytmus: `#main` je svislý flex s mezerou 14 px a vlastní okraje bloků se ruší – jedna mezera všude, žádné `margin-top` v inline stylech. Žádná tmavá tlačítka (`.chip.on` je modrá, ne inkoustová). Posuvníky jsou systémové s `accent-color`, ne vlastní `::-webkit-slider-*` – vlastní se v jiných prohlížečích rozpadaly.
 - Rozvržení: obrazovka je **jeden dvousloupcový blok** (`.dgrid`, vlevo hlavní obsah, vpravo kratší karty), ne řada mřížek pod sebou – jinak vznikají díry. Nikdy nedávej do dvousloupcové mřížky jednu kartu. Karty se nenatahují do výšky sourozence (`.grid{align-items:start}`), dlaždice používají `auto-fit`, ne `auto-fill`. Pořadí karet dělá struktura, ne `order`. `qa.py` to hlídá: „díry v rozvržení: žádné“.
 - Žádný tmavý režim, žádné foto jídla, žádný přepis do frameworku.
 - Hesla, klíče ani e-maily nepatří do kódu. `CLOUD_CONFIG` plní build z env; `LOCAL_USERS` build v cloudové verzi vyprázdní. Lokální režim (prázdný `CLOUD_CONFIG`) slouží jen k vývoji a testům.
