@@ -194,21 +194,82 @@ A.planSel = (di, ci, v) => Undo.run('Plán', () => { const wk = getWeek(App.week
 A.copyWeek = () => Undo.run('Kopie týdne', () => { const prev = getWeek(addDays(App.week, -7)); const wk = getWeek(App.week); wk.plan = JSON.parse(JSON.stringify(prev.plan)); saveWeek(wk); render(); }, 'Minulý týden zkopírován. Uprav, co chceš jinak.');
 A.clearWeek = () => Undo.run('Vyprázdnit týden', () => { const wk = getWeek(App.week); wk.plan = wk.plan.map(() => [null, null, null, null, null]); saveWeek(wk); render(); }, 'Týden vyprázdněn.');
 
+/* ---------- SPÍŽ ---------- */
+/* Jen trvanlivé suroviny a jen tři stavy. Čerstvé se neevidují – ty kupuješ pokaždé.
+   Cílem není vědět, kolik čeho máš, ale co nedávat na lístek. */
+VIEWS._spiz = function () {
+  const foods = Foods().filter(f => f.pantry);
+  const s = S(), recipes = Recipes(), w = currentWeight();
+  const wk = getWeek(App.week);
+  const need = Object.fromEntries(calcShopping(s, Foods(), recipes, wk.plan, w, weekActs(App.week, w)).map(x => [x.food, x.g]));
+  const gr = {};
+  foods.forEach(f => { (gr[f.aisle] = gr[f.aisle] || []).push(f); });
+  const st = f => pantryState(f.name, need[f.name] || 0);
+  const pocet = { mam: 0, dochazi: 0, nemam: 0 };
+  foods.forEach(f => pocet[st(f)]++);
+  const btn = (f, k) => `<button class="pst ${st(f) === k ? 'on ' + PANTRY_ST[k][1] : ''}" onclick="A.pantry('${esc(f.name)}','${k}')">${PANTRY_ST[k][0]}</button>`;
+  return `${flow('spiz', ['Projdi to jednou po nákupu', 'Ťukni mám / dochází / nemám', 'Lístek se tím sám zkrátí'], 'Tohle není inventura. Gramy appka nechce – stačí jí vědět, co nemá dávat na nákupní lístek. Odškrtnutím v Nákupu se položka překlopí na „mám“ sama a z tvé spotřeby si spočítá, na kolik týdnů balení vyjde; pak se sama přepne na „dochází“.')}
+  <div class="row between" style="margin-bottom:6px"><h1>Spíž${help('Trvanlivé suroviny, které vydrží doma déle než týden: přílohy, luštěniny, oleje, koření, konzervy, ořechy, protein. Čerstvé (maso, zelenina, mléčné) tu schválně nejsou – ty se kupují na každý týden znovu a evidovat je by byla práce navíc bez užitku.')}</h1></div>
+  <p class="small muted" style="margin-bottom:10px">${foods.length} trvanlivých surovin · mám ${pocet.mam}, dochází ${pocet.dochazi}, nemám ${pocet.nemam}. Co máš, nebude na nákupním lístku.</p>
+  <div class="masonry">${Object.entries(gr).map(([a, fs]) => `<div class="card tight"><h3 style="margin-bottom:4px">${esc(a)}</h3><table class="small">${fs.map(f => `<tr><td class="pcell">${esc(f.name)}${f.pack ? `<div class="tiny muted">balení ${f.pack >= 1000 ? fmt1(f.pack / 1000) + ' kg' : f.pack + ' g'}${need[f.name] ? ` · týdně ${fmt0(need[f.name])} g` : ''}</div>` : ''}</td><td class="n" style="white-space:nowrap">${['mam', 'dochazi', 'nemam'].map(k => btn(f, k)).join('')}</td></tr>`).join('')}</table></div>`).join('')}</div>`;
+};
+
 /* ---------- NÁKUP ---------- */
+/* Jeden seznam, dvě podoby: „v obchodě“ s velkými zaškrtávátky a „na tisk“ na jednu A4.
+   Řazení podle regálů, ne podle kategorií potravin – obchod projdeš jednou. */
+App.shopMode = 'obchod';
+App.shopDays = null;   // null = celý týden, jinak pole indexů dnů
+A.shopMode = m => { App.shopMode = m; render(); };
+A.shopDay = i => { const cur = App.shopDays || [0, 1, 2, 3, 4, 5, 6]; App.shopDays = cur.includes(i) ? cur.filter(x => x !== i) : cur.concat([i]).sort(); if (App.shopDays.length === 7) App.shopDays = null; render(); };
+A.shopAll = () => { App.shopDays = null; render(); };
+A.shopFromToday = () => { const mon = App.week, t = todayISO(); const ds = []; for (let k = 0; k < 7; k++) if (addDays(mon, k) >= t) ds.push(k); App.shopDays = ds.length && ds.length < 7 ? ds : null; render(); };
+
 VIEWS._nakup = function () {
   const s = S(), foods = Foods(), recipes = Recipes(), w = currentWeight();
-  const wk = getWeek(App.week); const shop = getShop(App.week); const thisMon = mondayOf(todayISO());
-  const list = calcShopping(s, foods, recipes, wk.plan, w, weekActs(App.week, w));
-  const weekNav = `<div class="row noprint" style="margin-bottom:10px">${weekToggle()}<span class="sp"></span><button class="btn sec sm" onclick="window.print()">Tisk</button></div>`;
-  if (!list.length) return `${flow('nakup', ['Naplánuj týden', 'Odškrtávej, co máš doma', 'Zbytek kup'], 'Množství jsou v tom stavu, v jakém suroviny kupuješ – rýže a luštěniny suché, maso syrové. Odškrtnutí se ukládá, seznam jde vytisknout na jednu stránku.')}<h1>Nákup</h1>${weekNav}<div class="card">Na tento týden nemáš naplánovaná jídla. Naplánuj je v Týdnu a seznam se složí sám.</div>`;
-  const cats = [...new Set(list.map(x => x.cat))];
-  const done = list.filter(x => shop.checked[x.food]).length;
-  return `${flow('nakup', ['Naplánuj týden', 'Odškrtávej, co máš doma', 'Zbytek kup'], 'Množství jsou v tom stavu, v jakém suroviny kupuješ – rýže a luštěniny suché, maso syrové. Odškrtnutí se ukládá, seznam jde vytisknout na jednu stránku.')}<h1 style="margin-bottom:6px">Nákup${help('Seznam surovin pro naplánovaný týden, sečtený přes všechny dny a přepočítaný na tvoji váhu. Odškrtávej „mám“ – stav se ukládá. Vejce jsou v kusech, nad kilo v kilogramech.')}</h1><p class="small muted" style="margin-bottom:8px">Množství jsou v tom stavu, v jakém suroviny kupuješ – rýže, těstoviny a luštěniny suché, maso syrové – přepočítané na tvoji aktuální váhu. Stejná čísla najdeš ve Vaření. Mám ${done} z ${list.length}.</p>${weekNav}
-  <div class="masonry print-cols">${cats.map(c => `<div class="card tight"><h3 style="margin-bottom:4px">${esc(c)}</h3><table class="small">${list.filter(x => x.cat === c).map(x => `<tr class="${shop.checked[x.food] ? 'muted' : ''}"><td style="width:34px"><input type="checkbox" ${shop.checked[x.food] ? 'checked' : ''} onchange="A.shopCheck('${esc(x.food)}',this.checked)" style="width:20px;height:20px;min-height:0"></td><td style="${shop.checked[x.food] ? 'text-decoration:line-through' : ''}">${esc(x.food)}${x.uses > 1 && (['Ořechy a semínka', 'Uzeniny'].includes(x.cat) || /Sýr|Eidam|Gouda|Feta|Šunka/.test(x.food)) ? `<div class="tiny muted">rozděl po nákupu na ${x.uses} porcí po ${fmt0(x.g / x.uses)} g</div>` : ''}</td><td class="n b">${x.buy}</td><td class="n muted tiny noprint">${x.buy === fmt0(x.g) + ' g' ? '' : fmt0(x.g) + ' g'}</td></tr>`).join('')}</table></div>`).join('')}</div>
+  const wk = getWeek(App.week); const shop = getShop(App.week);
+  const pick = App.shopDays;
+  const list = calcShopping(s, foods, recipes, wk.plan, w, weekActs(App.week, w), pick);
+  const dnu = pick ? pick.length : 7;
+  const napoveda = 'Seznam se skládá z naplánovaných jídel a je přepočítaný na tvoji váhu. Množství jsou v nákupním stavu – rýže a luštěniny suché, maso syrové. Trvanlivé suroviny appka zaokrouhlí na celá balení a ty, které máš podle Spíže doma, na lístek vůbec nedá. Řazení je podle regálů, ať obchod projdeš jednou.';
+  const flowBlok = flow('nakup', ['Vyber dny, na které nakupuješ', 'Projdi regály a odškrtávej', 'Zbytek doma doplní Spíž'], 'Lístek jde vytisknout na jednu A4 (přepni na „na tisk“). Odškrtnutí se ukládá a drží se týdne.');
+  const dayChips = `<div class="row noprint" style="gap:6px;flex-wrap:wrap;margin-bottom:10px"><span class="small muted" style="font-weight:700">Nakupuju na:</span>
+    ${DAY_NAMES.map((d, i) => `<span class="chip ${!pick || pick.includes(i) ? 'on' : ''}" onclick="A.shopDay(${i})">${DAY_SHORT[i]}</span>`).join('')}
+    <button class="btn sec sm" onclick="A.shopAll()">celý týden</button><button class="btn sec sm" onclick="A.shopFromToday()">od dneška</button></div>`;
+  const head = `${flowBlok}<div class="row between" style="margin-bottom:6px"><h1>Nákup${help(napoveda)}</h1>
+    <div class="row noprint"><div class="seg">${[['obchod', '🛒 v obchodě'], ['tisk', '🖨️ na tisk']].map(([k, l]) => `<button class="${App.shopMode === k ? 'on' : ''}" onclick="A.shopMode('${k}')">${l}</button>`).join('')}</div>${App.shopMode === 'tisk' ? '<button class="btn sm" onclick="window.print()">Vytisknout</button>' : ''}</div></div>
+    <div class="row noprint" style="margin-bottom:8px">${weekToggle()}</div>${dayChips}`;
+  if (!list.length) return head + `<div class="card">Na vybrané dny nemáš naplánovaná jídla. Naplánuj je v Týdnu a seznam se složí sám.</div>`;
+
+  // spíž: co máš doma, na lístek nepatří
+  const tydnu = Math.max(0.5, dnu / 7);
+  const doma = [], koupit = [];
+  list.forEach(x => { const st = x.pantry ? pantryState(x.food, x.g / tydnu) : 'nemam'; (st === 'mam' ? doma : koupit).push({ ...x, pstate: st }); });
+  const done = koupit.filter(x => shop.checked[x.food]).length;
+
+  // co se změnilo po nákupu: odškrtnuté položky, kterých je teď v plánu víc
+  const dokup = koupit.filter(x => shop.checked[x.food] && shop.bought && shop.bought[x.food] != null && x.g > shop.bought[x.food] + 20)
+    .map(x => ({ ...x, chybi: x.g - shop.bought[x.food] }));
+
+  const aisles = [...new Set(koupit.map(x => x.aisle))];
+  const radek = x => `<tr class="${shop.checked[x.food] ? 'muted' : ''}"><td style="width:34px" class="noprint"><input type="checkbox" ${shop.checked[x.food] ? 'checked' : ''} onchange="A.shopCheck('${esc(x.food)}',this.checked,${x.g})" style="width:22px;height:22px;min-height:0"></td>
+    <td class="pcell" style="${shop.checked[x.food] ? 'text-decoration:line-through' : ''}">${esc(x.food)}${x.pstate === 'dochazi' ? ' <span class="pill">dochází</span>' : ''}${x.uses > 1 && (['Ořechy a semínka', 'Uzeniny'].includes(x.cat) || /Sýr|Eidam|Gouda|Feta|Šunka/.test(x.food)) ? `<div class="tiny muted">rozděl po nákupu na ${x.uses} porcí po ${fmt0(x.g / x.uses)} g</div>` : ''}</td>
+    <td class="n b">${x.buy}</td><td class="n muted tiny noprint">${x.packs ? `potřeba ${fmt0(x.g)} g` : ''}</td></tr>`;
+
+  if (App.shopMode === 'tisk') {
+    return head + `<p class="small muted" style="margin-bottom:8px">Lístek na ${dnu} ${dnu === 1 ? 'den' : (dnu < 5 ? 'dny' : 'dnů')} · ${koupit.length} položek${doma.length ? ` · ${doma.length} máš doma` : ''}. Vytiskne se na jednu stránku.</p>
+      <div class="card"><h2 class="ptitle">Nákup · ${czDateShort(App.week)}${pick ? ` · ${pick.map(i => DAY_SHORT[i]).join(' ')}` : ' · celý týden'}</h2>
+      <div class="plist2">${aisles.map(a => `<div class="pgrp"><h3>${esc(a)}</h3>${koupit.filter(x => x.aisle === a).map(x => `<div class="pln"><span class="box"></span><span class="nm">${esc(x.food)}</span><b>${x.buy}</b></div>`).join('')}</div>`).join('')}</div></div>`;
+  }
+  return head + `<p class="small muted" style="margin-bottom:8px">Na ${dnu} ${dnu === 1 ? 'den' : (dnu < 5 ? 'dny' : 'dnů')} · koupit ${koupit.length} položek, odškrtnuto ${done}. ${doma.length ? `${doma.length} ${doma.length === 1 ? 'položku' : (doma.length < 5 ? 'položky' : 'položek')} máš podle Spíže doma – na lístku nejsou.` : ''}</p>
+  ${dokup.length ? `<div class="alert a2" style="margin-bottom:10px"><div style="flex:1">Po nákupu jsi měnil plán. Dokup: ${dokup.map(x => `<b>${esc(x.food)} ${fmt0(x.chybi)} g</b>`).join(', ')}.</div></div>` : ''}
+  <div class="masonry">${aisles.map(a => `<div class="card tight"><h3 style="margin-bottom:4px">${esc(a)}</h3><table class="small">${koupit.filter(x => x.aisle === a).map(radek).join('')}</table></div>`).join('')}</div>
+  ${doma.length ? `<details class="card tight" style="margin-top:0"><summary class="small" style="cursor:pointer;font-weight:700">Máš doma ze spíže (${doma.length})</summary><table class="small" style="margin-top:6px">${doma.map(x => `<tr><td class="pcell">${esc(x.food)}</td><td class="n muted">${x.buy}</td><td class="n noprint"><button class="btn sec sm write" onclick="A.pantry('${esc(x.food)}','dochazi')">došlo</button></td></tr>`).join('')}</table></details>` : ''}
   <div class="row noprint"><button class="btn sec sm write" onclick="A.shopReset()">Odškrtnout vše zpět</button></div>`;
 };
-A.shopCheck = (food, v) => { const shop = getShop(App.week); shop.checked[food] = v; Store.put('shopping', oid('s', App.week), shop); render(); const sd = shoppingDone(App.week); if (sd.done >= sd.total) UI.toast('Nákup kompletní. Vaření máš v rozpisu.'); };
-A.shopReset = () => { Store.put('shopping', oid('s', App.week), { week: App.week, checked: {} }); render(); };
+A.shopCheck = (food, v, g) => { const shop = getShop(App.week); shop.checked[food] = v; shop.bought = shop.bought || {};
+  if (v) { shop.bought[food] = g; const f = Foods().find(x => x.name === food); if (f && f.pantry) setPantry(food, 'mam', (f.pack || 0) * Math.max(1, Math.ceil(g / (f.pack || 1)))); }
+  else delete shop.bought[food];
+  Store.put('shopping', oid('s', App.week), shop); render(); const sd = shoppingDone(App.week); if (sd.done >= sd.total) UI.toast('Nákup kompletní. Vaření máš v rozpisu.'); };
 
 /* ---------- NÁVOD / START ---------- */
 VIEWS.navod = function () {
@@ -365,7 +426,8 @@ function barChart(vals, labels, goal) {
 /* ===== Jídlo: nákup, vaření, recepty a suroviny pod jednou záložkou =====
    Jeden tok: co koupit → co uvařit → z čeho to je → z čeho se recepty skládají. */
 const JIDLO_TABS = [
-  ['nakup', '🛒 Nákup', 'Co koupit na naplánovaný týden'],
+  ['nakup', '🛒 Nákup', 'Co koupit na vybrané dny'],
+  ['spiz', '🫙 Spíž', 'Co máš doma z trvanlivých'],
   ['vareni', '🍳 Vaření', 'Co uvařit dopředu, ať máš hotovo'],
 ];
 App.jidloTab = 'nakup';

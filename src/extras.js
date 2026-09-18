@@ -76,9 +76,35 @@ A.ateText = (key, text) => { const day = effectiveDay(App.date); const m = day.m
 function routineOn() { const p = Prefs(); return p.routine !== false; }
 A.toggleRoutine = () => { const p = Prefs(); p.routine = !routineOn(); savePrefs(p); UI.toast(p.routine ? 'Rutina zapnutá: snídaně a svačina stejné celý týden' : 'Rutina vypnutá: každý den jiné'); render(); };
 
-/* ===== Krabičky (vaření do zásoby) ===== */
-function cookedSet(week) { const p = Prefs(); return (p.cooked && p.cooked[week]) || {}; }
-A.toggleCooked = (week, name) => { const p = Prefs(); p.cooked = p.cooked || {}; p.cooked[week] = p.cooked[week] || {}; p.cooked[week][name] = !p.cooked[week][name]; savePrefs(p); UI.toast(p.cooked[week][name] ? `${name}: uvařeno do krabiček ✓` : `${name}: zrušeno`); render(); };
+/* ===== Krabičky: vaření jako záznam, ne zaškrtávátko =====
+   Dřív bylo „uvařeno“ jen příznak receptu na týden. Proto nešlo vařit od středy,
+   nešlo vařit na půl týdne a řádek hlásil „uvařeno“ i to, co uvařené nebylo.
+   Záznam říká: kdy, co, kolik porcí a které sloty (den + chod) to pokrývá.
+   Z toho vypadne i zbytek v lednici – uvaříš 4 porce, sníš 3, jedna zbývá. */
+function cooks() { const p = Prefs(); return (p.cooks || []).filter(c => !c.del); }
+function saveCooks(list) { const p = Prefs(); p.cooks = list; savePrefs(p); }
+function cookFor(date, key) { return cooks().find(c => (c.covers || []).some(x => x.d === date && x.k === key)); }
+/* kolik porcí ze záznamu ještě nebylo snědeno */
+function cookLeft(c) {
+  const snedeno = (c.covers || []).filter(x => { const day = effectiveDay(x.d); return (day.meals[x.k] || {}).eaten; }).length;
+  return Math.max(0, (c.n || 0) - snedeno);
+}
+/* trvanlivost v lednici podle složení: maso a ryby 3 dny, jinak 4, samé suché 5 */
+function shelfDays(items, foods) {
+  const fm = Object.fromEntries(foods.map(f => [f.name, f]));
+  const cats = Object.keys(items).map(n => (fm[n] || {}).cat || '');
+  if (cats.some(c => c === 'Maso' || c === 'Ryby')) return 3;
+  if (cats.some(c => c === 'Mléčné a sýry' || c === 'Zelenina')) return 4;
+  return 5;
+}
+A.cookDone = (recipe, n, covers, gc) => Undo.run('Uvařeno', () => {
+  const list = cooks().concat([{ id: 'c' + Date.now(), at: todayISO(), recipe, n, covers, gc: gc || 0 }]);
+  saveCooks(list); render();
+}, `Uvařeno ${n}× ${recipe}. Krabičky pokrývají ${covers.length} ${covers.length === 1 ? 'jídlo' : (covers.length < 5 ? 'jídla' : 'jídel')}.`);
+A.cookDel = id => UI.confirm('Smazat záznam o vaření? Krabičky se přestanou počítat.', () => {
+  saveCooks(cooks().filter(c => c.id !== id)); render(); UI.toast('Záznam smazán.');
+}, 'Smazat');
+A.cookWeigh = (id, v) => { const list = cooks(); const c = list.find(x => x.id === id); if (!c) return; c.gc = Number(v) || 0; saveCooks(list); render(); };
 
 /* ===== Progres v tréninku (trenér) ===== */
 function exerciseHistory(ex) { const uid = Store.ownerId(); let done = 0, weeks = new Set(); Store.rows('days', uid).forEach(r => { const d = r.data; if (!d.training || !d.training.done) return; const act = dayActivityPlan(d.date); (act.items || []).forEach((it, i) => { if (it.ex === ex && d.training.done[i]) { done++; weeks.add(mondayOf(d.date)); } }); }); return { done, weeks: weeks.size }; }
@@ -189,6 +215,32 @@ A.fitDay = date => { const s = S(), foods = Foods(), recipes = Recipes(), w = cu
       cands.sort((a, b) => diff > 0 ? a.c.kcal - b.c.kcal : b.c.kcal - a.c.kcal); const pick = cands[0]; tried.add(pick.ci);
       const name = pickFitting(s, foods, recipes, s.courses[pick.ci].key, pick.c.kcal + diff, r.protTarget - r.p + pick.c.p, pick.c.sel, r.planLimit); if (name) wk.plan[di][pick.ci] = name; }
     saveWeek(wk); }, (() => { const r = calcPlanDay(s, foods, recipes, wk.plan[di], w, act); const diff = r.planLimit - r.kcal; return Math.abs(diff) <= 100 ? `Sedí: ${fmt0(r.kcal)} kcal při limitu ${fmt0(r.planLimit)}.` : diff > 0 ? `Recepty výš nesahají – ${fmt0(r.kcal)}/${fmt0(r.planLimit)} kcal. Zbylých ${fmt0(diff)} kcal přidej přílohou nebo ořechy v Jídlech dne.` : `Pořád přes o ${fmt0(-diff)} kcal – uber přílohu v Jídlech dne.`; })()); render(); };
+/* ===== Spíž: trvanlivé suroviny =====
+   Pravidlo návrhu: appka nepotřebuje vědět, kolik čeho máš doma. Potřebuje vědět,
+   co NEMÁ dávat na lístek. Proto jen tři stavy a žádné gramy. Čerstvé suroviny se
+   neevidují vůbec – ty kupuješ pokaždé znovu.
+   Stav se odvozuje sám: odškrtnutím na lístku se položka překlopí na „mám“ a appka
+   z týdenní spotřeby odhadne, na kolik týdnů balení vyjde. Až doba uplyne, sama se
+   přepne na „dochází“ a objeví se na dalším lístku. Ty to jen opravíš, když se to rozejde. */
+const PANTRY_ST = { mam: ['mám', 'ok'], dochazi: ['dochází', 'warn'], nemam: ['nemám', 'bad'] };
+function pantryRaw() { const p = Prefs(); return p.pantry || {}; }
+function pantryState(food, weeklyNeed) {
+  const r = pantryRaw()[food];
+  if (!r) return 'nemam';
+  if (r.st !== 'mam') return r.st;
+  if (!r.at || !(weeklyNeed > 0) || !r.g) return 'mam';
+  const tydnu = r.g / weeklyNeed;
+  const uplynulo = daysBetween(r.at, todayISO()) / 7;
+  return uplynulo >= tydnu ? 'dochazi' : 'mam';
+}
+function setPantry(food, st, g) {
+  const p = Prefs(); p.pantry = p.pantry || {};
+  if (st === 'mam') p.pantry[food] = { st, at: todayISO(), g: g || (p.pantry[food] || {}).g || 0 };
+  else p.pantry[food] = { st };
+  savePrefs(p);
+}
+A.pantry = (food, st) => { setPantry(food, st); render(); UI.toast(`${food}: ${PANTRY_ST[st][0]}`); };
+
 /* Doplnění zpětně: když Robert pár dní nezapisoval, nemá proklikávat dny po jednom
    a hádat, co mu chybí. Tohle mu řekne kolik a hodí ho rovnou na první takový den. */
 function catchUpAlert() {

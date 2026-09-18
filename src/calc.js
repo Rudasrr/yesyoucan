@@ -302,15 +302,27 @@ function calcOverview(s, meas) {
 }
 
 /* Nákup: součet škálovaných gramů za týden (odchylka od Excelu – škáluje se na aktuální váhu, jako Vaření) */
-function calcShopping(s, foods, recipes, plan, weight, acts) {
+/* Nákupní seznam. `pick` (pole indexů dnů 0–6) omezí seznam na část týdne –
+   nakupuje se na tolik dnů, kolik je potřeba, ne na kalendářní týden.
+   U trvanlivých surovin (spíž) se množství zaokrouhlí nahoru na celá balení:
+   kupuješ kilo rýže, ne 213 g. */
+const AISLE_ORDER = ['Ovoce a zelenina', 'Pečivo', 'Maso a ryby', 'Chlazené', 'Mražené', 'Suché a trvanlivé', 'Ostatní'];
+function calcShopping(s, foods, recipes, plan, weight, acts, pick) {
   const sum = {}, cnt = {};
   plan.forEach((sels, i) => {
+    if (pick && !pick.includes(i)) return;
     const pd = calcPlanDay(s, foods, recipes, sels, weight, acts ? acts[i] : undefined);
     pd.courses.forEach(c => c.items.forEach(it => { sum[it.food] = (sum[it.food] || 0) + it.g; cnt[it.food] = (cnt[it.food] || 0) + 1; }));
   });
   const fmap = Object.fromEntries(foods.map(f => [f.name, f]));
-  return Object.entries(sum).map(([food, g]) => ({ food, g, uses: cnt[food], cat: fmap[food] ? fmap[food].cat : '', buy: food === 'Vejce' ? `${Math.ceil(g / 60)} ks` : (g >= 1000 ? `${fmt1(g / 1000)} kg` : `${fmt0(g)} g`) }))
-    .sort((a, b) => (a.cat + a.food).localeCompare(b.cat + b.food, 'cs'));
+  return Object.entries(sum).map(([food, g]) => {
+    const f = fmap[food] || {};
+    const packs = f.pantry && f.pack ? Math.max(1, Math.ceil(g / f.pack)) : 0;
+    const buy = food === 'Vejce' ? `${Math.ceil(g / 60)} ks`
+      : packs ? `${packs}× ${f.pack >= 1000 ? fmt1(f.pack / 1000) + ' kg' : f.pack + ' g'}`
+      : (g >= 1000 ? `${fmt1(g / 1000)} kg` : `${fmt0(g)} g`);
+    return { food, g, uses: cnt[food], cat: f.cat || '', aisle: f.aisle || 'Ostatní', pantry: !!f.pantry, pack: f.pack || 0, packs, buy };
+  }).sort((a, b) => (AISLE_ORDER.indexOf(a.aisle) - AISLE_ORDER.indexOf(b.aisle)) || a.food.localeCompare(b.food, 'cs'));
 }
 
 /* Kolik co stojí – dopočet z aktuální váhy (Start!B45–B54; texty ze sešitu, čísla živě) */

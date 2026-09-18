@@ -120,24 +120,79 @@ VIEWS._recepty = function () {
   ${recipeFilterBar(all)}<div class="card tight" style="margin-top:10px">${list.html}</div>`;
 };
 
-/* ===== Vaření: podle dnů / podle receptů ===== */
+/* ===== Vaření: vaříš na vybrané dny, ne na kalendářní týden ===== */
 App.vMode = 'recipes';
+App.vDays = null;   // pole ISO dat; null = od dneška tři dny
+function varDays() {
+  if (App.vDays && App.vDays.length) return App.vDays;
+  const t = todayISO(); return [t, addDays(t, 1), addDays(t, 2)];
+}
+A.vDay = d => { const cur = varDays().slice(); const i = cur.indexOf(d);
+  if (i >= 0) cur.splice(i, 1); else cur.push(d);
+  App.vDays = cur.sort(); render(); };
+A.vSpan = n => { const t = todayISO(); const out = []; for (let k = 0; k < n; k++) out.push(addDays(t, k)); App.vDays = out; render(); };
+
 VIEWS._vareni = function () {
   const s = S(), foods = Foods(), recipes = Recipes(), w = currentWeight();
-  const wk = getWeek(App.week);
-  const weekNav = `<div class="row noprint" style="margin-bottom:10px">${weekToggle()}<div class="seg"><button class="${App.vMode === 'recipes' ? 'on' : ''}" onclick="App.vMode='recipes';render()">podle receptů</button><button class="${App.vMode === 'days' ? 'on' : ''}" onclick="App.vMode='days';render()">podle dnů</button></div><span class="sp"></span><button class="btn sec sm" onclick="window.print()">Tisk</button></div>`;
-  const head = `${flow('vareni', ['Podívej se, co se opakuje', 'Uvař dopředu', 'Odškrtni 🍱 uvařeno'], 'Vaříš jednou a máš na víc dnů. Rozpis jde přepnout podle receptů nebo podle dnů.')}
-  <div class="row between" style="margin-bottom:6px"><h1>Vaření${help('Rozpis toho, co v týdnu uvařit. „Podle receptů“ sečte, kolikrát se jídlo v týdnu opakuje – hodí se na vaření do krabiček. „Podle dnů“ je rozpis den po dni. Gramy jsou v nákupním stavu (rýže suchá, maso syrové) a přepočítané na tvoji aktuální váhu a plánovanou aktivitu dne.')}</h1></div>`;
-  if (!wk.plan.some(d => d.some(Boolean))) return head + weekNav + `<div class="card">Zatím nemáš naplánovaný týden. Vyber jídla v Týdnu (nebo nech appku navrhnout) a rozpis se tu vyplní sám.</div>`;
-  const days = wk.plan.map((sels, i) => ({ i, r: calcPlanDay(s, foods, recipes, sels, w, planActFor(addDays(App.week, i), w)) }));
-  if (App.vMode === 'days') return head + `<p class="small muted" style="margin-bottom:8px">Gramy jsou suché a syrové, jak suroviny kupuješ, přepočítané na ${fmt1(w)} kg a aktivitu dne.</p>` + weekNav +
-    `<div class="masonry">${days.map(({ i, r }) => { if (!r.filled) return ''; return `<div class="card tight"><div class="row between"><h3>${DAY_NAMES[i]} <span class="muted small" style="font-weight:600">${czDateShort(addDays(App.week, i))}</span></h3><span class="small ${r.state === 1 ? 'bad' : 'muted'}">${fmt0(r.kcal)} kcal · ${fmt0(r.p)} g · limit ${fmt0(r.planLimit)}</span></div>
-      <table class="small" style="margin-top:4px">${r.courses.map((c, ci) => `<tr><td class="muted" style="width:52px">${s.courses[ci].time}</td><td><b>${c.sel ? esc(c.sel) : '<span class="muted">–</span>'}</b>${c.active ? `<div class="muted">${c.items.map(it => `${esc(it.food)} ${fmt0(it.g)} g`).join(' · ')}</div>` : (c.situace ? `<div class="muted">vyřešíš na místě – cíl ${fmt0(s.courses[ci].kcal)} kcal</div>` : '')}</td><td class="n">${c.active || c.situace ? fmt0(c.kcal) : ''}</td></tr>`).join('')}</table></div>`; }).join('')}</div>`;
-  // podle receptů: agregace přes týden (gramy sečtené, počet dnů)
+  const sel = varDays();
+  const napoveda = 'Vybereš dny, na které vaříš – klidně od středy nebo jen na tři dny. Appka sečte, kolik porcí čeho uvařit, a řekne, kolik toho nasypat do hrnce v suchém stavu. „Uvařeno“ je záznam: kolik porcí a které dny pokrývají. Proto ví i o zbytku v lednici.';
+  const head = `${flow('vareni', ['Vyber dny, na které vaříš', 'Uvař a zvaž hotovou dávku', 'Ulož jako uvařeno'], 'Uvařené maso a rýže vydrží v lednici zhruba tři dny. Na celý týden se vaří jen to, co jde zamrazit.')}
+  <div class="row between" style="margin-bottom:6px"><h1>Vaření${help(napoveda)}</h1>
+    <div class="seg noprint"><button class="${App.vMode === 'recipes' ? 'on' : ''}" onclick="App.vMode='recipes';render()">co uvařit</button><button class="${App.vMode === 'days' ? 'on' : ''}" onclick="App.vMode='days';render()">den po dni</button></div></div>`;
+  // výběr dnů: dnešek a 13 dní dopředu
+  const t = todayISO();
+  const chips = `<div class="row noprint" style="gap:6px;flex-wrap:wrap;margin-bottom:10px"><span class="small muted" style="font-weight:700">Vařím na:</span>
+    ${Array.from({ length: 10 }, (_, k) => addDays(t, k)).map(d => `<span class="chip ${sel.includes(d) ? 'on' : ''}" onclick="A.vDay('${d}')" title="${czDate(d)}">${d === t ? 'dnes' : DAY_SHORT[dayIndex(d)] + ' ' + parseISO(d).getDate() + '.'}</span>`).join('')}
+    <button class="btn sec sm" onclick="A.vSpan(3)">3 dny</button><button class="btn sec sm" onclick="A.vSpan(7)">celý týden</button></div>`;
+
+  // zbytky v lednici
+  const zbytky = cooks().map(c => ({ c, left: cookLeft(c) })).filter(x => x.left > 0);
+  const zbytkyHtml = zbytky.length ? `<div class="card"><h2>🍱 Máš uvařeno${help('Záznamy o vaření, ze kterých ještě zbývají porce. Porce ubývá, když jídlo na pokrytý den označíš jako snědené.')}</h2>
+    <table class="small" style="margin-top:6px">${zbytky.map(({ c, left }) => `<tr><td class="b">${esc(c.recipe)}</td>
+      <td class="muted">uvařeno ${czDateShort(c.at)} · ${c.n} ${c.n === 1 ? 'porce' : (c.n < 5 ? 'porce' : 'porcí')}${c.gc ? ` · dávka ${fmt0(c.gc)} g, porce ${fmt0(c.gc / c.n)} g` : ''}</td>
+      <td class="n"><b class="ok">zbývá ${left}</b></td><td class="n noprint"><button class="xbtn write" title="smazat záznam" onclick="A.cookDel('${c.id}')">×</button></td></tr>`).join('')}</table></div>` : '';
+
+  // co se na vybrané dny má uvařit
   const agg = {};
-  days.forEach(({ i, r }) => r.courses.forEach((c, ci) => { if (!c.active) return; const a = agg[c.sel] = agg[c.sel] || { name: c.sel, course: s.courses[ci].name, key: s.courses[ci].key, days: [], kcal: 0, p: 0, items: {} }; a.days.push(DAY_SHORT[i]); a.kcal += c.kcal; a.p += c.p; c.items.forEach(it => { a.items[it.food] = (a.items[it.food] || 0) + it.g; }); }));
-  const list = Object.values(agg).sort((a, b) => (s.courses.findIndex(c => c.name === a.course) - s.courses.findIndex(c => c.name === b.course)) || b.days.length - a.days.length);
-  return head + `<p class="small muted" style="margin-bottom:8px">${list.length} různých jídel v týdnu. Uvař naráz na všechny dny, zvaž jednou a rozděl rovným dílem do krabiček – „🍱 uvařeno“ si odškrtni. ⚖️ zvaž · 🥄 odměř · ✋ od oka.</p>` + weekNav +
-    `<div class="card tight">${list.map(a => { const open = App.rOpen['v:' + a.name]; const n = a.days.length; return `<div class="rrow ${open ? 'open' : ''}"><div class="rhead" onclick="App.rOpen['v:${esc(a.name)}']=!App.rOpen['v:${esc(a.name)}'];render()"><span class="rtag">${COURSE_EMOJI[a.key]} ${esc(a.course)}</span><span class="rname">${esc(a.name)} <span class="pill">${n}× · ${a.days.join(' ')}</span>${cookedSet(App.week)[a.name] ? ' <span class="pill ok">🍱 uvařeno</span>' : ''}</span><button class="btn sec sm write" onclick="event.stopPropagation();A.toggleCooked('${App.week}',${JSON.stringify(a.name).replace(/"/g, '&quot;')})">${cookedSet(App.week)[a.name] ? 'zrušit' : '🍱 uvařeno ×' + n}</button><span class="rk"><b>${fmt0(a.kcal / n)}</b> kcal/porce · ${fmt0(a.p / n)} g B</span><span class="muted">${open ? '▾' : '▸'}</span></div>
-      ${open ? `<div class="rbody"><table class="small"><tr><th>Surovina</th><th class="n">na porci</th><th class="n">celkem ${n}×</th></tr>${Object.entries(a.items).map(([f, g]) => `<tr><td>${modeBadge(f)} ${esc(f)} <span class="tiny muted">${measureText(f, g / n)}</span></td><td class="n">${fmt0(g / n)} g</td><td class="n b">${g >= 1000 ? fmt1(g / 1000) + ' kg' : fmt0(g) + ' g'}</td></tr>`).join('')}</table></div>` : ''}</div>`; }).join('')}</div>`;
+  sel.forEach(d => {
+    const day = effectiveDay(d); const dd = calcDay(s, foods, recipes, day, weightAt(s, d));
+    dd.courses.forEach((c, ci) => {
+      if (!c.active) return;
+      if (cookFor(d, c.key)) return;   // už je uvařeno, znovu vařit netřeba
+      const a = agg[c.sel] = agg[c.sel] || { name: c.sel, course: s.courses[ci].name, key: s.courses[ci].key, covers: [], kcal: 0, p: 0, g: 0, gc: 0, items: {} };
+      a.covers.push({ d, k: c.key }); a.kcal += c.kcal; a.p += c.p; a.g += c.g; a.gc += c.gc;
+      c.items.forEach(it => { a.items[it.food] = (a.items[it.food] || 0) + it.g; });
+    });
+  });
+  const list = Object.values(agg).sort((a, b) => (s.courses.findIndex(c => c.name === a.course) - s.courses.findIndex(c => c.name === b.course)) || b.covers.length - a.covers.length);
+
+  if (App.vMode === 'days') {
+    return head + chips + zbytkyHtml + `<p class="small muted" style="margin:0 0 8px">Gramy jsou v nákupním stavu (rýže suchá, maso syrové), přepočítané na ${fmt1(w)} kg a aktivitu dne.</p>
+    <div class="masonry">${sel.map(d => { const day = effectiveDay(d); const dd = calcDay(s, foods, recipes, day, weightAt(s, d)); if (!dd.tot.kcal) return '';
+      return `<div class="card tight"><div class="row between"><h3>${DAY_NAMES[dayIndex(d)]} <span class="muted small" style="font-weight:600">${czDateShort(d)}</span></h3><span class="small muted">${fmt0(dd.tot.kcal)} kcal</span></div>
+      <table class="small" style="margin-top:4px">${dd.courses.map((c, ci) => `<tr><td class="muted" style="width:52px">${s.courses[ci].time}</td><td><b>${c.sel ? esc(c.sel) : '<span class="muted">–</span>'}</b>${cookFor(d, c.key) ? ' <span class="pill ok">🍱 uvařeno</span>' : ''}${c.active ? `<div class="muted">${c.items.map(it => `${esc(it.food)} ${fmt0(it.g)} g`).join(' · ')}</div>` : ''}</td></tr>`).join('')}</table></div>`; }).join('')}</div>`;
+  }
+  if (!list.length) return head + chips + zbytkyHtml + `<div class="card">${zbytky.length ? 'Na vybrané dny máš všechno uvařené. Přidej další den, nebo si dej pauzu.' : 'Na vybrané dny nemáš naplánovaná jídla. Vyber je v Týdnu.'}</div>`;
+
+  const dalsi = addDays(sel[sel.length - 1], 1);   // co by stál den navíc
+  return head + chips + zbytkyHtml + `<p class="small muted" style="margin:0 0 8px">${list.length} ${list.length === 1 ? 'jídlo' : (list.length < 5 ? 'jídla' : 'jídel')} na ${sel.length} ${sel.length === 1 ? 'den' : (sel.length < 5 ? 'dny' : 'dnů')}. Gramy jsou suché a syrové, jak suroviny kupuješ. ⚖️ zvaž · 🥄 odměř · ✋ od oka.</p>
+  <div class="card tight">${list.map(a => {
+    const open = App.rOpen['v:' + a.name]; const n = a.covers.length;
+    const sd = shelfDays(a.items, foods);
+    const rozsah = daysBetween(a.covers[0].d, a.covers[n - 1].d) + 1;
+    const dny = a.covers.map(x => DAY_SHORT[dayIndex(x.d)]).join(' ');
+    return `<div class="rrow ${open ? 'open' : ''}"><div class="rhead" onclick="App.rOpen['v:${esc(a.name)}']=!App.rOpen['v:${esc(a.name)}'];render()">
+      <span class="rtag">${COURSE_EMOJI[a.key]} ${esc(a.course)}</span>
+      <span class="rname">${esc(a.name)} <span class="pill">${n}× · ${dny}</span>${rozsah > sd ? ` <span class="pill warn">${rozsah} dnů – zamrazit</span>` : ''}</span>
+      <button class="btn sec sm write" onclick="event.stopPropagation();A.cookDone(${JSON.stringify(a.name).replace(/"/g, '&quot;')},${n},${JSON.stringify(a.covers).replace(/"/g, '&quot;')},${Math.round(a.gc)})">🍱 uvařeno ${n}×</button>
+      <span class="rk"><b>${fmt0(a.kcal / n)}</b> kcal/porce · ${fmt0(a.gc / n)} g</span><span class="muted">${open ? '▾' : '▸'}</span></div>
+      ${open ? `<div class="rbody">
+        <table class="small"><tr><th>Surovina</th><th class="n">na porci</th><th class="n">do hrnce ${n}×</th></tr>
+        ${Object.entries(a.items).map(([f, g]) => `<tr><td>${modeBadge(f)} ${esc(f)} <span class="tiny muted">${measureText(f, g / n)}</span></td><td class="n">${fmt0(g / n)} g</td><td class="n b">${g >= 1000 ? fmt1(g / 1000) + ' kg' : fmt0(g) + ' g'}</td></tr>`).join('')}
+        <tr class="sum"><td class="b">hotová dávka (odhad)</td><td class="n">${fmt0(a.gc / n)} g/porce</td><td class="n b">${fmt0(a.gc)} g</td></tr></table>
+        <p class="hint">Uvař, zvaž hotovou dávku a rozděl na ${n} stejných porcí – je to přesnější než dělit od oka. Odhad ${fmt0(a.gc)} g počítá s tím, že rýže a luštěniny nasáknou vodu a maso ji ztratí.</p>
+        ${rozsah > sd ? `<div class="alert a2" style="margin-top:8px"><div style="flex:1">Vaříš na ${rozsah} dnů, ale ${sd === 3 ? 'maso a rýže vydrží' : 'tohle vydrží'} v lednici zhruba ${sd} dny. Uvař to klidně naráz, ale co je nad ${sd} dny, dej hned do mrazáku.</div></div>` : ''}
+        <p class="tiny muted" style="margin-top:6px">Kdybys přidal ještě ${czDateShort(dalsi)}, vaříš stejně dlouho – jen přidáš suroviny na jednu porci.</p>
+      </div>` : ''}</div>`; }).join('')}</div>`;
 };
+

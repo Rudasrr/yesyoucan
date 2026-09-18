@@ -563,3 +563,19 @@ body.has-modal .toast{bottom:auto;top:calc(12px + env(safe-area-inset-top))}
 .blg .gr{margin-left:auto;font-weight:700}
 @media(max-width:600px){.blg .gr{margin-left:0}}
 .card.ga-hero{overflow:hidden}
+
+/* Nákupní lístek na tisk + stavy spíže */
+.pcell{overflow-wrap:anywhere}
+.pst{border:1px solid var(--line);background:#fff;border-radius:999px;padding:4px 9px;font-size:12px;font-weight:700;color:var(--ink2);cursor:pointer;margin-left:4px}
+.pst.on{border-color:transparent;color:#fff}
+.pst.on.ok{background:var(--ok)}.pst.on.warn{background:var(--y)}.pst.on.bad{background:var(--bad)}
+.ptitle{margin-bottom:10px}
+.plist2{column-count:2;column-gap:26px}
+@media(max-width:600px){.plist2{column-count:1}}
+.pgrp{break-inside:avoid;margin-bottom:12px}
+.pgrp h3{font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink2);border-bottom:1px solid var(--line);padding-bottom:3px;margin-bottom:4px}
+.pln{display:flex;align-items:center;gap:8px;padding:3px 0;font-size:14px;break-inside:avoid}
+.pln .box{width:13px;height:13px;border:1.5px solid var(--ink2);border-radius:3px;flex:none}
+.pln .nm{flex:1;overflow-wrap:anywhere}
+.pln b{font-weight:800;white-space:nowrap}
+@media print{.plist2{column-count:2}.pln{font-size:12px;padding:1px 0}.pgrp{margin-bottom:8px}}
