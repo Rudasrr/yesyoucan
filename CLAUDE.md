@@ -23,8 +23,17 @@ Pořadí skládání (neměnit): style.css → seed.js → calc.js → store.js 
 - Výpočty v `calc.js` jsou 1:1 podle sešitu, kromě zdokumentovaných odchylek (STAV.md → „Odchylky od sešitu“). Změna výpočtu = změna zadání, nikdy vedlejší efekt.
 - Offline-first: localStorage + fronta `outbox` + last-write-wins podle `updated_at`, soft-delete `deleted`. Id záznamů obsahují uid.
 - Robert edituje výchozí suroviny/recepty jako vlastní verzi; trenér globálně. Tempo hubnutí mění jen trenér.
+- **Stav surovin (18. 9. 2026):** surovina se eviduje v tom stavu, v jakém se kupuje – rýže, těstoviny a luštěniny suché, maso syrové, pečivo upečené, konzerva po odkapání. Míchat vařené a syrové v jednom receptu je chyba (nákup i vaření pak hlásí skoro trojnásobek). Suroviny, které vařením mění hmotnost, mají `yld` (výtěžnost, kolikrát ztěžknou). Z ní se počítá hmotnost na talíři, domácí míry a odhad hotové dávky. Kalorie a makra jsou vždy na 100 g nákupního stavu.
+- Zaokrouhlení škálované přílohy na 10 g se dělá **v hmotnosti na talíři**, ne v suché surovině (`roundPortion(g, scale, food)`) – jinak by jeden krok znamenal skoro 30 g rýže.
+- Domácí míry jsou **vstupní a zobrazovací vrstva, nikdy úložiště**. Zadat se dá v hrncích i gramech, uloží se gramy. Kdyby recept ukládal „2 hrnky“, přeměření hrnku by tiše změnilo kalorie a trenérův recept by u každého znamenal jiné jídlo.
+- **Spíž** eviduje jen trvanlivé suroviny a jen ve třech stavech (mám / dochází / nemám), žádné gramy. Účelem není inventura, ale vědět, co nedávat na nákupní lístek. Čerstvé suroviny se neevidují. Stav se odvozuje z odškrtnutí v Nákupu a z týdenní spotřeby.
+- **Vaření je záznam, ne zaškrtávátko**: kdy, co, kolik porcí a které sloty (den + chod) pokrývá. Z toho plynou zbytky v lednici. Vaří se na libovolné dny, ne na kalendářní týden. Trvanlivost: maso a ryby 3 dny, zelenina a mléčné 4, suché 5 – nad to appka posílá do mrazáku.
+- **Udržovací týden** (`settings.maint_weeks`, pole pondělků): deficit nula, limit na celkovém výdeji. Zařazuje ho trenér po šesti až deseti týdnech deficitu. Nepřetržitý deficit na celé hubnutí není plán, který jde dojít.
+- Nová data přidávají ke každé surovině `aisle` (regál v obchodě) a u trvanlivých `pack` + `pantry`.
 - **Plán vs. plnění:** trenér plánuje (cíl chůze, kroky, tréninkový plán, tempo, nastavení), Robert **jen hlásí, co se opravdu stalo** – ušlé minuty, kroky, snědená jídla, odcvičené série, váha. Robert plánuje jen dvě věci: jídla na další dny (Týden) a cheat na večer. Ovládací prvek musí odpovídat roli: cíl se nastavuje jednou, plnění se přičítá tlačítky nebo zapisuje číslem – **posuvník na plnění nepatří**, vypadá jako nastavení cíle. Nikdy neukazuj cílovou hodnotu jako by ji Robert splnil (kroky se do 18. 9. 2026 předvyplňovaly cílem a trenér podle vymyšlených čísel ladil faktor aktivity).
 - Rytmus: `#main` je svislý flex s mezerou 14 px a vlastní okraje bloků se ruší – jedna mezera všude, žádné `margin-top` v inline stylech. Žádná tmavá tlačítka (`.chip.on` je modrá, ne inkoustová). Posuvníky jsou systémové s `accent-color`, ne vlastní `::-webkit-slider-*` – vlastní se v jiných prohlížečích rozpadaly.
+- Menu: klient má nahoře čtyři denní obrazovky (Dnes, Týden, Jídlo, Měření), databáze a návod jsou pod Více. Trenér má pět svých obrazovek, Robertovy pod Více – dvanáct položek se lámalo do dvou řad a překrývalo obsah.
+- Velké číslo v dlaždici dne musí být **tatáž veličina, kterou ukazuje pruh pod ním** (kolik kcal zbývá do limitu, se znaménkem). Jinak se čte jako procento naplnění.
 - Rozvržení: **jeden sloupec karet na celou šířku**, vycentrovaný (`#main{max-width:1060px}`), karty jdou pod sebou v pořadí podle důležitosti. Žádné dvousloupcové bloky vedle sebe – vždycky z nich dole zbyde nerovný okraj. Uvnitř karty smí být mřížka (dlaždice, kontroly), ta se `auto-fit` roztáhne. Seznamy mnoha krátkých karet (Nákup, Vaření) používají `.masonry` (sloupcová sazba) – obsah se rozlije a díra nevznikne. Dvousloupcová `.grid g2` zůstává jen pro krátká pole formuláře, nikdy pro karty. Pořadí karet dělá struktura, ne `order`. Pořadí na Dnes: Teď → přehled dne → úkoly → aktivita → jídla → kontrola dne → poznámka. `qa.py` hlídá „díry v rozvržení: žádné“.
 - Žádný tmavý režim, žádné foto jídla, žádný přepis do frameworku.
 - Hesla, klíče ani e-maily nepatří do kódu. `CLOUD_CONFIG` plní build z env; `LOCAL_USERS` build v cloudové verzi vyprázdní. Lokální režim (prázdný `CLOUD_CONFIG`) slouží jen k vývoji a testům.
@@ -46,7 +55,7 @@ python3 build.py
 
 ## Kontrolní čísla (referenční hodnoty pro `tools/check.js`, build ze 14. 9. 2026)
 
-Test používá vzorový týden ze sešitu při průměrné váze 132,786 kg (příloha zaokrouhlena na 10 g – záměrná odchylka):
+Test používá vzorový týden ze sešitu při průměrné váze 132,786 kg (příloha zaokrouhlena na 10 g hmotnosti na talíři – záměrná odchylka). Převod na suché gramy (18. 9. 2026) tato čísla **nezměnil ani o setinu** – to je zároveň test správnosti převodu:
 
 - Středa: chody 622,50 · 632,00 · 462,50 · 642,00 · 114,00 → **2 473,00 kcal**, 256,6 g bílkovin (cíl 180), „zbývá 72 kcal“, chůze 65 min = 423 kcal, deficit 1 094 kcal = 0,99 kg/týden
 - Pátek (6 piv + 200 g smaženého): 1 890,0 kcal, přes limit o 1 155 kcal, pití 1 810 kcal

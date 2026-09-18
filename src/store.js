@@ -40,7 +40,7 @@ const Store = {
     this.db.recipes.forEach(r => { let ch = 0;
       (r.data.items || []).forEach(it => { const m = M[it.food]; if (m) { it.food = m[0]; it.g = Math.round(it.g / m[1] * 1e4) / 1e4; ch = 1; } });
       if (ch) touch('recipes', r); });
-    this.db.foods.forEach(r => { const m = M[r.data.name]; if (!m) return;
+    this.db.foods.forEach(r => { const m = M[r.data.name]; if (!m || r.user_id == null) return;   // globální řádky opraví supabase-setup.sql
       r.data.name = m[0]; ['kcal', 'p', 'c', 'f'].forEach(k => { if (r.data[k] != null) r.data[k] = Math.round(r.data[k] * m[1] * 1e4) / 1e4; });
       r.data.yld = m[1]; touch('foods', r); });
     this.db.days.forEach(r => { let ch = 0;
