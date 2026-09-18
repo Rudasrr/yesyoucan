@@ -100,7 +100,8 @@ VIEWS.trenink = function () {
   const pl = plans.find(p => p.id === App.tpId) || plans[plans.length - 1];
   if (pl) App.tpId = pl.id;
   const guard = paceGuard();
-  const head = `<div class="row between" style="margin-bottom:8px"><h1>🏋️ Trénink${help('Týdenní šablona Po–Ne. Když plán přiřadíš od data, Robert od toho dne vidí chůzi a cviky v úkolech; jeho limit jídla se zvedne o kalorie z plánované aktivity (deficit zůstává stejný), recepty, Týden, Nákup i Vaření se přepočítají samy. Odhad kalorií z tréninku je hrubý (±30 %) – hlavní páka hubnutí je jídlo.')}</h1>
+  const head = `${flow('trenink', ['Sestav den z knihovny cviků', 'Ulož jako trénink', 'Přiřaď plán od data'], 'Plán je týdenní šablona. Jednorázovou změnu na konkrétní datum dělej přes výjimku dne.')}
+  <div class="row between" style="margin-bottom:8px"><h1>🏋️ Trénink${help('Týdenní šablona Po–Ne. Když plán přiřadíš od data, Robert od toho dne vidí chůzi a cviky v úkolech; jeho limit jídla se zvedne o kalorie z plánované aktivity (deficit zůstává stejný), recepty, Týden, Nákup i Vaření se přepočítají samy. Odhad kalorií z tréninku je hrubý (±30 %) – hlavní páka hubnutí je jídlo.')}</h1>
     <div class="row"><button class="btn sm" onclick="A.tpNew()">+ Nový plán</button>${pl ? `<button class="btn sec sm" onclick="A.tpCopy()">Kopírovat</button>` : ''}</div></div>
     ${guard.map(g => `<div class="alert a${g.lv}">${g.text}</div>`).join('')}
     <div class="card"><div class="stats3 wk"><div><b>${fmt1(w)} <small>kg</small></b><span>aktuální váha</span></div><div><b>${fmt0(10 * w + 6.25 * s.height - 5 * s.age + 5)}</b><span>klidový výdej (kcal) – pod něj limit nejde</span></div><div><b>${fmt0(w * s.rate_pct / 100 * KG_KCAL / 7)}</b><span>plánovaný deficit/den (${String(s.rate_pct).replace('.', ',')} %)</span></div><div><b>${esc(ov.phase.split(' – ')[0])}</b><span>fáze chůze podle váhy</span></div><div><b>${fmt1(s.walk_kmh)} <small>km/h</small></b><span>tempo chůze (Nastavení)</span></div><div><b>${(() => { const st = stepsStat(Array.from({ length: 14 }, (_, i) => addDays(todayISO(), -i))); return st ? fmt0(st.avg) : '–'; })()} <small>👣</small></b><span>běžná chůze Ø kroků/den (14 dní, jen info)</span></div></div>${paceLine()}</div>`;
@@ -116,10 +117,11 @@ VIEWS.trenink = function () {
   if (weekDef / KG_KCAL < w * s.rate_pct / 100 * 0.97) warns.push(`Plán dává −${fmt2(weekDef / KG_KCAL)} kg/týden, cíl je −${fmt2(w * s.rate_pct / 100)}. Deficit drží appka sama – sníží ho jen spodní hranice jídla ve dnech s málo pohybu. Přidej chůzi v označených dnech.`);
   if (lastWeekAct > 0 && weekAct > lastWeekAct * 1.2) warns.push(`Aktivita ${fmt0(weekAct)} kcal/týden je o ${Math.round((weekAct / lastWeekAct - 1) * 100)} % víc než Robert reálně zvládl minulý týden (${fmt0(lastWeekAct)} kcal). Doporučené navýšení je do 20 %.`);
   if (ov.cur > 124 && pl.days.some(d => d.items.some(it => /Běh|Švihadlo|Angličák/.test(it.ex)))) warns.push('Nad 124 kg sešit nedoporučuje běh ani skoky (kolena, kotníky). Nahraď chůzí do kopce nebo kolem.');
-  const dayCards = dayStats.map(x => `<div class="wkday ${App.tpDay === x.i ? 'today' : ''}" onclick="App.tpDay=${x.i};render()" style="cursor:pointer"><div class="dh"><b>${DAY_NAMES[x.i]}</b>${x.warn ? '<span class="bad">⚠️</span>' : ''}</div>
-    <div class="small">🚶 ${x.act.planWalk} min · ${fmt0(x.walkKcal)} kcal</div>
-    <div class="small">${x.d.items.length ? x.d.items.map(it => `🏋️ ${esc(itemLabel(it))}`).join('<br>') : '<span class="muted">bez cviků</span>'}</div>
-    <div class="tiny muted" style="margin-top:6px">limit ${fmt0(x.b.planLimit)} kcal${x.act.planKcal ? ` · trénink ~${fmt0(x.act.planKcal)} kcal` : ''}</div></div>`).join('');
+  const dayCards = dayStats.map(x => `<div class="wday ${App.tpDay === x.i ? 'today open' : ''} ${x.warn ? 'st1' : 'st2'}" onclick="App.tpDay=${x.i};render()" style="cursor:pointer">
+    <div class="wdh"><span class="wdn">${DAY_NAMES[x.i]}${x.warn ? ' <span class="bad">⚠️</span>' : ''}</span>
+      <span class="wdsum">🚶 ${x.act.planWalk} min · ${fmt0(x.walkKcal)} kcal${x.act.planKcal ? ` · 🏋️ ${fmt0(x.act.planKcal)} kcal` : ''} · limit ${fmt0(x.b.planLimit)} kcal</span>
+      <span class="stt st${x.warn ? 1 : 2}">${x.d.items.length ? x.d.items.length + (x.d.items.length === 1 ? ' cvik' : x.d.items.length < 5 ? ' cviky' : ' cviků') : 'bez cviků'}</span></div>
+    ${App.tpDay !== x.i ? '' : `<div class="wdb">${x.d.items.length ? x.d.items.map(it => `<div class="wrow"><span class="wem">🏋️</span><div class="wpick">${esc(itemLabel(it))}</div></div>`).join('') : '<div class="wrow"><span class="muted small">Zatím bez cviků – přidej je níž v editoru dne.</span></div>'}</div>`}</div>`).join('');
   const ed = pl.days[App.tpDay]; const es = dayStats[App.tpDay];
   const exOpts = `<optgroup label="Silové – vlastní váha, kettlebell, expander">${EX_LIB.filter(e => e.type === 'strength').map(e => `<option value="${esc(e.ex)}">${esc(e.ex)}</option>`).join('')}</optgroup><optgroup label="Kardio">${EX_LIB.filter(e => e.type === 'cardio').map(e => `<option value="${esc(e.ex)}">${esc(e.ex)}</option>`).join('')}</optgroup><option value="__custom">Vlastní cvik…</option>`;
   const base0 = calcBase(s, w, s.walk_min, 0, s.walk_kmh, 0, 0); const foodDelta = es.b.planLimit - base0.planLimit;
@@ -143,7 +145,7 @@ VIEWS.trenink = function () {
     ${!warns.length ? '<div class="alert a3" style="margin-top:8px">Plán je v mezích: limit nad klidovým výdejem, tempo drží cíl, navýšení aktivity pod 20 %.</div>' : ''}
     <div class="row" style="margin-top:10px"><div class="in"><label class="f">Název plánu</label><input type="text" value="${esc(pl.name)}" style="width:220px" onchange="A.tpField('name',this.value)"></div><div class="in"><label class="f">Platí od (přiřadit Robertovi)</label><input type="date" value="${pl.active_from || ''}" style="width:auto" onchange="A.tpField('active_from',this.value||null)"></div><span class="sp"></span><button class="btn danger sm" onclick="A.tpDelete()">Smazat plán</button></div>
     <p class="hint">${pl.active_from ? `Robert tento plán vidí od ${czDate(pl.active_from)}. Změny se mu propíší okamžitě.` : 'Plán zatím není přiřazený – Robert vidí výchozích ' + s.walk_min + ' min chůze denně.'}</p></div>`;
-  return head + tabs + `<div class="wkgrid7" style="margin-bottom:12px">${dayCards}</div>` + editor + summary;
+  return head + tabs + `<div class="wdays">${dayCards}</div>` + editor + summary;
 };
 A.tpNew = () => { const pl = newPlan('Plán ' + (trainingPlans().length + 1)); Undo.run('Nový plán založen', () => saveTrainingPlan(pl)); App.tpId = pl.id; render(); };
 A.tpCopy = () => { const src = trainingPlans().find(p => p.id === App.tpId); const pl = { ...JSON.parse(JSON.stringify(src)), id: oid('tp', Date.now()), name: src.name + ' (kopie)', active_from: null, created: new Date().toISOString() }; Undo.run('Plán zkopírován', () => saveTrainingPlan(pl)); App.tpId = pl.id; render(); };
