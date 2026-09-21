@@ -70,7 +70,7 @@ VIEWS.dnes = function () {
     const w = g.kcal / totK * 100;
     const tit = `${g.nazev}: ${fmt0(g.kcal)} kcal${g.cheat ? '' : (g.snedeno ? ' · snědeno' : ' · ještě tě čeká')}`;
     return `<i class="mseg ${g.snedeno ? 'done' : ''} ${g.cheat ? 'cheat' : ''}" style="width:${w}%" title="${esc(tit)}"
-      ${g.cheat ? '' : `onclick="A.toCourse('${g.key}')"`}>${w >= 7 ? `<span>${g.em}</span>` : ''}</i>`;
+      ${g.cheat ? '' : `onclick="A.toCourse('${g.key}')"`}><span>${g.em}</span></i>`;
   }).join('');
 
   let big, lbl, tone, cap;

@@ -648,18 +648,18 @@ body.has-modal .toast{bottom:auto;top:calc(12px + env(safe-area-inset-top))}
 
 /* Den po jidlech: kazdy chod je vlastni dil pruhu. Plny = snedeno, srafovany = jeste te ceka. */
 .mbar{position:relative;display:flex;gap:2px;height:26px;background:rgba(22,32,58,.06);border-radius:9px;padding:2px;overflow:hidden}
-.mbar .mseg{position:relative;height:100%;border-radius:7px;min-width:6px;display:flex;align-items:center;justify-content:center;
+.mbar .mseg{position:relative;height:100%;border-radius:7px;min-width:24px;flex:0 1 auto;display:flex;align-items:center;justify-content:center;
   background:rgba(20,120,212,.22);background-image:repeating-linear-gradient(45deg,transparent 0 4px,rgba(20,120,212,.22) 4px 8px);
   border:1px solid rgba(20,120,212,.28);cursor:pointer;transition:filter .15s}
 .mbar .mseg:hover{filter:brightness(.94)}
 .mbar .mseg.done{background:var(--p);background-image:none;border-color:transparent}
 .mbar .mseg.cheat{background:rgba(217,131,36,.25);background-image:repeating-linear-gradient(45deg,transparent 0 4px,rgba(217,131,36,.3) 4px 8px);border-color:rgba(217,131,36,.4);cursor:default}
 .mbar .mseg span{font-size:12px;line-height:1;opacity:.95;pointer-events:none}
-.mbar .mseg span{background:rgba(255,255,255,.82);border-radius:999px;padding:1px 4px}
+.mbar .mseg span{background:rgba(255,255,255,.82);border-radius:999px;padding:1px 3px;max-width:100%;overflow:hidden}
 .mbar .mseg:not(.done) span{background:rgba(255,255,255,.7)}
 .mbar u{position:absolute;top:-2px;bottom:-2px;width:2px;background:var(--ink);opacity:.55;border-radius:2px;pointer-events:none}
 .mbar .over{position:absolute;top:0;bottom:0;right:0;background:repeating-linear-gradient(45deg,rgba(200,31,43,.18) 0 5px,rgba(200,31,43,.3) 5px 10px);pointer-events:none}
-@media(max-width:600px){.mbar{height:22px}.mbar .mseg span{font-size:11px}}
+@media(max-width:600px){.mbar{height:22px}.mbar .mseg{min-width:21px}.mbar .mseg span{font-size:11px;padding:1px 2px}}
 
 .leg{display:inline-flex;gap:10px;align-items:center;margin-left:8px;font-size:12px;color:var(--ink2)}
 .leg b{font-weight:400;font-size:13px}
