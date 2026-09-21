@@ -327,11 +327,32 @@ function mismatchAlert(date) { const m = dayMismatch(date); if (!m) return ''; r
 /* cíl kroků (nastavuje se jednou) vs. co Robert opravdu ušel (zapisuje každý den).
    Dřív se tyhle dvě věci mísily: dokud nic nezapsal, tvářil se cíl jako skutečnost
    a trenér podle vymyšlených čísel ladil faktor aktivity. */
-function stepsGoal() { const p = Prefs(); return p.defaultSteps || 5000; }
+function stepsGoal() { return stepsTarget(S()); }   // cil urcuje trener v Planu a cilech
 function defaultSteps() { return stepsGoal(); }
 function daySteps(day) { return day.steps != null ? day.steps : null; }
-A.setSteps = (v, isDefault) => { const n = Number(v) || 0; if (isDefault) { const p = Prefs(); p.defaultSteps = n; savePrefs(p); UI.toast(`Výchozí běžná chůze: ${fmt0(n)} kroků/den`); }
-  else Undo.run(`Běžná chůze dnes: ${fmt0(n)} kroků`, () => { const day = getDay(App.date); day.steps = n; saveDay(day); }, 'Jen pro trenéra – do cíle chůze se nepočítá.'); render(); };
+A.setSteps = (v, isDefault) => {
+  const r = omez(v, 0, 60000);
+  if (r.mimo) UI.toast('Kroky zapisuju v rozmezí 0 až 60 000.');
+  if (isDefault) { UI.toast('Cíl kroků nastavuje trenér v Plánu a cílech.'); render(); return; }
+  const n = r.n;
+  Undo.run('Kroky', () => { const day = getDay(App.date); day.steps = n == null ? null : n; saveDay(day); }, () => stepsHodnoceni(n));
+  render();
+};
+/* Zhodnocení dne podle kroků: nad cíl pochvala, pod cíl konkrétní cena za týden. */
+function stepsHodnoceni(n) {
+  const s = S(), cil = stepsTarget(s), w = currentWeight();
+  if (n == null) return 'Kroky smazány.';
+  if (n >= cil) {
+    const navic = n - cil;
+    const kcal = navic * kcalPerStep(w);
+    return navic >= 1000
+      ? `${fmt0(n)} kroků – to je ${fmt0(navic)} nad cíl. Máš navrch ${fmt0(kcal)} kcal, a takhle se to sčítá do ${fmt2(kcal * 7 / KG_KCAL)} kg za týden navíc. Přesně tohle rozhoduje.`
+      : `${fmt0(n)} kroků – cíl ${fmt0(cil)} splněn. Přesně takhle to má vypadat.`;
+  }
+  const sm = { chybi: cil - n, kcal: (cil - n) * kcalPerStep(w) };
+  return `${fmt0(n)} kroků z ${fmt0(cil)}. Chybí ${fmt0(sm.chybi)}, to je ${fmt0(sm.kcal)} kcal z výdeje – při celém týdnu ${fmt2(sm.kcal * 7 / KG_KCAL)} kg z úbytku. Zítra to dožeň, stačí se víc hýbat během dne.`;
+}
+
 function stepsStat(days) { const uid = Store.ownerId(); const vals = days.map(dt => { const r = Store.rows('days', uid).find(x => x.data.date === dt); return r ? daySteps(r.data) : null; }).filter(v => v != null); return vals.length ? { avg: vals.reduce((a, b) => a + b, 0) / vals.length, n: vals.length, min: Math.min(...vals) } : null; }
 
 /* ===== Doporučení k nastavení (trenér) ===== */
@@ -342,7 +363,7 @@ function settingsAdvice() {
   // kroky → faktor aktivity
   const st = stepsStat(Array.from({ length: 14 }, (_, i) => addDays(todayISO(), -i)));
   if (st && st.n >= 5) { const rec = factorForSteps(st.avg); if (Math.abs(rec - s.activity) >= 0.05) { const dl = Math.round((rec - s.activity) * b.bmr);
-    A_.push({ field: 'activity', lv: 1, text: `Běžná chůze Ø ${fmt0(st.avg)} kroků/den (${st.n} dní), faktor ${String(s.activity).replace('.', ',')} počítá s ~5 000. ${rec < s.activity ? `Výdej je nadhodnocený o ~${fmt0(-dl)} kcal/den – Robert by mohl hubnout pomaleji, než čekáš, nebo přibírat.` : `Výdej je podhodnocený o ~${fmt0(dl)} kcal/den – Robert je ve větším deficitu, než chceš.`} Doporučení: faktor ${String(rec).replace('.', ',')} (limit ${dl > 0 ? '+' : ''}${fmt0(dl)} kcal/den).`, apply: { activity: rec }, label: `Nastavit ${String(rec).replace('.', ',')}` }); }
+    A_.push({ field: 'activity', lv: 1, text: `Běžná chůze Ø ${fmt0(st.avg)} kroků/den (${st.n} dní), faktor ${String(s.activity).replace('.', ',')} počítá s cílem ${fmt0(stepsTarget(s))}. ${rec < s.activity ? `Výdej je nadhodnocený o ~${fmt0(-dl)} kcal/den – Robert by mohl hubnout pomaleji, než čekáš, nebo přibírat.` : `Výdej je podhodnocený o ~${fmt0(dl)} kcal/den – Robert je ve větším deficitu, než chceš.`} Doporučení: faktor ${String(rec).replace('.', ',')} (limit ${dl > 0 ? '+' : ''}${fmt0(dl)} kcal/den).`, apply: { activity: rec }, label: `Nastavit ${String(rec).replace('.', ',')}` }); }
     else A_.push({ field: 'activity', lv: 3, text: `Běžná chůze Ø ${fmt0(st.avg)} kroků/den sedí s faktorem ${String(s.activity).replace('.', ',')}.` }); }
   // tempo
   if (s.rate_pct > 1) A_.push({ field: 'rate_pct', lv: 1, text: `Tempo ${String(s.rate_pct).replace('.', ',')} % je nad 1 % – riziko ztráty svalu a únavy. Doporučení: 0,7–1,0 %.`, apply: { rate_pct: 1 }, label: 'Nastavit 1,0 %' });

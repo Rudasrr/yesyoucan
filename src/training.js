@@ -203,14 +203,23 @@ function renderActivityCard(date, day, d) {
         <div class="row" style="gap:6px">${[15, 30, 60].map(n => `<button class="btn sec sm write" onclick="A.addWalk(${n})">+${n} min</button>`).join('')}</div>
         <div class="in"><label class="f">nebo přesně</label>${stepper('walk-in', wm, 5, 0, 480, "A.setWalk(this.value)")}</div></div>
       </div>
+    ${(() => {
+      const cil = stepsTarget(s), real = daySteps(day), w2 = currentWeight();
+      const pct = real == null ? 0 : clamp(real / Math.max(1, cil) * 100, 0, 100);
+      const splneno = real != null && real >= cil;
+      const sm = stepsMiss(s, day, w2);
+      return `<div class="fulfil write">
+        <div class="row between"><span class="fgoal">👣 Běžná chůze – cíl ${fmt0(cil)} kroků${help('Kroky mimo plánovanou chůzi: schody, nákup, práce, pes. Trenér je nastavuje v Plánu a cílech a tvůj limit jídla i deficit z nich vycházejí – běžný výdej s nimi počítá. Zapiš večer skutečný počet z hodinek nebo telefonu.')}</span><b class="${splneno ? 'ok' : (real == null ? 'muted' : 'warn')}">${real == null ? 'večer zapiš' : fmt0(real) + ' kroků'}</b></div>
+        <div class="bar" style="margin:6px 0 8px;height:6px"><i style="width:${pct}%${splneno ? ';background:var(--ok)' : ''}"></i></div>
+        <div class="row" style="gap:10px;align-items:flex-end"><div class="in"><label class="f">Kolik jsi dnes ušel</label>${stepper('steps-in', real == null ? '' : real, 500, 0, 60000, "A.setSteps(this.value)")}</div>
+          ${real == null ? '<div class="row" style="gap:6px"><button class="btn sec sm write" onclick="A.setSteps(' + cil + ')">✓ ušel jsem cíl</button></div>' : ''}</div>
+        ${real == null ? '' : (splneno
+          ? `<div class="alert a3" style="margin-top:8px"><div style="flex:1">${real > cil ? `O ${fmt0(real - cil)} kroků nad cíl – ${fmt0((real - cil) * kcalPerStep(w2))} kcal navrch. Přesně tohle rozhoduje.` : 'Cíl splněný. Přesně takhle to má vypadat.'}</div></div>`
+          : `<div class="alert a2" style="margin-top:8px"><div style="flex:1">Chybí ${fmt0(sm.chybi)} kroků do cíle. Je to ${fmt0(sm.kcal)} kcal z výdeje – kdyby to bylo celý týden, ubere to <b>${fmt2(sm.kgTyden)} kg</b> z týdenního úbytku.</div></div>`)}
+      </div>`; })()}
     ${d.base.belowBmr ? `<div class="alert a2" style="margin-top:8px">Zatím máš málo cíleného pohybu – limit by vyšel pod klidový výdej, tak ho držím na spodní hranici. Chůze klidový výdej nezvedá, ale zvedá celkový výdej: od ${d.base.walkToBmr}. minuty ti začne růst i limit.</div>` : ''}
     ${items_html}
-<details style="margin-top:10px"><summary class="small muted" style="cursor:pointer">Kroky, tempo, piva a smažené</summary>
-    <div class="fulfil write" style="margin-top:10px">
-      <div class="row between"><span class="fgoal">👣 Kroky za den – nepovinné, cíl ${fmt0(stepsGoal())}</span><b>${daySteps(day) == null ? 'nezapsáno' : fmt0(daySteps(day)) + ' kroků'}</b></div>
-      <div class="row" style="gap:10px;align-items:flex-end;margin-top:6px"><div class="in"><label class="f">Kolik jsi jich dnes ušel</label>${stepper('steps-in', daySteps(day) == null ? '' : daySteps(day), 500, 0, 40000, "A.setSteps(this.value)")}</div>
-        <span class="tiny muted" style="max-width:320px">Nemusíš. Do limitu jídla se kroky nepočítají – běžný výdej s nimi počítá už sám a ušlé minuty výš říkají totéž. Zapiš je, jen když chceš, aby trenér přesněji naladil faktor aktivity.</span></div></div>
-
+<details style="margin-top:10px"><summary class="small muted" style="cursor:pointer">Tempo, piva a smažené</summary>
     <div class="grid" style="grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><div class="in"><label class="f">Ušlé minuty</label><input type="number" min="0" step="5" value="${day.walk_min ?? ''}" placeholder="0" onchange="A.setWalk(this.value)"></div><div class="in"><label class="f">Tempo</label><select onchange="A.dayField('walk_kmh',this.value,'Tempo změněno')">${SEED.met.map(([k]) => `<option value="${k}" ${Number(day.walk_kmh) === k ? 'selected' : ''}>${fmt1(k)} km/h</option>`).join('')}</select></div>
     <div class="in"><label class="f">Piv dnes (0,5 l)</label><input type="number" min="0" step="1" value="${day.beers || ''}" placeholder="0" onchange="A.dayField('beers',this.value,'Piva zapsána')"></div><div class="in"><label class="f">Smažené (g)</label><input type="number" min="0" step="50" value="${day.fried_g || ''}" placeholder="0" onchange="A.dayField('fried_g',this.value,'Smažené zapsáno')"></div></div><p class="hint">${esc(d.friday)}</p></details></div>`;
 }

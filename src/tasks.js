@@ -25,6 +25,11 @@ function dayTasks(date) {
     T.push({ id: 'meal_' + c.key, em: COURSE_EMOJI[c.key], tx: c.name + (chosen && m.sel !== SITUACE ? ' – ' + m.sel : ''), sub: (chosen ? '' : 'vyber jídlo · ') + c.time, done: !!m.eaten || m.sel === VYNECHAT, view: 'dnes', at: c.time, meal: c.key, chosen }); });
   const wt = (day.act && day.act.planWalk != null) ? day.act.planWalk : s.walk_min;
   T.push({ id: 'walk', em: '🚶', tx: `Chůze ${wt} minut`, sub: (day.walk_min || 0) ? `zapsáno ${day.walk_min} min` : 'zapiš ušlé minuty', done: (day.walk_min || 0) >= wt, view: 'dnes', at: '17:00' });
+  /* Kroky se zapisuji vecer – jsou to bezna chuze mimo planovanou hodinu. */
+  { const cil = stepsTarget(s), real = daySteps(day);
+    T.push({ id: 'steps', em: '\ud83d\udc63', tx: `Zapi\u0161 kroky \u2013 c\u00edl ${fmt0(cil)}`,
+      sub: real == null ? 've\u010der podle hodinek nebo telefonu' : (real >= cil ? `${fmt0(real)} \u2013 c\u00edl spln\u011bn` : `${fmt0(real)} \u2013 chyb\u00ed ${fmt0(cil - real)}`),
+      done: real != null, view: 'dnes', at: '20:00' }); }
   if (day.act && day.act.planItems) T.push({ id: 'training', em: '🏋️', tx: `Trénink · ${day.act.planItems} ${day.act.planItems === 1 ? 'položka' : (day.act.planItems < 5 ? 'položky' : 'položek')}`, sub: day.act.doneAll ? `hotovo · ${fmt0(day.act.doneKcal)} kcal` : `~${fmt0(day.act.planKcal)} kcal · odškrtni po dokončení`, done: !!day.act.doneAll, view: 'dnes', at: '17:30' });
   if (isSun) {
     const nextMon = addDays(thisMon, 7); const n = weekPlanned(nextMon);
