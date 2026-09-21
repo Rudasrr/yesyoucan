@@ -38,6 +38,12 @@ function dayTasks(date) {
     else T.push({ id: 'plan', em: '🗓️', tx: 'Naplánuj příští týden', sub: `${n}/35 jídel vybráno`, done: n >= 35, view: 'tyden', week: nextMon, at: PLAN_TIME });
     if (n >= 35) { const sd = shoppingDone(nextMon); T.push({ id: 'shop', em: '🛒', tx: 'Dojdi na nákup', sub: `mám ${sd.done} z ${sd.total}`, done: sd.total > 0 && sd.done >= sd.total, view: 'nakup', week: nextMon }); }
   }
+  /* Uzavření dne: večer se Robert podívá na kontrolu dne a odklikne ji.
+     Bez toho by den jen tiho uplynul a on by se nedozvedel, jak dopadl. */
+  { const ev = day.reviewed || day.closed;
+    T.push({ id: 'close', em: '\u2705', tx: 'Projdi a uzav\u0159i den',
+      sub: ev ? (evaluateDay(date).ok ? 'den sed\u011bl' : 'den nesed\u011bl \u2013 v\u00ed\u0161 pro\u010d') : 'mrkni na kontrolu dne a odklikni',
+      done: !!ev, view: 'dnes', at: CLOSE_TIME, close: 1 }); }
   T.forEach(t => { t.due = t.at ? timeToMin(t.at) <= now : true; t.now = !t.done && t.at && Math.abs(timeToMin(t.at) - now) <= 45 && isToday; });
   return T;
 }

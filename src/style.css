@@ -663,3 +663,16 @@ body.has-modal .toast{bottom:auto;top:calc(12px + env(safe-area-inset-top))}
 
 .leg{display:inline-flex;gap:10px;align-items:center;margin-left:8px;font-size:12px;color:var(--ink2)}
 .leg b{font-weight:400;font-size:13px}
+
+/* Cheat je jidlo navic – graficky patri k jidlum, ale nesmi s nimi splynout. */
+.card.cheatcard{background:linear-gradient(160deg,rgba(217,131,36,.14),rgba(217,131,36,.05));border-color:rgba(217,131,36,.3);position:relative}
+.card.cheatcard::before{content:'';position:absolute;left:0;top:14px;bottom:14px;width:4px;border-radius:0 4px 4px 0;background:var(--y)}
+.card.cheatcard h2{color:#8a5310}
+/* stupen cheatu */
+.cst{display:inline-block;font-size:11px;font-weight:800;letter-spacing:.02em;padding:2px 7px;border-radius:999px;white-space:nowrap}
+.cst.c-ok{background:var(--ok-bg);color:var(--ok)}
+.cst.c-y{background:var(--y-bg);color:#8a5310}
+.cst.c-warn{background:var(--warn-bg);color:var(--warn)}
+.cst.c-bad{background:var(--bad-bg);color:var(--bad)}
+.plist .pitem .pk .cst{margin-top:2px}
+.btn.chbtn{background:var(--y);box-shadow:0 6px 18px -8px rgba(217,131,36,.7),inset 0 1px 0 rgba(255,255,255,.28)}
