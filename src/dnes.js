@@ -47,25 +47,49 @@ VIEWS.dnes = function () {
      Je to vždycky rozdíl proti limitu dne: kladný = zbývá, záporný = přes. */
   const reserve = d.remaining, planned = d.tot.kcal > 0;
   const limitK = d.base.maxIntake, intakeK = d.intake;
-  const underK = Math.min(intakeK, limitK), overK = Math.max(0, intakeK - limitK);
-  const eatUnder = Math.min(prog.eaten, underK), planUnder = underK - eatUnder;
-  const totK = Math.max(limitK, intakeK) || 1;
-  const pctE = eatUnder / totK * 100, pctP = planUnder / totK * 100, pctO = overK / totK * 100, pctL = limitK / totK * 100;
+  /* Velke cislo odpovida na otazku, kterou clovek v poledne opravdu ma: kolik jeste
+     muzu snist. To je limit minus SNEDENE. Rezerva celeho planu (limit minus snedene
+     i naplanovane) je jina otazka – planovaci – a patri dolu mezi dlazdice. */
+  const snedeno = prog.eaten + (d.base.drinkKcal && prog.cheatEaten ? d.base.drinkKcal : 0);
+  const zbyvaSnist = limitK - snedeno;
   const pend = (d.base.planKcal || 0) - (d.base.doneKcal || 0);
   const walkPend = Math.max(0, d.base.planWalk - (day.walk_min || 0)) * d.base.walkPerMin;
   const coverable = pend + walkPend >= -reserve;
+
+  /* Den po jidlech: kazdy chod je vlastni dil pruhu, siroky podle svych kalorii. */
+  const segy = [];
+  d.courses.forEach((c, ci) => {
+    if (!(c.active || c.situace) || !(c.kcal > 0)) return;
+    segy.push({ key: c.key, em: COURSE_EMOJI[c.key], kcal: c.kcal, snedeno: !!(day.meals[c.key] || {}).eaten, nazev: s.courses[ci].name });
+  });
+  if (d.base.drinkKcal > 0) segy.push({ key: 'cheat', em: '🍺', kcal: d.base.drinkKcal, snedeno: false, nazev: 'cheat', cheat: 1 });
+  const totK = Math.max(limitK, intakeK) || 1;
+  const pctL = clamp(limitK / totK * 100, 0, 100);
+  const overK = Math.max(0, intakeK - limitK);
+  const segHtml = segy.map(g => {
+    const w = g.kcal / totK * 100;
+    const tit = `${g.nazev}: ${fmt0(g.kcal)} kcal${g.cheat ? '' : (g.snedeno ? ' · snědeno' : ' · ještě tě čeká')}`;
+    return `<i class="mseg ${g.snedeno ? 'done' : ''} ${g.cheat ? 'cheat' : ''}" style="width:${w}%" title="${esc(tit)}"
+      ${g.cheat ? '' : `onclick="A.toCourse('${g.key}')"`}>${w >= 7 ? `<span>${g.em}</span>` : ''}</i>`;
+  }).join('');
+
   let big, lbl, tone, cap;
-  if (!planned) { cap = 'Limit dne'; big = fmt0(limitK); lbl = 'kcal – zatím nemáš nic naplánováno'; tone = 'grad3'; }
-  else if (reserve < 0) {
-    cap = 'Přes limit'; big = '−' + fmt0(-reserve);
-    lbl = coverable ? `kcal nad limit teď – plánovaná aktivita (${fmt0(pend + walkPend)} kcal) to ještě srovná`
-                    : `kcal nad limit dne ${fmt0(limitK)} – plán dne nesedí`;
-    tone = coverable ? 'grad3' : 'grad3 warnline';
+  if (!planned) { cap = 'Limit dne'; big = fmt0(limitK); lbl = 'kcal na jídlo a pití – zatím nemáš nic naplánováno'; tone = 'grad3'; }
+  else if (zbyvaSnist < 0) {
+    cap = 'Přes limit'; big = '−' + fmt0(-zbyvaSnist);
+    lbl = `kcal nad limit dne ${fmt0(limitK)} – dnes už jsi snědl ${fmt0(snedeno)} kcal`;
+    tone = 'grad3 warnline';
   } else {
-    cap = 'Zbývá dnes'; big = fmt0(reserve);
-    lbl = prog.missing.length ? `kcal do limitu ${fmt0(limitK)} · chybí naplánovat ${prog.missing.map(c => c.name.toLowerCase()).join(', ')}`
-                              : `kcal do limitu ${fmt0(limitK)} – plán dne sedí`;
-    tone = 'grad';
+    /* Barva karty jde za velkym cislem, ne za planem – cervena vedle „zbyva snist 1 560“
+       by si odporovala. Ze plan prelejzda limit, rekne dlazdice rezerva planu a kontrola dne. */
+    cap = 'Zbývá sníst';
+    big = fmt0(zbyvaSnist);
+    const zbyvaPlan = Math.max(0, intakeK - snedeno);
+    lbl = zbyvaSnist === 0 ? `kcal – limit ${fmt0(limitK)} je vyčerpaný`
+      : reserve < 0 ? `kcal do limitu ${fmt0(limitK)} · ale plán dne je o ${fmt0(-reserve)} kcal nad ním`
+      : zbyvaPlan > 0 ? `kcal do limitu ${fmt0(limitK)} · z toho ${fmt0(zbyvaPlan)} má plán dne`
+      : `kcal do limitu ${fmt0(limitK)} · plán dne máš snědený`;
+    tone = reserve < 0 && !coverable ? 'grad3' : 'grad';
   }
   // karta Teď
   const now = renderNow(cl, d, day, tasks, s);
@@ -84,11 +108,12 @@ VIEWS.dnes = function () {
   ${note ? `<div class="note"><span class="em">💬</span><div><div class="tiny muted" style="font-weight:700">Vzkaz od trenéra${noteAt ? ' · ' + czDateShort(noteAt) : ''}</div><div>${esc(note)}</div></div></div>` : ''}
   <div class="card ga-hero" style="padding:0;overflow:hidden">
   <div class="herob ${tone}"><div class="hcap">${cap} <button class="ibtn" style="border-color:rgba(255,255,255,.6);background:transparent;color:#fff" onclick="event.stopPropagation();UI.pop(this,'Velké číslo je rozdíl mezi limitem dne a vším, co na dnešek máš – snědeným i naplánovaným. Pruh pod ním ukazuje totéž: plná část je snědeno, šrafovaná ještě naplánováno, červený přesah je nad limitem. Limit dne = celkový výdej (klidový výdej × 1,34 + cílený pohyb) − plánovaný deficit. Není to strop, do kterého se musíš najíst.')">i</button></div><div class="big">${big}</div><div class="lbl">${lbl}</div>
-  <div class="bar3" style="margin-top:14px"><i class="e" style="width:${pctE}%"></i><i class="p" style="width:${pctP}%"></i><i class="o" style="width:${pctO}%"></i>${pctO > 0 ? `<u style="left:${pctL}%"></u>` : ''}</div>
-  <div class="blg"><span><i class="e"></i>snědeno ${fmt0(prog.eaten)}</span><span><i class="p"></i>naplánováno ${fmt0(intakeK - prog.eaten)}${d.base.drinkKcal ? ` (v tom cheat ${fmt0(d.base.drinkKcal)})` : ''}</span>${overK ? `<span><i class="o"></i>nad limit ${fmt0(overK)}</span>` : ''}<span class="gr">limit ${fmt0(limitK)}</span></div></div>
-  <div class="stats3 two">
+  <div class="mbar" style="margin-top:14px">${segHtml}${overK > 0 ? `<b class="over" style="left:${pctL}%"></b>` : ''}${intakeK < limitK ? '' : ''}<u style="left:${pctL}%" title="limit ${fmt0(limitK)} kcal"></u></div>
+  <div class="blg"><span><i class="e"></i>snědeno ${fmt0(snedeno)}</span>${intakeK - snedeno > 0 ? `<span><i class="p"></i>ještě tě čeká ${fmt0(intakeK - snedeno)}</span>` : ''}${overK ? `<span><i class="o"></i>nad limit ${fmt0(overK)}</span>` : ''}<span class="gr">limit ${fmt0(limitK)}</span></div></div>
+  <div class="stats3">
   <div><b class="${d.tot.p > 0 ? (d.tot.p >= d.protTarget ? 'ok' : 'bad') : ''}">${fmt0(d.tot.p)} <small>/ ${d.protTarget || s.protein_min}</small></b><span><span class="mdot prot"></span>bílkoviny (g)</span></div>
-  <div><b class="${planned ? (d.dayDeficit >= d.base.deficit * 0.9 ? 'ok' : 'warn') : ''}">${planned ? fmt0(d.dayDeficit) : '–'}</b><span>${planned ? (d.dayDeficit >= 0 ? `dnešní deficit · ${fmt2(d.dayDeficit * 7 / KG_KCAL)} kg/týden, plán ${fmt2(w * s.rate_pct / 100)}` : 'dnes jsi v plusu – takhle se přibírá') : 'dnešní deficit'}</span></div>
+  <div><b class="${planned ? (d.dayDeficit >= d.base.deficit * 0.9 ? 'ok' : 'warn') : ''}">${planned ? (d.dayDeficit < 0 ? signed0(d.dayDeficit) : fmt0(d.dayDeficit)) : '–'}</b><span>${planned ? (d.dayDeficit >= 0 ? `dnešní deficit · ${fmt2(d.dayDeficit * 7 / KG_KCAL)} kg/týden, plán ${fmt2(w * s.rate_pct / 100)}` : 'dnes jsi v plusu – takhle se přibírá') : 'dnešní deficit'}</span></div>
+  <div><b class="${!planned ? '' : (reserve >= 0 ? 'ok' : (coverable ? 'warn' : 'bad'))}">${planned ? signed0(reserve) : '–'}</b><span>rezerva plánu · celý den ${fmt0(intakeK)} z ${fmt0(limitK)}</span></div>
   </div>
   ${renderDayCheck(d, s, day, w, planned)}
   </div>
@@ -165,6 +190,8 @@ function renderCourse(s, foods, recipes, day, c, i, d) {
 }
 
 A.stripShift = n => { App.stripWeek = n ? addDays(App.stripWeek, n) : mondayOf(todayISO()); render(); };
+A.toCourse = key => { App.openCourse = key; render();
+  setTimeout(() => { const el = document.getElementById('c-' + key); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 60); };
 A.toggleCourse = key => { App.openCourse = App.openCourse === key ? null : key; render(); };
 
 /* ---- akce Dnes (vše se Zpět a hláškou) ---- */

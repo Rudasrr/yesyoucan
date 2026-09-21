@@ -176,7 +176,7 @@ VIEWS._vareni = function () {
   if (!list.length) return head + chips + zbytkyHtml + `<div class="card">${zbytky.length ? 'Na vybrané dny máš všechno uvařené. Přidej další den, nebo si dej pauzu.' : 'Na vybrané dny nemáš naplánovaná jídla. Vyber je v Týdnu.'}</div>`;
 
   const dalsi = addDays(sel[sel.length - 1], 1);   // co by stál den navíc
-  return head + chips + zbytkyHtml + `<p class="small muted" style="margin:0 0 8px">${list.length} ${sklon(list.length, 'jídlo', 'jídla', 'jídel')} na ${sel.length} ${DEN(sel.length)}${help('Gramy jsou v nákupním stavu – rýže a luštěniny suché, maso syrové. Ikona u suroviny říká, jak ji odměřit: ⚖️ zvaž, 🥄 odměř, ✋ od oka.')}</p>
+  return head + chips + zbytkyHtml + `<p class="small muted" style="margin:0 0 8px">${list.length} ${sklon(list.length, 'jídlo', 'jídla', 'jídel')} na ${sel.length} ${DEN(sel.length)} <span class="leg"><b>⚖️</b> zvaž <b>🥄</b> odměř <b>✋</b> od oka</span>${help('Gramy jsou v nákupním stavu – rýže a luštěniny suché, maso syrové. Ikona u suroviny říká, jak ji odměřit: ⚖️ zvaž, 🥄 odměř, ✋ od oka.')}</p>
   <div class="card tight">${list.map(a => {
     const open = App.rOpen['v:' + a.name]; const n = a.covers.length;
     const sd = shelfDays(a.items, foods);

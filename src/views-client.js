@@ -79,7 +79,7 @@ VIEWS._prehled = function () {
   ${flow('prehled', ['Podívej se, jak si vedeš', 'Porovnej plán a skutečnost', 'Sleduj trend, ne jeden den'], 'Rozhoduje čára, ne tečka. Když jsi pod plánem dva týdny v řadě, řekni to trenérovi.')}
   <h1 style="margin-bottom:8px">Přehled${help('Jak jsi na cestě: aktuální váha (průměr 7 dní), kolik je dole a kolik zbývá, prognóza data cíle z tvého skutečného tempa, týdenní ohlédnutí a grafy. Plánovaná křivka = 0,7 % váhy týdně od startu.')}</h1>
   <div class="card">
-   <div class="kpi"><div><div class="v">${fmt1(ov.cur)}</div><div class="l">aktuální váha (kg)</div></div><div><div class="v ok">${fmt1(ov.lost)}</div><div class="l">shozeno (kg)</div></div><div><div class="v">${fmt1(ov.remaining)}</div><div class="l">zbývá (kg)</div></div><div><div class="v">${Math.round(ov.progress * 100)} %</div><div class="l">cesty za tebou</div></div></div>
+   <div class="kpi"><div><div class="v">${fmt1(ov.cur)}</div><div class="l">váha (kg) · průměr 7 vážení</div></div><div><div class="v ok">${fmt1(ov.lost)}</div><div class="l">shozeno (kg)</div></div><div><div class="v">${fmt1(ov.remaining)}</div><div class="l">zbývá (kg)</div></div><div><div class="v">${Math.round(ov.progress * 100)} %</div><div class="l">cesty za tebou</div></div></div>
    <div class="bar" style="margin:12px 0 6px"><i style="width:${ov.progress * 100}%"></i></div>
    <div class="small muted">${String(s.start_weight).replace('.', ',')} kg → ${s.goal_weight} kg · pas pod ${s.goal_waist} cm${help(T.avg_note)}</div>
   </div>
