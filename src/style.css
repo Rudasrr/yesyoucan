@@ -617,7 +617,19 @@ body.has-modal .toast{bottom:auto;top:calc(12px + env(safe-area-inset-top))}
 .pln .box{width:13px;height:13px;border:1.5px solid var(--ink2);border-radius:3px;flex:none}
 .pln .nm{flex:1;overflow-wrap:anywhere}
 .pln b{font-weight:800;white-space:nowrap}
-@media print{.plist2{column-count:2}.pln{font-size:12px;padding:1px 0}.pgrp{margin-bottom:8px}}
+/* ---- tisk nakupniho listku: kompaktne, ale citelne, na jednu A4 ---- */
+@media print{
+  .flow{display:none!important}
+  .card.ptisk{box-shadow:none;border:0;background:none;padding:0;margin:0}
+  .ptisk .ptit{border-bottom:1.5px solid #000;padding-bottom:3px;margin-bottom:6px}
+  .ptisk .ptit h2{font-size:13pt}
+  .plist2{column-gap:14px}
+  .pgrp{margin-bottom:7px}
+  .pgrp h3{font-size:8pt;letter-spacing:.06em;padding-bottom:1px;margin-bottom:2px;border-bottom:.5px solid #999;color:#000}
+  .pln{font-size:9.5pt;padding:1.2px 0;gap:6px;line-height:1.25}
+  .pln .box{width:9px;height:9px;border-width:1px;border-color:#444}
+  .pln b{font-size:9.5pt}
+}
 
 .gub{border:1px solid var(--line);background:#fff;border-radius:8px;padding:2px 7px;font-size:11px;font-weight:800;color:var(--p-ink);cursor:pointer}
 .gub:hover{background:var(--p-bg)}

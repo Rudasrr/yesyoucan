@@ -264,9 +264,12 @@ VIEWS._nakup = function () {
     <td class="n b">${x.buy}</td><td class="n muted tiny noprint">${x.packs ? `potřeba ${fmt0(x.g)} g` : ''}</td></tr>`;
 
   if (App.shopMode === 'tisk') {
-    return head + `<p class="small muted" style="margin-bottom:8px">Lístek na ${dnu} ${dnu === 1 ? 'den' : (dnu < 5 ? 'dny' : 'dnů')} · ${koupit.length} položek${doma.length ? ` · ${doma.length} máš doma` : ''}. Vytiskne se na jednu stránku.</p>
-      <div class="card"><h2 class="ptitle">Nákup · ${czDateShort(App.week)}${pick ? ` · ${pick.map(i => DAY_SHORT[i]).join(' ')}` : ' · celý týden'}</h2>
-      <div class="plist2">${aisles.map(a => `<div class="pgrp"><h3>${esc(a)}</h3>${koupit.filter(x => x.aisle === a).map(x => `<div class="pln"><span class="box"></span><span class="nm">${esc(x.food)}</span><b>${x.buy}</b></div>`).join('')}</div>`).join('')}</div></div>`;
+    /* Tisk: na papir jde jen listek. Ovladani, infoblok i nadpis obrazovky se neti\u0161tou.
+       Pocet sloupcu podle poctu polozek, aby se to veslo na jednu A4. */
+    const sloupcu = koupit.length > 46 ? 3 : 2;
+    return `<div class="noprint">${head}<p class="small muted" style="margin-bottom:8px">Lístek na ${dnu} ${DEN(dnu)} · ${koupit.length} ${sklon(koupit.length, 'položka', 'položky', 'položek')}${doma.length ? ` · ${doma.length} máš doma` : ''}. Vytiskne se na ${sloupcu === 3 ? 'jednu stránku ve třech sloupcích' : 'jednu stránku'}.</p></div>
+      <div class="card ptisk"><div class="row between ptit"><h2>Nákup · ${czDateShort(App.week)}${pick ? ` · ${pick.map(i2 => DAY_SHORT[i2]).join(' ')}` : ' · celý týden'}</h2><span class="small muted">${koupit.length} ${sklon(koupit.length, 'položka', 'položky', 'položek')}</span></div>
+      <div class="plist2" style="column-count:${sloupcu}">${aisles.map(a => `<div class="pgrp"><h3>${esc(a)}</h3>${koupit.filter(x => x.aisle === a).map(x => `<div class="pln"><span class="box"></span><span class="nm">${esc(x.food)}</span><b>${x.buy}</b></div>`).join('')}</div>`).join('')}</div></div>`;
   }
   return head + `<p class="small muted" style="margin-bottom:8px">Na ${dnu} ${dnu === 1 ? 'den' : (dnu < 5 ? 'dny' : 'dnů')} · koupit ${koupit.length} položek, odškrtnuto ${done}. ${doma.length ? `${doma.length} ${doma.length === 1 ? 'položku' : (doma.length < 5 ? 'položky' : 'položek')} máš podle Spíže doma – na lístku nejsou.` : ''}</p>
   ${dokup.length ? `<div class="alert a2" style="margin-bottom:10px"><div style="flex:1">Po nákupu jsi měnil plán. Dokup: ${dokup.map(x => `<b>${esc(x.food)} ${fmt0(x.chybi)} g</b>`).join(', ')}.</div></div>` : ''}

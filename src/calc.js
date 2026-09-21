@@ -90,6 +90,14 @@ function calcBase(s, weight, walkMin, exerMin, walkKmh, beers, friedG, act, extr
   const foodBudget = Math.max(600, planLimit - drinkKcal);
   return { bmr, baseOut, cheatPopis: cheatText || '', walkPerMin, exerPerMin, totalOut: totalOutRaw, minOut, deficit, maxIntake, maxIntakeRaw, planLimit, drinkKcal, foodBudget, kmh, planWalk, planWalkBase, cheatKcal, cheatWalk, cheatWalkFull, cheatCovered, cheatRest, cheatCoverable, belowBmr, planBelowBmr, walkToBmr, effDeficit: totalOutRaw - maxIntake, planKcal: act.planKcal || 0, doneKcal: act.doneKcal || 0 };
 }
+/* ===== Tolerance dne =====
+   O kolik smi den prelezt limit, aniz to appka hlasi jako chybu. Dve veci ji urcuji:
+   – porce se zaokrouhluji na 10 g hmotnosti na taliri, takze i dokonale slozeny den se
+     pres pet chodu rozejde o par desitek kcal; hlasit to je sum, ne signal,
+   – i kdyby to bylo kazdy den v tydnu, stoji to zlomek tydenniho ubytku:
+     pri limitu 2 500 je tolerance 50 kcal, za tyden 350 kcal = 0,05 kg.
+   Pod tolerance se den povazuje za sedici a hlasi se zelene. */
+function dayTol(limit) { return clamp(Math.round((limit || 0) * 0.02), 40, 70); }
 const courseTargetSum = s => s.courses.reduce((a, c) => a + c.kcal, 0);
 
 /* Jeden chod: recept + ruční úpravy → položky, faktor, součty.
@@ -211,15 +219,15 @@ function calcDay(s0, foods, recipes, day, weight) {
   const checks = [];
   // Kalorie
   if (tot.kcal === 0) checks.push({ name: 'Kalorie', state: 0, label: 'Nevybráno', text: 'Zatím nic nevybráno' });
-  else if (intake > base.maxIntake + 30) {
+  else if (intake > base.maxIntake + dayTol(base.maxIntake)) {
     const drink = base.drinkKcal > 0 ? ` (v tom cheat ${fmt0(base.drinkKcal)} kcal${base.cheatPopis ? ' – ' + base.cheatPopis : ''})` : '';
     // plán se vejde do limitu, jen zatím chybí pohyb, se kterým počítá
-    if (jenPlan && intake <= limitPoPlanu + 30) checks.push({ name: 'Kalorie', state: 3, label: 'Zatím plán',
+    if (jenPlan && intake <= limitPoPlanu + dayTol(limitPoPlanu)) checks.push({ name: 'Kalorie', state: 3, label: 'Zatím plán',
       text: `Naplánováno ${fmt0(intake)} kcal${drink} – to sedí do limitu ${fmt0(limitPoPlanu)} kcal, který ti vyjde, až uděláš svůj pohyb (chůze ${base.planWalk} min${base.planKcal ? ' + trénink' : ''}). Teď máš ${wmNow} minut, takže limit je zatím jen ${fmt0(base.maxIntake)}. Nic neřeš, jen to dojdi.` });
     else checks.push({ name: 'Kalorie', state: 1, label: jenPlan ? 'Plán je nad limitem' : 'Přes limit',
       text: `${jenPlan ? 'Naplánováno' : 'Snědeno'} ${fmt0(intake)} kcal${drink}, limit je ${fmt0(base.maxIntake)} – o ${fmt0(intake - base.maxIntake)} kcal víc. Deficit dne bude o tolik menší, takže se hubnutí posune. Spraví to jedno z toho: ubrat ${fmt0(intake - base.maxIntake)} kcal (nejdřív příloha), nebo dojít dnes celkem ${wmNow + walkFix} minut (teď máš ${wmNow}).` });
   }
-  else if (intake > base.maxIntake) checks.push({ name: 'Kalorie', state: 2, label: 'Sedí', text: 'Sedí na limitu, rozdíl je jen v zaokrouhlení porcí – neřeš to.' + (base.drinkKcal > 0 ? ` (v tom cheat ${fmt0(base.drinkKcal)} kcal)` : '') });
+  else if (intake > base.maxIntake) checks.push({ name: 'Kalorie', state: 2, label: 'Sedí', text: `Sedí na limitu – ${fmt0(intake - base.maxIntake)} kcal navíc je v toleranci dne (±${fmt0(dayTol(base.maxIntake))} kcal ze zaokrouhlení porcí). Neřeš to.` + (base.drinkKcal > 0 ? ` (v tom cheat ${fmt0(base.drinkKcal)} kcal)` : '') });
   else checks.push({ name: 'Kalorie', state: 2, label: jenPlan ? 'Plán sedí' : 'V limitu', text: `${jenPlan ? 'Naplánováno' : 'Snědeno'} ${fmt0(intake)} z ${fmt0(base.maxIntake)} kcal, zbývá ${fmt0(base.maxIntake - intake)} kcal` + (base.drinkKcal > 0 ? ` (v tom cheat ${fmt0(base.drinkKcal)} kcal)` : '') + '. Můžeš je sníst, nebo nechat být – deficit tím jen povyroste.' });
   // Bílkoviny
   if (tot.p === 0) checks.push({ name: 'Bílkoviny', state: 0, label: 'Nevybráno', text: 'Zatím nic nevybráno' });
@@ -228,7 +236,7 @@ function calcDay(s0, foods, recipes, day, weight) {
   // Chůze
   const wm = wmNow, wt = base.planWalk;
   if (wm < wt) {
-    const over = intake > base.maxIntake + 30;
+    const over = intake > base.maxIntake + dayTol(base.maxIntake);
     const tail = !over ? 'Na limit jídla to dnes zatím stačí, ale bez chůze nebude deficit takový, jaký má být.'
       : (wt >= wmNow + walkFix ? 'Dojdi je a den se srovná sám.' : `I tak bys byl nad limitem – dnes potřebuješ celkem ${wmNow + walkFix} minut.`);
     checks.push({ name: 'Chůze', state: 1, label: 'Chybí chůze', text: `Ušel jsi ${wm} z ${wt} minut, chybí ${wt - wm}. Je to ${fmt0((wt - wm) * base.walkPerMin)} kcal, o které máš dnes nižší limit jídla. ${tail}` });
@@ -247,10 +255,10 @@ function calcDay(s0, foods, recipes, day, weight) {
   let summary, ok = false;
   const targetKg = weight * s.rate_pct / 100;
   if (tot.kcal === 0) summary = 'Vyber jídla a doplň minuty chůze – pak ti řeknu, jestli den sedí.';
-  else if (intake <= base.maxIntake + 30 && tot.p >= protTarget && wm >= wt && !(day.act && day.act.planItems && !day.act.doneAll)) { ok = true; summary = `Dnešní den je v pořádku. Deficit ${fmt0(dayDeficit)} kcal, to je ${fmt2(dayDeficit * 7 / KG_KCAL)} kg za týden (plán ${fmt2(targetKg)} kg). Nic neřeš, takhle to funguje.`; }
+  else if (intake <= base.maxIntake + dayTol(base.maxIntake) && tot.p >= protTarget && wm >= wt && !(day.act && day.act.planItems && !day.act.doneAll)) { ok = true; summary = `Dnešní den je v pořádku. Deficit ${fmt0(dayDeficit)} kcal, to je ${fmt2(dayDeficit * 7 / KG_KCAL)} kg za týden (plán ${fmt2(targetKg)} kg). Nic neřeš, takhle to funguje.`; }
   else {
     const fix = [];
-    if (intake > base.maxIntake + 30) fix.push(`ubrat ${fmt0(intake - base.maxIntake)} kcal z jídla nebo dojít celkem ${wmNow + walkFix} minut`);
+    if (intake > base.maxIntake + dayTol(base.maxIntake)) fix.push(`ubrat ${fmt0(intake - base.maxIntake)} kcal z jídla nebo dojít celkem ${wmNow + walkFix} minut`);
     else if (wm < wt) fix.push(`dojít zbylých ${wt - wm} minut`);
     if (tot.p < protTarget) fix.push(`přidat ${fmt0(protTarget - tot.p)} g bílkovin`);
     if (day.act && day.act.planItems && !day.act.doneAll) fix.push('odškrtat trénink');
@@ -277,7 +285,7 @@ function calcPlanDay(s, foods, recipes, sels, weight, act) {
   let status, state;
   if (filled === 0) { status = '–'; state = 0; }
   else if (filled < 5) { status = `chybí ${5 - filled} jídlo`; state = 1; }
-  else if (kcal > base.planLimit + 30) { status = `přes o ${fmt0(kcal - base.planLimit)} kcal`; state = 1; }
+  else if (kcal > base.planLimit + dayTol(base.planLimit)) { status = `přes o ${fmt0(kcal - base.planLimit)} kcal`; state = 1; }
   else if (kcal < base.planLimit - 150) { status = `málo jídla – chybí ${fmt0(base.planLimit - kcal)} kcal do limitu`; state = 3; }
   else if (p < protTarget) { status = `málo bílkovin (${fmt0(p)} z ${fmt0(protTarget)} g)`; state = 1; }
   else if (nSit > 0) { status = `v limitu (${nSit} vyřešíš na místě)`; state = 2; }

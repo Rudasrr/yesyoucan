@@ -264,6 +264,7 @@ function registerSW() {
 async function boot() {
   registerSW();
   Store.load();
+  Store.refreshSeed();
   Store.migrateDry();
   let cloud = false;
   try { cloud = await Store.initCloud(); }

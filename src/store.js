@@ -26,6 +26,23 @@ const Store = {
     this.lastSync = LS.get('lastSync', null);
   },
   save(t) { LS.set('t:' + t, this.db[t]); },
+  /* Kdyz se zmeni verze vestavenych dat (jina jmena surovin, nova pole), stazene
+     globalni radky v prohlizeci jsou zastarale – a prirustkovy pull je neprinese,
+     protoze filtruje podle updated_at, ktere je starsi nez posledni sync. Proto se
+     pri zmene verze globalni radky zahodi (nahradi je vestaveny SEED) a vynuti se
+     plne stazeni. Vlastni data uzivatele se nedotknou. */
+  refreshSeed() {
+    if (LS.get('seedVer', null) === SEED.version) return 0;
+    let n = 0;
+    ['foods', 'recipes', 'training'].forEach(t => {
+      const pred = this.db[t].length;
+      this.db[t] = this.db[t].filter(r => r.user_id != null);
+      n += pred - this.db[t].length; this.save(t);
+    });
+    this.lastSync = null; LS.del('lastSync');
+    LS.set('seedVer', SEED.version);
+    return n;
+  },
   /* Přechod na suché gramy (18. 9. 2026): přílohy a luštěniny se dřív evidovaly vařené.
      Přejmenují se a gramy se vydělí výtěžností – kalorie jídla zůstanou stejné. */
   migrateDry() {

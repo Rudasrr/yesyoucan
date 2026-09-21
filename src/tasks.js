@@ -46,7 +46,7 @@ function dayTasks(date) {
 function evaluateDay(date) {
   const s = S(), day = effectiveDay(date), d = calcDay(s, Foods(), Recipes(), day, weightAt(s, date));
   const eaten = s.courses.filter(c => (day.meals[c.key] || {}).eaten).length;
-  const cheats = { beers: day.beers || 0, fried: day.fried_g || 0, over: d.tot.kcal > 0 && d.intake > d.base.maxIntake + 30 ? Math.round(d.intake - d.base.maxIntake) : 0, edits: d.courses.reduce((a, c) => a + c.edited, 0), situace: d.courses.filter(c => c.situace).length, skipped: d.courses.filter(c => c.skipped).length };
+  const cheats = { beers: day.beers || 0, fried: day.fried_g || 0, over: d.tot.kcal > 0 && d.intake > d.base.maxIntake + dayTol(d.base.maxIntake) ? Math.round(d.intake - d.base.maxIntake) : 0, edits: d.courses.reduce((a, c) => a + c.edited, 0), situace: d.courses.filter(c => c.situace).length, skipped: d.courses.filter(c => c.skipped).length };
   return { d, day, eaten, cheats, ok: d.ok, logged: d.tot.kcal > 0 || (day.walk_min || 0) > 0 };
 }
 
