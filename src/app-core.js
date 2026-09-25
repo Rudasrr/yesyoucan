@@ -223,12 +223,12 @@ async function afterLogin() {
 }
 
 /* ---- větší ovládání čísel: − hodnota + (palcem na telefonu) ---- */
-function stepper(id, value, step, min, max, onchange) {
+function stepper(id, value, step, min, max, onchange, placeholder) {
   const st = step || 1;
   return `<div class="step2"><button class="sbtn" type="button" onclick="A.num('${id}',${-st},${min ?? ''},${max ?? ''})" aria-label="míň">−</button>` +
     /* Desetinná pole jsou text s číselnou klávesnicí – „131,4“ z české klávesnice
        prohlížeč v type=number tiše zahodí a Robertovi se nic neuloží. */
-    `<input type="${st < 1 ? 'text' : 'number'}" inputmode="decimal" id="${id}" value="${value}" ${st < 1 ? '' : `step="${st}"`} ${min != null && st >= 1 ? `min="${min}"` : ''} ${max != null && st >= 1 ? `max="${max}"` : ''}${onchange ? ` onchange="${onchange}"` : ''}>` +
+    `<input type="${st < 1 ? 'text' : 'number'}" inputmode="decimal" id="${id}" value="${value}"${placeholder ? ` placeholder="${placeholder}"` : ''} ${st < 1 ? '' : `step="${st}"`} ${min != null && st >= 1 ? `min="${min}"` : ''} ${max != null && st >= 1 ? `max="${max}"` : ''}${onchange ? ` onchange="${onchange}"` : ''}>` +
     `<button class="sbtn" type="button" onclick="A.num('${id}',${st},${min ?? ''},${max ?? ''})" aria-label="víc">+</button></div>`;
 }
 /* posun hodnoty v políčku vedle tlačítka (gramáž v jídle) */
