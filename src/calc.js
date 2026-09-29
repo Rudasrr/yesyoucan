@@ -37,6 +37,7 @@ function roundPortion(g, scale, f) { if (!scale) return g; const y = yieldOf(f);
 const fmt1 = n => (Math.round(n * 10) / 10).toLocaleString('cs-CZ', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 const fmt2 = n => (Math.round(n * 100) / 100).toLocaleString('cs-CZ', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const signed0 = n => (n >= 0 ? '+' : '−') + fmt0(Math.abs(n));
+const signed1 = n => (n >= 0 ? '+' : '−') + fmt1(Math.abs(n));
 const mround5 = x => Math.round(x / 5) * 5;
 const clamp = (x, lo, hi) => Math.max(lo, Math.min(hi, x));
 const isoDate = d => { const z = new Date(d.getTime() - d.getTimezoneOffset() * 60000); return z.toISOString().slice(0, 10); };

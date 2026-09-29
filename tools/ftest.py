@@ -6,7 +6,7 @@ with sync_playwright() as p:
     pg.goto(URL); pg.wait_for_timeout(200)
     pg.evaluate('localLogin("client")')
     # měření – uložit dnešní váhu přes UI
-    pg.evaluate("A.mereni('zapis')"); pg.fill('#m_weight','131.9'); pg.fill('#m_waist','119'); pg.click('text=Uložit zápis'); pg.wait_for_timeout(100)
+    pg.evaluate("go('pokrok');A.measSheet(todayISO(),true)"); pg.wait_for_timeout(100); pg.fill('#m_weight','131,9'); pg.fill('#m_waist','119'); pg.click('.modal >> text=Uložit zápis'); pg.wait_for_timeout(150)
     print('meas saved:', pg.evaluate("Meas().length"), pg.evaluate("Meas()[0]"))
     # týden – vybrat snídani přes UI select v pondělí
     pg.evaluate("go('tyden')"); pg.evaluate("A.planSel(0,0,'Tvarohová mísa s ovocem a oříšky')"); pg.wait_for_timeout(100)
@@ -14,28 +14,29 @@ with sync_playwright() as p:
     pg.evaluate("A.copyWeek()") ; 
     # dnes – změnit jídlo, vyměnit surovinu, upravit gramy, pátek piva
     pg.evaluate("App.date=addDays(App.week,0);go('dnes')")
-    pg.evaluate("A.toggleCourse('snidane')"); pg.wait_for_timeout(100)   # jídla jsou sbalená, editace až po rozkliknutí
-    pg.evaluate("document.querySelector('.course .pickbtn').click()"); pg.wait_for_timeout(100); pg.fill('#pkq','míchaná'); pg.wait_for_timeout(100); print('picker hits:', pg.evaluate("document.querySelectorAll('.pitem').length")); pg.evaluate("window._pick('Míchaná vejce se šunkou a chlebem')"); pg.wait_for_timeout(100)
+    pg.evaluate("A.mealSheet('snidane')"); pg.wait_for_timeout(150)   # jídlo se upravuje ve spodním listu
+    pg.evaluate("document.querySelector('.modal .pickbtn').click()"); pg.wait_for_timeout(150); pg.fill('#pkq','míchaná'); pg.wait_for_timeout(100); print('picker hits:', pg.evaluate("document.querySelectorAll('.pitem').length")); pg.evaluate("window._pick('Míchaná vejce se šunkou a chlebem')"); pg.wait_for_timeout(100)
     print('sel:', pg.evaluate("getDay(App.date).meals.snidane"))
-    pg.click('.course >> nth=0 >> .items .pickbtn >> nth=0'); pg.wait_for_timeout(150)   # výměna suroviny přes panel s hledáním
+    pg.click('.modal .irow .pickbtn >> nth=0'); pg.wait_for_timeout(150)   # výměna suroviny přes panel s hledáním
     pg.fill('#fp-q','tofu'); pg.wait_for_timeout(150); print('panel surovin našel:', pg.evaluate("document.querySelectorAll('.pitem').length"))
     pg.evaluate("window._fppick('Tofu')"); pg.wait_for_timeout(150)
-    pg.fill('.course >> nth=0 >> .items input >> nth=1','80'); pg.press('.course >> nth=0 >> .items input >> nth=1','Tab'); pg.wait_for_timeout(100)
+    pg.fill('.modal .irow input.g >> nth=1','80'); pg.press('.modal .irow input.g >> nth=1','Tab'); pg.wait_for_timeout(150)
     print('edits:', pg.evaluate("JSON.stringify(getDay(App.date).meals.snidane)"))
-    print('checks text:', pg.evaluate("[...document.querySelectorAll('.checks div')].map(d=>d.textContent)"))
+    pg.evaluate("UI.closeModal();A.dayCheck()"); pg.wait_for_timeout(100)
+    print('checks text:', pg.evaluate("[...document.querySelectorAll('.modal .checks .chk')].map(d=>d.textContent)")); pg.evaluate("UI.closeModal()")
     pg.evaluate("A.dayField('beers','6','Piva')"); pg.wait_for_timeout(100)
-    print('friday hero:', pg.evaluate("document.querySelector('.herob .big').textContent"), pg.evaluate("(()=>{const c=document.querySelector('.checks .chk');return c?c.querySelector('.tag').textContent+': '+c.querySelector('.ct').textContent.slice(0,60):'-'})()"))
+    print('friday hero:', pg.evaluate("document.querySelector('.hero .big').textContent"), pg.evaluate("document.querySelector('.hero .state').textContent.trim()"))
     pg.evaluate("A.removeItem('snidane',0);A.extraAdd('snidane');A.extraFood('snidane',0,'Tofu');A.extraG('snidane',0,150)"); print('remove/extra:', pg.evaluate("JSON.stringify(getDay(App.date).meals.snidane)"), pg.evaluate("calcDay(S(),Foods(),Recipes(),effectiveDay(App.date),currentWeight()).courses[0].items.map(i=>i.food+':'+i.g).join(',')"))
     pg.evaluate("A.resetCourse('snidane')");
     pg.evaluate("toggleFav('Míchaná vejce se šunkou a chlebem')"); print('fav:', pg.evaluate("Prefs().favs"), 'recent:', pg.evaluate("Prefs().recent.slice(0,2)"))
     pg.evaluate("generateWeek(App.week,'all')"); print('gen week:', pg.evaluate("(()=>{const wk=getWeek(App.week);const s=S();return wk.plan.map(d=>calcPlanDay(s,Foods(),Recipes(),d,currentWeight()).status).join(' | ')+' uniq:'+new Set(wk.plan.flat()).size})()"))
-    pg.evaluate("localLogin('coach');saveCoachNote('Drž pátek na 3 pivech.');localLogin('client')"); print('note visible:', pg.evaluate("go('dnes');document.querySelector('.note')?.textContent.includes('3 pivech')"))
+    pg.evaluate("localLogin('coach');saveCoachNote('Drž pátek na 3 pivech.');localLogin('client')"); print('note visible:', pg.evaluate("App.date=todayISO();go('dnes');document.querySelector('.now .note')?.textContent.includes('3 pivech')"))
     print('coach line:', pg.evaluate("coachLine(todayISO()).main"))
     print('plausible:', pg.evaluate("JSON.stringify(weightPlausible(121, todayISO()))"))
     pg.evaluate("A.editFood(null,'own')"); pg.fill('#fn','Moje proteinová tyčinka'); pg.fill('#fk','380'); pg.fill('#fp','30'); pg.fill('#fs','35'); pg.fill('#ff','12'); pg.click('#fsave'); pg.wait_for_timeout(100); print('own food:', pg.evaluate("Foods().filter(f=>f.own).map(f=>f.name+':'+f.kcal)"))
     print('after reset:', pg.evaluate("JSON.stringify(getDay(App.date).meals.snidane)"))
     # vlastní recept
-    pg.evaluate("A.jidlo('recepty');A.editOwn()"); pg.fill('#re-n','Testovací omeleta'); pg.evaluate("window._reAdd()"); pg.wait_for_timeout(150); pg.fill('#fp-q','vejce'); pg.wait_for_timeout(100); print('food picker hits:', pg.evaluate("document.querySelectorAll('.pitem').length")); pg.evaluate("window._fppick('Vejce')"); pg.evaluate("window._reG(0,300)")
+    pg.evaluate("go('recepty');A.editOwn()"); pg.fill('#re-n','Testovací omeleta'); pg.evaluate("window._reAdd()"); pg.wait_for_timeout(150); pg.fill('#fp-q','vejce'); pg.wait_for_timeout(100); print('food picker hits:', pg.evaluate("document.querySelectorAll('.pitem').length")); pg.evaluate("window._fppick('Vejce')"); pg.evaluate("window._reG(0,300)")
     pg.evaluate("window._reAdd()"); pg.wait_for_timeout(150); pg.evaluate("window._fppick('Chléb konzumní (Šumava)')"); pg.evaluate("window._reG(1,80)"); pg.wait_for_timeout(100)
     print('own hint:', pg.evaluate("document.querySelector('.modal .status').textContent"))
     pg.click('#re-save'); pg.wait_for_timeout(100); print('own recipes:', pg.evaluate("Recipes().filter(r=>r.own).map(r=>r.name)"), 'in menu:', pg.evaluate("recipesFor('Snídaně').some(r=>r.name==='Testovací omeleta')"))
@@ -81,7 +82,7 @@ with sync_playwright() as p:
     # PIN
     pg.evaluate("Store.profile=null;LS.del('profile');render()"); pg.fill('#lem','r.pesek24@gmail.com'); pg.fill('#lpw','spatne'); pg.click('#lbtn'); pg.wait_for_timeout(100); print('login wrong:', pg.inner_text('#lerr'))
     pg.fill('#lem','rehor.rudolf@gmail.com'); pg.fill('#lpw','06392'); pg.click('#lbtn'); pg.wait_for_timeout(200); print('coach login role:', pg.evaluate("Store.profile.role"), pg.evaluate("App.view"))
-    pg.evaluate("go('trenink');A.tpNew()"); pg.evaluate("App.tpDay=0;A.tpItemAdd('Dřep');A.tpItemAdd('Kettlebell swing');A.tpItemAdd('Běh pomalý')")
+    pg.evaluate("App.coachTab='trenink';go('nastaveni');A.tpNew()"); pg.evaluate("App.tpDay=0;A.tpItemAdd('Dřep');A.tpItemAdd('Kettlebell swing');A.tpItemAdd('Běh pomalý')")
     # knihovna cviků: nový, oblíbený, hledání, přejmenování, smazání
     pg.evaluate("A.exEdit(null)"); pg.fill('#exn','Testovací cvik'); pg.fill('#exr','15'); pg.click('#exok'); pg.wait_for_timeout(150)
     print('nový cvik:', pg.evaluate("Exercises().filter(e=>!e.seed).map(e=>e.ex+':'+e.reps)"))
@@ -139,23 +140,27 @@ with sync_playwright() as p:
     pg.evaluate("A.saveNote(todayISO(),'bolelo koleno')"); print('note:', pg.evaluate("getDay(todayISO()).note"))
     pg.evaluate("generateWeek(App.week,'all')"); print('routine:', pg.evaluate("(()=>{const wk=getWeek(App.week);return new Set(wk.plan.map(d=>d[0])).size+' snídaní, '+new Set(wk.plan.map(d=>d[2])).size+' svačin'})()"))
     # mismatch after training change
-    pg.evaluate("localLogin('coach')"); pg.evaluate("go('trenink');App.tpDay=dayIndex(todayISO());render();A.tpItemAdd('Běh pomalý');A.tpItem(document.querySelectorAll('.items tr,table.small tr').length?0:0,'min',60)"); pg.wait_for_timeout(100)
+    pg.evaluate("localLogin('coach')"); pg.evaluate("App.coachTab='trenink';go('nastaveni');App.tpDay=dayIndex(todayISO());render();A.tpItemAdd('Běh pomalý');A.tpItem(trainingPlans().find(p=>p.id===App.tpId).days[App.tpDay].items.length-1,'min',60)"); pg.wait_for_timeout(100)
     print('pace:', pg.evaluate("(()=>{const p=paceOverview();return JSON.stringify({target:+p.target.toFixed(2),proj:+p.projThis.toFixed(2),floor:p.floorThis.length,actual:p.actual})})()"))
-    print('foodbox:', pg.evaluate("document.querry===undefined?[...document.querySelectorAll('.foodbox span')].map(s=>s.textContent).join(' | '):''"))
+    print('den tréninku:', pg.evaluate("[...document.querySelectorAll('#main .stats3 span')].map(s=>s.textContent).join(' | ')"))
     pg.evaluate("localLogin('client')"); print('mismatch today:', pg.evaluate("JSON.stringify(dayMismatch(todayISO()))"))
     pg.evaluate("A.fitDay(todayISO())"); print('after fit:', pg.evaluate("JSON.stringify(dayMismatch(todayISO()))"), pg.evaluate("(()=>{const w=currentWeight();const r=calcPlanDay(S(),Foods(),Recipes(),getWeek(App.week).plan[dayIndex(todayISO())],w,planActFor(todayISO(),w));return r.kcal.toFixed(0)+'/'+r.planLimit.toFixed(0)})()"))
     pg.evaluate("localLogin('coach')"); pg.evaluate("A.saveReply(todayISO(),'Odpočiň si, běh nahraď chůzí')"); print('reply:', pg.evaluate("coachReply(todayISO()).reply"))
-    pg.evaluate("go('zprava')"); print('zprava text lines:', pg.evaluate("document.querySelector('pre').textContent.split('\\n').length"))
-    pg.evaluate("go('klient')"); print('quiet:', pg.evaluate("document.querySelector('.quiet .qs').textContent"), pg.evaluate("document.querySelectorAll('.qlist li').length"))
+    pg.evaluate("go('klient')"); print('zprava text lines:', pg.evaluate("weekReport(mondayOf(todayISO())).text.split('\\n').length"))
+    print('verdikt:', pg.evaluate("document.querySelector('#main .card .pill').textContent"), '· signálů:', pg.evaluate("document.querySelectorAll('#main .sig').length"))
+    pg.evaluate("A.sendCoachMsg('Drž to tak.')"); print('vzkaz ve vlákně:', pg.evaluate("threadItems(5).some(x=>x.who==='trener'&&x.text==='Drž to tak.')"), '· na Dnes:', pg.evaluate("coachNote()"))
     print('paceGuard:', pg.evaluate("paceGuard().map(g=>g.text)"))
-    pg.evaluate("go('nastaveni')"); pg.fill('#st_walk_min','70'); pg.click('text=Uložit nastavení'); pg.wait_for_timeout(100)
-    print('settings:', pg.evaluate("S().walk_min"), pg.evaluate("Store.rows('settings').map(r=>r.user_id)"))
+    pg.evaluate("App.coachTab='cile';go('nastaveni')"); pg.fill('#st_walk_min','70'); pg.press('#st_walk_min','Tab'); pg.wait_for_timeout(150)
+    print('settings:', pg.evaluate("S().walk_min"), pg.evaluate("Store.rows('settings').map(r=>r.user_id)"), 'log:', pg.evaluate("(S().log||[]).slice(-1).map(l=>l.k+':'+l.from+'→'+l.to)"))
+    pg.fill('#st_steps_goal','8000'); pg.press('#st_steps_goal','Tab'); pg.wait_for_timeout(150)
+    print('kroky → faktor:', pg.evaluate("S().steps_goal+' / '+S().activity"))
+    pg.evaluate("A.applyAdvice(JSON.stringify({protein_min:175}))"); print('doporučení v historii:', pg.evaluate("(S().log||[]).some(l=>l.k==='protein_min')"))
     pg.evaluate("go('databaze');A.editFood('f1')"); pg.fill('#fn','Hovězí přední TEST'); pg.click('#fsave'); pg.wait_for_timeout(100)
     print('food renamed:', pg.evaluate("Foods().find(f=>f.id==='f1').name"), 'recipes using:', pg.evaluate("Recipes().filter(r=>r.items.some(i=>i.food==='Hovězí přední TEST')).length"))
     pg.evaluate("A.seedAll()"); pg.click('.modal #cy'); pg.wait_for_timeout(300)
     print('seeded foods rows:', pg.evaluate("Store.db.foods.length"), 'f1 name after seed:', pg.evaluate("Foods().find(f=>f.id==='f1').name"))
     # ro mode
-    pg.evaluate("go('dnes')"); print('ro class:', pg.evaluate("document.querySelector('#main').className"))
+    pg.evaluate("go('__preview')"); print('ro class:', pg.evaluate("document.querySelector('#main').className"), 'view:', pg.evaluate("App.view")); pg.evaluate("A.togglePreview()")
     # reload persistence
     pg.reload(); pg.wait_for_timeout(300); print('after reload profile:', pg.evaluate("Store.profile && Store.profile.role"), 'meas:', pg.evaluate("Store.db.measurements.length"))
     print('errors:', errs or 'none'); b.close()

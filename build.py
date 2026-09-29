@@ -10,8 +10,6 @@ html=f'''<!DOCTYPE html>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#f3f6fb">
 <title>YesYouCan</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800;900&display=swap" rel="stylesheet">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-180.png">
@@ -21,9 +19,9 @@ html=f'''<!DOCTYPE html>
 </style>
 </head>
 <body>
-<header class="top"><div class="wrap"><div class="brand"><img class="logo" src="logo.png" alt="" width="28" height="28">YesYouCan <span class="who" id="who"></span></div><nav class="desk" id="nav-desk"></nav><div class="syncb" id="syncb"></div></div></header>
-<div id="login" class="login sheet"></div>
-<div id="app" class="sheet"><main id="main" class="wrap"></main></div>
+<header class="top"><div class="wrap"><div class="brand"><img class="logo" src="logo.png" alt="" width="28" height="28">YesYouCan <span class="who" id="who"></span></div><nav class="desk" id="nav-desk"></nav><div class="syncb" id="syncb"></div><button class="avatar" id="avatar" onclick="go('more')" title="Recepty, suroviny, nastavení, návod">R</button></div></header>
+<div id="login" class="login"></div>
+<div id="app"><main id="main" class="wrap"></main></div>
 <nav class="mob" id="nav-mob"></nav>
 <div id="toast" class="toast"></div>
 <script>

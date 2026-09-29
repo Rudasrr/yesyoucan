@@ -2,9 +2,9 @@ import json, sys
 from playwright.sync_api import sync_playwright
 import os; URL='file://'+os.path.abspath(os.path.join(os.path.dirname(__file__),'..','out','index.html'))
 SETUP=open(os.path.join(os.path.dirname(__file__),'shots.py')).read().split("SETUP_CLIENT='''")[1].split("'''")[0]
-VIEWS_C=['dnes','tyden','jidlo','mereni','navod','recepty','suroviny','more','ucet']
-SUBTABS=[('jidlo','jidloTab',['nakup','spiz','vareni']),('mereni','merTab',['zapis','prehled'])]
-VIEWS_K=['klient','zprava','trenink','nastaveni','databaze','dnes','tyden']
+VIEWS_C=['dnes','plan','pokrok','navod','recepty','suroviny','more','ucet']
+SUBTABS=[('plan','planTab',['jidla','nakup','vareni']),('nastaveni','coachTab',['cile','trenink']),('databaze','dbTab',['recipes','foods'])]
+VIEWS_K=['klient','nastaveni','databaze','more','ucet']
 WIDTHS=[390,768,1440]
 CHECK_JS='''(() => {
   const out={overflow:0, offscreen:[], contrast:[], tiny:[], sidescroll:[], holes:[]};
@@ -34,7 +34,7 @@ CHECK_JS='''(() => {
   }
   for(const el of document.querySelectorAll('#main *')){
     const cs=getComputedStyle(el);
-    if(/(auto|scroll)/.test(cs.overflowX) && el.scrollWidth > el.clientWidth + 8)
+    if(/(auto|scroll)/.test(cs.overflowX) && el.scrollWidth > el.clientWidth + 8 && !el.matches('.chips.scroll'))
       out.sidescroll.push((el.className||el.tagName)+'|+'+(el.scrollWidth-el.clientWidth)+'px');
   }
   const de=document.documentElement; out.overflow = de.scrollWidth - de.clientWidth;
@@ -43,13 +43,14 @@ CHECK_JS='''(() => {
   const bg=el=>{while(el){const cs=getComputedStyle(el); if(cs.backgroundImage!=='none') return 'grad'; const c=cs.backgroundColor; const al=c.startsWith('rgba')?parseFloat(c.split(',')[3]):1; if(c && c!=='transparent' && al>=0.5) return c; el=el.parentElement;} return 'rgb(247, 248, 252)'};
   for(const el of document.querySelectorAll('#main *')){
     const r=el.getBoundingClientRect(); if(r.width===0) continue;
-    if(r.right>vw+1 && el.closest('.tbl,.plist,.calstrip,.weekgrid')===null) out.offscreen.push(el.className+'|'+el.tagName+'|'+Math.round(r.right-vw));
-    if(el.children.length===0 && el.textContent.trim().length>2){ const cs=getComputedStyle(el); const fs=parseFloat(cs.fontSize); if(fs<11) out.tiny.push(el.textContent.trim().slice(0,30));
+    if(r.right>vw+1 && el.closest('.tbl,.plist,.calstrip,.weekgrid,.chips.scroll')===null) out.offscreen.push(el.className+'|'+el.tagName+'|'+Math.round(r.right-vw));
+    if(el.children.length===0 && el.textContent.trim().length>2){ const cs=getComputedStyle(el); const fs=parseFloat(cs.fontSize); if(fs<11) out.tiny.push(el.textContent.trim().slice(0,30)+'|'+fs);
       const b=bg(el); if(b!=='grad'){ const l1=lum(cs.color), l2=lum(b); if(l1!=null&&l2!=null){ const cr=(Math.max(l1,l2)+.05)/(Math.min(l1,l2)+.05); if(cr<3.5) out.contrast.push(el.textContent.trim().slice(0,30)+'|'+cr.toFixed(1)); } } }
   }
   out.offscreen=out.offscreen.slice(0,5); out.contrast=out.contrast.slice(0,5); out.tiny=out.tiny.slice(0,5); out.sidescroll=out.sidescroll.slice(0,5); out.holes=out.holes.slice(0,5);
   return out; })()'''
 rows=[]
+DNES_H=0; MAX_I=0; MAX_I_WHERE=''
 with sync_playwright() as p:
     b=p.chromium.launch()
     for role,views in [('client',VIEWS_C),('coach',VIEWS_K)]:
@@ -61,6 +62,9 @@ with sync_playwright() as p:
             for v in views:
                 pg.evaluate(f"go('{v}')"); pg.wait_for_timeout(120)
                 res=pg.evaluate(CHECK_JS)
+                if role=='client' and v=='dnes' and w==390: DNES_H=pg.evaluate('document.documentElement.scrollHeight')
+                ni=pg.evaluate("document.querySelectorAll('#main .ibtn').length")
+                if ni>MAX_I: MAX_I=ni; MAX_I_WHERE=f'{role}/{v}'
                 for sv,prop,tabs in SUBTABS:          # projít i podzáložky
                     if sv!=v: continue
                     for t in tabs:
@@ -78,11 +82,11 @@ with sync_playwright() as p:
     clicks=0
     for v in VIEWS_C:
         pg.evaluate(f"go('{v}')"); pg.wait_for_timeout(100)
-        n=pg.evaluate("document.querySelectorAll('#main button, #main .chip, #main .task, #main .pitem').length")
+        n=pg.evaluate("document.querySelectorAll('#main button, #main .chip, #main .li, #main .navrow, #main .dayrow').length")
         for i in range(min(n,60)):
             try:
-                pg.evaluate(f"""(()=>{{const els=document.querySelectorAll('#main button, #main .chip, #main .task, #main .pitem'); const el=els[{i}]; if(!el) return; const t=(el.getAttribute('onclick')||'')+el.textContent; if(/print|logout|export|import|Smazat|Vyprázdnit|clearWeek|resetDay|genWeek|closeDay|delMeas|Odhlásit|Změnit roli/.test(t)) return; el.click();}})()""")
-                clicks+=1; pg.wait_for_timeout(30); pg.evaluate("UI.closeModal()"); pg.evaluate(f"if(App.view!=='{v}') go('{v}')")
+                pg.evaluate(f"""(()=>{{const els=document.querySelectorAll('#main button, #main .chip, #main .li, #main .navrow, #main .dayrow'); const el=els[{i}]; if(!el) return; const t=(el.getAttribute('onclick')||'')+el.textContent; if(/print|logout|export|import|Smazat|Vyprázdnit|clearWeek|resetDay|genWeek|closeDay|delMeas|Odhlásit|Změnit roli|__preview|trRun/.test(t)) return; el.click();}})()""")
+                clicks+=1; pg.wait_for_timeout(30); pg.evaluate("document.querySelectorAll('.modal').forEach(m=>m.remove());document.body.classList.remove('has-modal');window._sheetRedraw=null"); pg.evaluate(f"if(App.view!=='{v}') go('{v}')")
             except Exception as e: errs.append(f'{v}#{i}: {e}')
     b.close()
 print(f"{'role':6} {'w':5} {'view':10} {'ovfl':5} {'off':4} {'contr':5} {'tiny':4} {'bok':4} {'díra':4} {'btns':4} err")
@@ -92,3 +96,8 @@ print('na telefonu se roluje do strany:', side or 'nikde')
 holes=sum(r[13] for r in rows)
 print('díry v rozvržení:', holes or 'žádné')
 print('interaction clicks:',clicks,'errors:',errs[:5] or 'none')
+print('výška Dnes na 390 px:', DNES_H, 'px (cíl ≤ 1 800)', 'OK' if DNES_H<=1800 else 'PŘES')
+print('ⓘ na obrazovce (max):', MAX_I, 'OK' if MAX_I<=1 else 'PŘES', MAX_I_WHERE)
+import re,glob
+inl=sum(len(re.findall(r'style="',open(f).read())) for f in glob.glob(os.path.join(os.path.dirname(__file__),'..','src','*.js')))
+print('inline styly v src/*.js:', inl)

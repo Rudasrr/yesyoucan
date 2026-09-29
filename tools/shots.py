@@ -5,7 +5,7 @@ import os; URL='file://'+os.path.abspath(os.path.join(os.path.dirname(__file__),
 SETUP_CLIENT='''localLogin("client");SEED.measurements.forEach(m=>saveMeas({...m}));const wk=getWeek(App.week);const sw=SEED.sample_week;const names=["Pondělí","Úterý","Střední","Čtvrtek","Pátek","Sobota","Neděle"];names[2]="Středa";wk.plan=names.map(n=>sw[n]);saveWeek(wk);A.dayField("walk_min",65);
 for(let k=1;k<=5;k++){const dt=addDays(todayISO(),-k);const d=getDay(dt);d.walk_min=k===3?30:70;d.beers=k===4?4:0;S().courses.forEach(c=>{d.meals[c.key]={eaten:true}});saveDay(d);}
 autoClosePast();A.eaten('snidane',true);render();'''
-SETUP_COACH='''localLogin("coach");go('trenink');A.tpNew();App.tpDay=0;render();document.querySelector('#tpex').value='Dřep';A.tpItemAdd();document.querySelector('#tpex').value='Klik o stůl';A.tpItemAdd();document.querySelector('#tpex').value='Běh pomalý';A.tpItemAdd();A.tpDayField('walk_min',45);const pl=trainingPlans()[0];pl.days[2]=JSON.parse(JSON.stringify(pl.days[0]));pl.days[4]=JSON.parse(JSON.stringify(pl.days[0]));saveTrainingPlan(pl);A.tpField('active_from',mondayOf(todayISO()));UI.closeModal();render();'''
+SETUP_COACH='''localLogin("coach");App.coachTab='trenink';go('nastaveni');A.tpNew();App.tpDay=0;A.tpItemAdd('Dřep');A.tpItemAdd('Klik o stůl');A.tpItemAdd('Běh pomalý');A.tpDayField('walk_min',45);const pl=trainingPlans()[0];pl.days[2]=JSON.parse(JSON.stringify(pl.days[0]));pl.days[4]=JSON.parse(JSON.stringify(pl.days[0]));saveTrainingPlan(pl);A.tpField('active_from',mondayOf(todayISO()));UI.closeModal();render();'''
 def shots(jobs):
     with sync_playwright() as p:
         b=p.chromium.launch()
@@ -24,10 +24,10 @@ def shots(jobs):
 if __name__=='__main__':
     which=sys.argv[1] if len(sys.argv)>1 else 'client'
     if which=='client':
-        shots([(f'desk-{v}',SETUP_CLIENT,v,False,None) for v in ['dnes','tyden','recepty','vareni','navod','suroviny']])
+        shots([(f'desk-{v}',SETUP_CLIENT,v,False,None) for v in ['dnes','plan','pokrok','recepty','navod','suroviny']])
     elif which=='mobile':
-        shots([(f'mob-{v}',SETUP_CLIENT,v,True,None) for v in ['dnes','prehled','tyden','more','ucet','suroviny']])
+        shots([(f'mob-{v}',SETUP_CLIENT,v,True,None) for v in ['dnes','plan','pokrok','more','ucet','suroviny']])
     elif which=='coach':
-        shots([(f'coach-{v}',SETUP_CLIENT+SETUP_COACH,v,False,None) for v in ['klient','trenink','nastaveni','databaze','dnes']])
+        shots([(f'coach-{v}',SETUP_CLIENT+SETUP_COACH,v,False,None) for v in ['klient','nastaveni','databaze','ucet']])
     elif which=='modals':
-        shots([('modal-own',SETUP_CLIENT,'recepty',True,'A.editOwn()'),('modal-recipe',SETUP_CLIENT+SETUP_COACH,'databaze',False,"A.editRecipe('r1')"),('coach-mob',SETUP_CLIENT+SETUP_COACH,'klient',True,None)])
+        shots([('modal-meal',SETUP_CLIENT,'dnes',True,"A.mealSheet('obed')"),('modal-own',SETUP_CLIENT,'recepty',True,'A.editOwn()'),('modal-recipe',SETUP_CLIENT+SETUP_COACH,'databaze',False,"A.editRecipe('r1')"),('coach-mob',SETUP_CLIENT+SETUP_COACH,'klient',True,None)])

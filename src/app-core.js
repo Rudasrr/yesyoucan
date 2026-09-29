@@ -90,7 +90,7 @@ const UI = {
     el.innerHTML = '<span class="dot"></span>uloženo';
   },
   modal(html, opts) {
-    const m = document.createElement('div'); m.className = 'modal'; m.innerHTML = `<div class="box">${html}</div>`;
+    const m = document.createElement('div'); m.className = 'modal' + (opts && opts.center ? ' center' : ''); m.innerHTML = `<div class="box">${html}</div>`;
     if (opts && opts.guardEdits) {   // editor: nezavírat rozdělanou práci bez zeptání
       const dirty = () => { m._dirty = true; };
       m.addEventListener('input', dirty); m.addEventListener('change', dirty);
@@ -102,42 +102,51 @@ const UI = {
     document.body.classList.add('has-modal');
     return m;
   },
+  /* Spodní list: nadpis, podtitul, obsah a tlačítka přilepená dole.
+     Všechno, co patří k jedné věci, je v jednom listu – stránka pod ním se nehýbe. */
+  sheet(title, sub, body, foot, opts) {
+    const o = opts || {};
+    return this.modal(this.sheetHtml(title, sub, body, foot, o.side), o);
+  },
+  sheetHtml(title, sub, body, foot, side) {
+    return `<div class="sh"><h2>${title}${sub ? `<span class="shsub">${sub}</span>` : ''}</h2>${side || ''}<button class="xbtn" onclick="UI.closeModal()" aria-label="zavřít">×</button></div>${body}${foot ? `<div class="shfoot">${foot}</div>` : ''}`;
+  },
+  /* překreslit obsah otevřeného listu (po změně v něm) */
+  resheet(m, html) { if (!m || !document.body.contains(m)) return; const box = m.querySelector('.box'); const st = box.scrollTop; box.innerHTML = html; box.scrollTop = st; },
   /* zavřít okno – s otázkou, pokud v něm něco rozdělaného zůstalo */
   tryClose(m) {
     if (!m) return;
     setTimeout(() => { if (!document.querySelector('.modal')) document.body.classList.remove('has-modal'); }, 0);
     if (m._guard && m._guard()) { m._guard = null; UI.confirm('Zavřít bez uložení? Rozdělané změny se ztratí.', () => m.remove(), 'Zavřít a zahodit'); return; }
+    if (m._onclose) m._onclose();
     m.remove();
   },
   closeModal() { window._redraw = null; const all = document.querySelectorAll('.modal'); UI.tryClose(all[all.length - 1]); },
-  confirm(text, onYes, yesLabel) { const m = this.modal(`<p>${esc(text)}</p><div class="row"><button class="btn danger" id="cy">${esc(yesLabel || 'Ano')}</button><button class="btn sec" onclick="UI.closeModal()">Zpět</button></div>`); m.querySelector('#cy').onclick = () => { m.remove(); onYes(); }; }
+  confirm(text, onYes, yesLabel) { const m = this.modal(`<p style="font-size:16px;font-weight:600">${esc(text)}</p><div class="row"><button class="btn danger" id="cy">${esc(yesLabel || 'Ano')}</button><button class="btn sec" onclick="UI.closeModal()">Zpět</button></div>`, { center: 1 }); m.querySelector('#cy').onclick = () => { m.remove(); if (!document.querySelector('.modal')) document.body.classList.remove('has-modal'); onYes(); }; },
+  /* nabídka akcí pod ⋯ – [[popisek, onclick, varianta]] */
+  menu(title, items) {
+    return this.sheet(title, '', `<div class="list">${items.filter(Boolean).map(([l, act, sub]) => `<div class="navrow" onclick="UI.closeModal();${act}"><div class="tx"><b>${l}</b>${sub ? `<span>${sub}</span>` : ''}</div><span class="chev">›</span></div>`).join('')}</div>`);
+  }
 };
 
-const NAV_CLIENT = [['dnes', 'Dnes'], ['tyden', 'Týden'], ['jidlo', 'Jídlo'], ['mereni', 'Měření']];
-/* Recepty a suroviny jsou databáze, ne denní obrazovky – Robert je používá přes výběr
-   surovin v receptu. V menu jen zabíraly místo, tak jsou pod Více. */
-const MORE_CLIENT = [['recepty', 'Recepty'], ['suroviny', 'Suroviny'], ['navod', 'Start a návod'], ['ucet', 'Nastavení']];
-const NAV_CLIENT_OLD = [['dnes', 'Dnes'], ['tyden', 'Týden'], ['prehled', 'Přehled'], ['mereni', 'Měření'], ['nakup', 'Nákup'], ['vareni', 'Vaření'], ['recepty', 'Recepty'], ['suroviny', 'Suroviny'], ['navod', 'Návod']];
-/* Trenér měl v menu dvanáct položek – lámalo se to do dvou řad a překrývalo obsah.
-   Nahoře zůstalo pět trenérských obrazovek, Robertovy jsou pod Více. */
-const NAV_COACH = [['klient', 'Dashboard'], ['zprava', 'Zpráva'], ['trenink', 'Trénink'], ['nastaveni', 'Plán a cíle'], ['databaze', 'Databáze']];
-const MORE_COACH = [['dnes', 'Dnes u Roberta'], ['tyden', 'Týden'], ['jidlo', 'Jídlo'], ['mereni', 'Měření'], ['recepty', 'Recepty'], ['suroviny', 'Suroviny'], ['navod', 'Návod'], ['ucet', 'Nastavení']];
-const MOB_MAIN_CLIENT = ['dnes', 'tyden', 'jidlo', 'mereni'];
-const MOB_MAIN_COACH = ['klient', 'zprava', 'trenink', 'nastaveni'];
+/* ===== Menu =====
+   Robert: tři obrazovky na tři otázky – co dnes, co dopředu, jak mi to jde.
+   Trenér: tři obrazovky – mám zasáhnout, co nastavit, co je v databázi.
+   Zbytek je pod kolečkem s iniciálou vpravo nahoře (Více). */
+const NAV_CLIENT = [['dnes', 'Dnes'], ['plan', 'Plán'], ['pokrok', 'Pokrok']];
+const MORE_CLIENT = [['recepty', 'Recepty', 'všech 200 jídel a tvoje vlastní', '📖'], ['suroviny', 'Suroviny', 'hodnoty na 100 g, vlastní suroviny', '🥦'], ['ucet', 'Nastavení', 'připomínky, nádoby, záloha, odhlášení', '⚙️'], ['navod', 'Návod', 'pravidla, slovníček, jak appka počítá', '📘']];
+const NAV_COACH = [['klient', 'Robert'], ['nastaveni', 'Plán'], ['databaze', 'Databáze']];
+const MORE_COACH = [['__preview', 'Pohled Roberta', 'appka přesně tak, jak ji vidí on', '👁️'], ['ucet', 'Nastavení', 'účet, výchozí data, odhlášení', '⚙️'], ['navod', 'Návod', 'pravidla, slovníček, jak appka počítá', '📘']];
+/* staré názvy obrazovek (odkazy v úkolech, připomínkách, testech) → nové místo */
+const VIEW_ALIAS = { tyden: ['plan', { planTab: 'jidla' }], jidlo: ['plan', {}], nakup: ['plan', { planTab: 'nakup' }], spiz: ['plan', { planTab: 'nakup' }], vareni: ['plan', { planTab: 'vareni' }],
+  mereni: ['pokrok', {}], prehled: ['pokrok', {}], zprava: ['klient', {}], trenink: ['nastaveni', { coachTab: 'trenink' }] };
 const ICONS = {
   dnes: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
-  mereni: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="M12 12l3-3"/><path d="M7 15h10"/></svg>',
-  prehled: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 19V5"/><path d="M4 19h16"/><path d="M7 15l4-5 3 3 5-7"/></svg>',
-  tyden: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="15" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>',
-  zprava: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h4"/></svg>',
-  trenink: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 10v4M21 10v4M6 8v8M18 8v8M6 12h12"/></svg>',
+  plan: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="15" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>',
+  pokrok: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 19V5"/><path d="M4 19h16"/><path d="M7 15l4-5 3 3 5-7"/></svg>',
   klient: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>',
-  nastaveni: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 0 0-.2-1.6l2-1.5-2-3.4-2.3.9a7 7 0 0 0-2.8-1.6L13.3 2h-2.6l-.4 2.8a7 7 0 0 0-2.8 1.6l-2.3-.9-2 3.4 2 1.5A7 7 0 0 0 5 12c0 .5.1 1.1.2 1.6l-2 1.5 2 3.4 2.3-.9a7 7 0 0 0 2.8 1.6l.4 2.8h2.6l.4-2.8a7 7 0 0 0 2.8-1.6l2.3.9 2-3.4-2-1.5c.1-.5.2-1.1.2-1.6z"/></svg>',
-  databaze: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg>',
-  jidlo: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 3v8a2 2 0 0 0 2 2h0a2 2 0 0 0 2-2V3"/><path d="M8 13v8"/><path d="M16 3c-1.5 1.5-2 3-2 5s.5 3 2 3v10"/></svg>',
-  navod: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H19v15H6.5A2.5 2.5 0 0 0 4 20.5z"/><path d="M8 7h7M8 11h7"/></svg>',
-  ucet: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1"/></svg>',
-  more: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg>'
+  nastaveni: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h10M4 17h6M18 7h2M14 17h6"/><circle cx="16" cy="7" r="2"/><circle cx="12" cy="17" r="2"/></svg>',
+  databaze: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg>'
 };
 
 /* Co se děje se synchronizací. Dřív se uživatel dozvěděl jen to, že „chyba sync“ –
@@ -145,62 +154,70 @@ const ICONS = {
 A.syncInfo = () => {
   const od = Store.odlozene || [], ob = Store.outbox || [];
   const popis = { settings: 'nastavení', foods: 'suroviny', recipes: 'recepty', measurements: 'vážení', days: 'dny', week_plans: 'plány týdne', shopping: 'nákup', prefs: 'předvolby', training: 'trénink' };
-  UI.modal(`<div class="row between"><h2>Synchronizace</h2><button class="xbtn" onclick="UI.closeModal()">×</button></div>
-    <div class="stats3 two" style="padding:8px 0"><div><b>${ob.length}</b><span>čeká na odeslání</span></div><div><b class="${od.length ? 'bad' : ''}">${od.length}</b><span>odloženo kvůli chybě</span></div></div>
-    ${Store.lastError ? `<div class="alert a1" style="margin-top:6px"><div style="flex:1"><b>Poslední chyba:</b> ${esc(Store.lastError)}</div></div>` : ''}
-    ${od.length ? `<div class="card tight" style="margin-top:8px"><table class="small"><tr><th>Co</th><th class="n">kolik</th><th>Proč</th></tr>
-      ${(() => { const sk = {}; od.forEach(x => { const k = (x.t || '') + '|' + (x.msg || ''); sk[k] = (sk[k] || 0) + 1; });
-        return Object.entries(sk).map(([k, n2]) => { const t = k.split('|')[0], msg = k.slice(t.length + 1);
-          return `<tr><td class="b">${esc(popis[t] || t)}</td><td class="n">${n2}×</td><td class="muted">${esc(msg.slice(0, 80))}</td></tr>`; }).join(''); })()}</table>
-      <p class="hint">Tyhle záznamy databáze odmítla. Zbytek se ukládá dál, takhle to appku neblokuje.</p></div>` : ''}
-    ${!od.length && !Store.lastError ? `<p class="small muted" style="margin-top:6px">Všechno je uložené. Poslední synchronizace ${Store.lastSync ? czDateShort(Store.lastSync.slice(0, 10)) : '–'}.</p>` : ''}
-    <div class="row" style="margin-top:12px"><button class="btn" onclick="A.syncNow()">Zkusit teď</button>${od.length ? `<button class="btn sec" onclick="A.syncClear()">Zapomenout odložené</button>` : ''}</div>`);
+  const sk = {}; od.forEach(x => { const k = (x.t || '') + '|' + (x.msg || ''); sk[k] = (sk[k] || 0) + 1; });
+  UI.sheet('Synchronizace', Store.lastSync ? 'poslední ' + czDateShort(Store.lastSync.slice(0, 10)) : '',
+    `<div class="stats3 two"><div><b>${ob.length}</b><span>čeká na odeslání</span></div><div><b class="${od.length ? 'bad' : ''}">${od.length}</b><span>odloženo kvůli chybě</span></div></div>
+    ${Store.lastError ? `<div class="alert a1"><div><b>Poslední chyba:</b> ${esc(Store.lastError)}</div></div>` : ''}
+    ${od.length ? `<div class="tbl"><table class="small"><tr><th>Co</th><th class="n">kolik</th><th>Proč</th></tr>
+      ${Object.entries(sk).map(([k, n2]) => { const t = k.split('|')[0], msg = k.slice(t.length + 1); return `<tr><td class="b">${esc(popis[t] || t)}</td><td class="n">${n2}×</td><td class="muted">${esc(msg.slice(0, 80))}</td></tr>`; }).join('')}</table></div>
+      <p class="hint">Tyhle záznamy databáze odmítla. Zbytek se ukládá dál, takhle to appku neblokuje.</p>` : ''}
+    ${!od.length && !Store.lastError ? `<p class="muted">Všechno je uložené.</p>` : ''}`,
+    `<button class="btn" onclick="A.syncNow()">Zkusit teď</button>${od.length ? `<button class="btn sec" onclick="A.syncClear()">Zapomenout odložené</button>` : ''}`);
 };
 A.syncNow = () => { UI.closeModal(); Store.lastError = null; Store.sync().then(() => { render(); UI.toast(Store.lastError ? 'Pořád to nejde: ' + Store.lastError : 'Synchronizováno.'); }); };
 A.syncClear = () => { Store.odlozene = []; LS.set('odlozene', []); Store.lastError = null; UI.closeModal(); render(); UI.toast('Odložené záznamy zapomenuty.'); };
 
 function realCoach() { return Store.profile && Store.profile.role === 'coach'; }
 function isCoach() { return realCoach() && !App.preview; }
-A.togglePreview = () => { App.preview = !App.preview; App.coachPlan = false; App.view = App.preview ? 'dnes' : 'klient'; render(); UI.toast(App.preview ? 'Vidíš appku Robertovými očima – jen náhled, nic se neuloží.' : 'Zpět v trenérském pohledu.'); };
+A.togglePreview = () => { App.preview = !App.preview; App.coachPlan = false; App.view = App.preview ? 'dnes' : 'klient'; UI.closeModal(); render(); window.scrollTo(0, 0); UI.toast(App.preview ? 'Vidíš appku Robertovýma očima – jen náhled, nic se neuloží.' : 'Zpět v trenérském pohledu.'); };
 /* Plánování za klienta: primárně si den skládá sám, tohle je pojistka pro trenéra. */
 A.toggleCoachPlan = () => { App.coachPlan = !App.coachPlan; render(); UI.toast(App.coachPlan ? 'Plánuješ za Roberta – co uložíš, uvidí u sebe.' : 'Zpátky jen na koukání.'); };
 function nav() { return isCoach() ? NAV_COACH : NAV_CLIENT; }
-function go(v) { App.view = v; App.moreOpen = false; UI.closeModal(); render(); window.scrollTo(0, 0); }
+function moreItems() { return isCoach() ? MORE_COACH : MORE_CLIENT; }
+function go(v) {
+  if (v === '__preview') { A.togglePreview(); return; }
+  if (VIEW_ALIAS[v]) { const [to, st] = VIEW_ALIAS[v]; Object.assign(App, st); v = to; }
+  App.view = v; UI.closeModal(); render(); window.scrollTo(0, 0);
+}
 
 function renderShell() {
   const items = nav();
-  const main = isCoach() ? MOB_MAIN_COACH : MOB_MAIN_CLIENT;
-  const label = v => (items.find(x => x[0] === v) || [v, v])[1];
-  const deskItems = items;
-  $('#nav-desk').innerHTML = deskItems.map(([v, l]) => `<button class="${App.view === v ? 'on' : ''}" onclick="go('${v}')">${l}</button>`).join('') + `<button class="${App.view === 'ucet' ? 'on' : ''}" onclick="go('ucet')" title="Připomínky, kalendář, záloha, odhlášení">⚙︀ Nastavení</button>` + (realCoach() ? `<button class="${App.preview ? 'on' : ''}" onclick="A.togglePreview()" title="Náhled Robertova rozhraní">👁️ ${App.preview ? 'Zpět do trenéra' : 'Pohled Roberta'}</button>` : '');
-  $('#nav-mob').innerHTML = main.map(v => `<button class="${App.view === v ? 'on' : ''}" onclick="go('${v}')">${ICONS[v] || ICONS.more}${label(v)}</button>`).join('') +
-    `<button class="${!main.includes(App.view) ? 'on' : ''}" onclick="go('more')">${ICONS.more}Více</button>`;
-  $('#who').textContent = App.preview ? 'náhled Roberta' : (isCoach() ? 'trenér' : 'Robert');
+  const on = v => App.view === v;
+  $('#nav-desk').innerHTML = items.map(([v, l]) => `<button class="${on(v) ? 'on' : ''}" onclick="go('${v}')">${l}</button>`).join('');
+  $('#nav-mob').innerHTML = items.map(([v, l]) => `<button class="${on(v) ? 'on' : ''}" onclick="go('${v}')">${ICONS[v]}${l}</button>`).join('');
+  $('#who').textContent = App.preview ? 'náhled' : (isCoach() ? 'trenér' : 'Robert');
+  const av = $('#avatar'); if (av) { av.textContent = isCoach() ? 'T' : 'R'; av.classList.toggle('on', App.view === 'more' || moreItems().some(x => x[0] === App.view)); }
+  document.body.classList.toggle('wide', !!isCoach());
   if (!realCoach()) autoClosePast();
   UI.syncBadge();
 }
 
+/* obrazovky, které patří Robertovi – trenér je vidí jen v náhledu, ať neklikne omylem do jeho dat */
+const CLIENT_ONLY = ['dnes', 'plan', 'pokrok'];
 function render() {
   if (!Store.profile) { renderLogin(); return; }
   $('#login').classList.remove('on'); $('#app').classList.add('on');
-  App.ro = realCoach() && ((App.preview && !App.coachPlan) || (!App.preview && !['klient', 'zprava', 'trenink', 'nastaveni', 'databaze', 'suroviny', 'recepty', 'more', 'ucet'].includes(App.view)));
+  if (VIEW_ALIAS[App.view]) { const [to, st] = VIEW_ALIAS[App.view]; Object.assign(App, st); App.view = to; }
+  if (isCoach() && CLIENT_ONLY.includes(App.view)) App.view = 'klient';
+  App.ro = realCoach() && App.preview && !App.coachPlan;
   renderShell();
   const el = $('#main'); el.className = App.ro ? 'wrap ro' : 'wrap';
-  const V = VIEWS[App.view] || VIEWS.dnes;
+  const V = VIEWS[App.view] || (isCoach() ? VIEWS.klient : VIEWS.dnes);
   let head = '';
-  if (isCoach() && Store.clients.length > 1 && App.view !== 'databaze') head = `<div class="row small muted" style="margin-bottom:8px">Klient: <select style="width:auto;min-height:30px;padding:3px 8px" onchange="Store.clientId=this.value;LS.set('clientId',this.value);render()">${Store.clients.map(c => `<option value="${c.id}" ${c.id === Store.clientId ? 'selected' : ''}>${esc(c.display_name || c.name || c.email || c.id.slice(0, 8))}</option>`).join('')}</select></div>`;
-  const planBtns = `<span class="row" style="gap:6px"><button class="btn sec sm" style="pointer-events:auto" onclick="A.toggleCoachPlan()">${App.coachPlan ? '👁️ Jen koukat' : '✏️ Plánovat za Roberta'}</button><button class="btn sm" style="pointer-events:auto" onclick="A.togglePreview()">Zpět do trenéra</button></span>`;
-  if (App.ro) head += `<div class="notice row between" style="margin-bottom:10px"><span>${App.preview ? '👁️ Robertův pohled – přesně to, co vidí on. Jen náhled, nic se neuloží.' : 'Náhled na Robertova data – jen ke čtení.'}</span>${App.preview ? planBtns : ''}</div>`;
-  else if (App.preview && App.coachPlan) head += `<div class="notice warn row between" style="margin-bottom:10px"><span>✏️ Plánuješ za Roberta – co tu uložíš, uvidí u sebe. Normálně si den skládá sám.</span>${planBtns}</div>`;
+  if (isCoach() && Store.clients.length > 1 && App.view !== 'databaze') head = `<div class="row small muted">Klient: <select style="width:auto;min-height:34px;padding:3px 8px" onchange="Store.clientId=this.value;LS.set('clientId',this.value);render()">${Store.clients.map(c => `<option value="${c.id}" ${c.id === Store.clientId ? 'selected' : ''}>${esc(c.display_name || c.name || c.email || c.id.slice(0, 8))}</option>`).join('')}</select></div>`;
+  const planBtns = `<span class="row" style="margin-left:auto"><button class="btn sec sm" onclick="A.toggleCoachPlan()">${App.coachPlan ? '👁️ Jen koukat' : '✏️ Plánovat za Roberta'}</button><button class="btn sm" onclick="A.togglePreview()">Zpět do trenéra</button></span>`;
+  if (App.preview) head += `<div class="notice ${App.coachPlan ? 'warn' : ''}"><span>${App.coachPlan ? '✏️ Plánuješ za Roberta – co uložíš, uvidí u sebe.' : '👁️ Robertův pohled – jen náhled, nic se neuloží.'}</span>${planBtns}</div>`;
   // překreslení nesmí sebrat kurzor z rozepsaného pole ani odskočit se stránkou
   const ae = document.activeElement;
-  const keep = ae && ae.id && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA')
+  const keep = ae && ae.id && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA') && el.contains(ae)
     ? { id: ae.id, s: ae.selectionStart, e: ae.selectionEnd } : null;
   const sy = window.scrollY;
   el.innerHTML = head + V();
   el.querySelectorAll('input[type=number]:not([inputmode])').forEach(i => i.setAttribute('inputmode', 'decimal'));
   if (keep) { const n = document.getElementById(keep.id); if (n) { n.focus(); try { n.setSelectionRange(keep.s, keep.e); } catch (e) { } } }
   if (Math.abs(window.scrollY - sy) > 2) window.scrollTo(0, sy);
+  if (typeof window._sheetRedraw === 'function') window._sheetRedraw();
+  maybeIntro();
 }
 
 /* ---- přihlášení ---- */
@@ -315,21 +332,28 @@ function showNewPassword() {
 }
 document.addEventListener('DOMContentLoaded', boot);
 
-/* ===== Informační blok nad obrazovkou =====
-   Krátké „co se tu dělá“, dá se zabalit a appka si to pamatuje.
-   Delší vysvětlení je pod ⓘ vedle nadpisu. */
-function flow(id, kroky, napoveda) {
-  const p = Prefs(); const zabaleno = (p.flowOff || []).includes(id);
-  return `<div class="flow ${zabaleno ? 'off' : ''}" id="flow-${id}">
-    <button class="flowtog" onclick="A.flowToggle('${id}')" title="${zabaleno ? 'rozbalit' : 'sbalit'}">${zabaleno ? '▾' : '▴'}</button>
-    <div class="flowin"><span class="flowem">🧭</span>
-      <div><div class="flowsteps">${kroky.map((k, i) => `<span class="fstep"><b>${i + 1}</b>${esc(k)}</span>`).join('<span class="farr">›</span>')}</div>
-      ${napoveda ? `<div class="tiny muted" style="margin-top:6px">${esc(napoveda)}</div>` : ''}</div></div></div>`;
+/* ===== Úvod při prvním spuštění =====
+   Dřív měla každá obrazovka nahoře pruh s návodem o třech až čtyřech krocích. Kdo to
+   jednou pochopil, četl pak jen text navíc. Teď je to jednorázový úvod na tři karty
+   a zbytek je v Návodu. Automatické testy (navigator.webdriver) úvod přeskakují. */
+const INTRO = {
+  client: [['☀️', 'Dnes', 'Nahoře vidíš, kolik ještě můžeš sníst. Pod tím karta Teď – jeden další krok a jedno tlačítko. Když nevíš, drž se jí.'],
+    ['🗓️', 'Plán', 'Jednou týdně: nech si navrhnout jídla, nakup podle seznamu a uvař dopředu. Tři kroky vedle sebe.'],
+    ['📈', 'Pokrok', 'Váha ráno po WC, nalačno. Appka počítá s průměrem sedmi vážení – jedno číslo nic neznamená.']],
+  coach: [['🚦', 'Robert', 'Barva a jedna věta řeknou, jestli zasáhnout. Pod tím jen to, co vyžaduje akci – každé s tlačítkem.'],
+    ['🎛️', 'Plán', 'Nahoře páky, které měníš opravdu: tempo, chůze, kroky, udržovací týden. Trénink je vedle.'],
+    ['👁️', 'Pohled Roberta', 'Pod kolečkem vpravo nahoře uvidíš appku přesně tak, jak ji vidí on.']]
+};
+function maybeIntro() {
+  if (navigator.webdriver || document.querySelector('.modal')) return;
+  const k = 'introSeen:' + (realCoach() ? 'coach' : 'client'); if (LS.get(k, false)) return;
+  LS.set(k, true); A.intro(0);
 }
-A.flowToggle = id => {
-  const p = Prefs(); const f = (p.flowOff || []).slice(); const i = f.indexOf(id);
-  if (i < 0) f.push(id); else f.splice(i, 1);
-  savePrefs({ ...p, flowOff: f }); render();
+A.intro = i => {
+  const cards = INTRO[realCoach() ? 'coach' : 'client']; const c = cards[i];
+  UI.closeModal();
+  UI.modal(`<div class="intro"><div class="ie">${c[0]}</div><h2>${c[1]}</h2><p>${c[2]}</p><div class="idots">${cards.map((_, k) => `<i class="${k === i ? 'on' : ''}"></i>`).join('')}</div>
+    <div class="row" style="justify-content:center">${i < cards.length - 1 ? `<button class="btn ghost" onclick="UI.closeModal()">Přeskočit</button><button class="btn" onclick="A.intro(${i + 1})">Další</button>` : `<button class="btn" onclick="UI.closeModal()">Začít</button>`}</div></div>`, { center: 1 });
 };
 
 /* ===== Způsoby zobrazení plnění =====
@@ -339,8 +363,8 @@ A.flowToggle = id => {
 function ring(pct, cislo, popis, barva, velikost) {
   const S = velikost || 108, r = S / 2 - 9, C = 2 * Math.PI * r;
   const p = clamp(pct, 0, 100);
-  return `<div class="ring"><svg viewBox="0 0 ${S} ${S}" width="${S}" height="${S}" aria-hidden="true">
-      <circle cx="${S / 2}" cy="${S / 2}" r="${r}" fill="none" stroke="var(--line2)" stroke-width="9"/>
+  return `<div class="ring" style="--rs:${S}px"><svg viewBox="0 0 ${S} ${S}" width="${S}" height="${S}" aria-hidden="true">
+      <circle cx="${S / 2}" cy="${S / 2}" r="${r}" fill="none" stroke="rgba(22,32,58,.07)" stroke-width="9"/>
       <circle cx="${S / 2}" cy="${S / 2}" r="${r}" fill="none" stroke="${barva || 'var(--p)'}" stroke-width="9" stroke-linecap="round"
         stroke-dasharray="${C}" stroke-dashoffset="${C * (1 - p / 100)}" transform="rotate(-90 ${S / 2} ${S / 2})"/></svg>
     <div class="rval"><b>${cislo}</b></div><div class="rlab">${esc(popis)}</div></div>`;
