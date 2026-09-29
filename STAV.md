@@ -1,4 +1,4 @@
-# YesYouCan · stavový dokument (29. 9. 2026)
+# YesYouCan · stavový dokument (29. 9. 2026, po přestavbě rozhraní)
 
 ## Kde to běží
 - **Appka:** https://rudasrr.github.io/yesyoucan/ (GitHub Pages, nasazuje Action při pushi na `main`)
@@ -48,24 +48,23 @@ Webová appka pro jednoho klienta (Robert, start 134,4 kg → 102 kg, 0,7 % váh
 - Teď: trvalé chyby (`Store.trvalaChyba`: RLS, 401/403, neexistující sloupec) nebo pátý neúspěch záznam **odloží** do `odlozene` a fronta pokračuje. Badge vpravo nahoře jde kliknout, `A.syncInfo` ukáže co čeká, co se odložilo a proč, a nabídne „Zkusit teď“ / „Zapomenout odložené“.
 - **`SEED.version`**: když se mění jména surovin nebo přibude pole, musí se zvednout. Přírůstkový pull stahuje jen řádky novější než poslední sync, takže oprava globálních dat by se ke klientovi jinak nedostala. `Store.refreshSeed()` při změně verze zahodí stažené globální řádky a vynutí plný pull. **Při zápisu globálních dat do Supabase používej `updated_at` = teď**, ne datum vydání (tahle chyba stála jedno kolo: data z 18. 9. se ke klientům nedostala až do 21. 9.).
 
-## Obrazovky
-**Robert:** Dnes · Týden · Jídlo (Nákup / Spíž / Vaření) · Měření (Zápis / Přehled) · Více (Recepty, Suroviny, Návod, Nastavení).
-Pořadí na Dnes: Teď → přehled dne (včetně kontroly) → úkoly → **aktivita** → jídla → **cheat** → poznámka.
+## Obrazovky (přestavba 29. 9. 2026)
+Robert i trenér se v appce ztráceli: Dnes měla 4 641 px (5,5 obrazovky), stejnou věc říkali čtyři průvodci (pruh s kroky, Teď, Úkoly, Chybí zápisy), jídlo šlo odškrtnout z pěti míst a trenér měl pět zdrojů upozornění s různými prahy. Přestavba to srovnala na **tři obrazovky pro každou roli**; výpočty ani data se nezměnily.
 
-- **Dlaždice dne** odpovídá na jedinou otázku: kolik ještě můžu sníst (`limit − snědené`). Rezerva plánu je dole mezi dlaždicemi. Pruh pod číslem je **den po jídlech** (`.mbar`): každý chod vlastní díl podle kalorií, plný = snědeno, šrafovaný = teprve přijde, cheat jantarově, červený přesah za značkou limitu. Díl nese emoji a dá se na něj kliknout.
-- **Úkoly dne** včetně večerních: zapsat kroky (20:00) a **projít a uzavřít den** (20:30, `A.closeDay`).
-- **Nákup**: řazení podle regálů, trvanlivé na celá balení, na libovolné dny, dvě podoby – „v obchodě“ a „na tisk“ (jedna A4, nad 46 položek tři sloupce). Po změně plánu řekne, co dokoupit.
-- **Spíž**: 55 trvanlivých surovin, tři stavy (mám / dochází / nemám), žádné gramy. Stav se odvozuje z odškrtnutí v Nákupu a týdenní spotřeby.
-- **Vaření**: záznam porcí (kdy, co, kolik, které dny pokrývá), libovolné dny, zbytky v lednici, trvanlivost (maso a ryby 3 dny, zelenina a mléčné 4, suché 5), odhad hotové dávky.
-- **Měření**: jedna karta „Jak si vedeš“ – rings, plán proti realitě, obvody od startu, grafy a týdenní tabulka pod rozbalovátky.
+**Robert: Dnes · Plán · Pokrok** + Více (Recepty, Suroviny, Nastavení, Návod) pod kolečkem R vpravo nahoře.
+- **Dnes** (≈ 1 450 px na 390 px): velké číslo „zbývá sníst“ s pruhem dne a třemi malými čísly (bílkoviny, dnešní deficit, rezerva plánu) → karta **Teď** (jeden krok, jedno tlačítko; vzkaz trenéra, nesoulad plánu s limitem, včerejší chybějící váha) → **jeden seznam dne**: váha, chody, chůze a trénink podle času, jantarový řádek **cheat**, večer kroky a uzavření dne. Detail všeho je ve spodním listu (chod se surovinami a gramy, chůze, kroky, trénink, cheat, uzavření s hladem a poznámkou, kontrola dne se vzorcem). ⋯ nabízí navrhnout chybějící jídla, snědl jsem vše, vrátit plán z Týdne.
+- **Plán**: Jídla → Nákup → Vaření. Jídla = týden jako sedm řádků (emoji chodů, kcal, stav), den se otevře v listu, jedno hlavní tlačítko podle situace (naplánovat / doplnit / dorovnat / opravit / pokračovat na nákup), zbytek pod ⋯. Nákup = dny, regály, u trvanlivých „mám doma“, sekce Doma, list Celá spíž, tisk pod ⋯. Vaření = V lednici, dny, co uvařit, rozpis do hrnce v listu. Pohled „den po dni“ zrušen.
+- **Pokrok**: průměr 7 vážení, cesta ke 102 kg, graf proti plánu se značkami zásahů trenéra, tři kroužky, listy Obvody / Historie zápisů / Plán proti skutečnosti. Zápis váhy a obvodů v listu (+ Zápis), váha se zapisuje hlavně na Dnes.
 
-**Trenér:** Dashboard · Zpráva · Trénink · Plán a cíle · Databáze; Robertovy obrazovky pod Více.
-- **Na co se podívat**: prahy pro zásah (3 dny přes limit, 3 dny bez vážení, 14 dní bez pohybu váhy, opakovaný vlčí hlad, nezodpovězená poznámka, 8 týdnů bez udržovacího týdne, kroky pod cílem).
-- **Vzkazy**: poznámky ke dnům a odpovědi v jednom vlákně.
-- **Značky zásahů**: změny nastavení se logují a kreslí do grafu váhy.
+**Trenér: Robert · Plán · Databáze** + Více (Pohled Roberta, Nastavení, Návod).
+- **Robert** (Dashboard + Zpráva): verdikt 🔴🟡🟢 z `signaly()`, jedna věta, cíl/plán/realita a tlačítko s navrženým vzkazem → signály s akcí → týden (sedm políček, čtyři čísla, **Zkopírovat týdenní zprávu**) → Vzkazy (vlákno + jedno pole) → graf váhy se značkami → Čísla za 6 týdnů a 28 dní v listu. Den se otevře v listu (jídla, chůze, kroky, hlad, poznámka, odpověď, jednorázová změna tréninku). Novinky od poslední návštěvy pod 🔔.
+- **Plán → Cíle**: tempo (posuvník), cíl chůze, cíl kroků, tempo chůze s fází, udržovací týden; Profil a výchozí hodnoty a Historie změn v listech. Ukládá se hned, každá změna přes `commitSettings` do logu. **Plán → Trénink**: plány, sedm dní, editor dne, týden celkem, méně častá tlačítka pod ⋯.
+- **Databáze**: Recepty (bez hledání přehled chodů) a Suroviny (kategorie sbalené).
 
-## Vzhled (přepracováno 21.–25. 9. 2026)
-Světlo a sklo, **nic tmavého**. Karty, dlaždice, toast i aktivní položka menu jsou prosklené v barevném nádechu (`--gl-*`). Tmavé plochy se nepoužívají. Text se nehromadí – co jde říct grafikou nebo ovládacím prvkem, se tak řekne; pod ⓘ patří vzorec a proč, ne to, co uživatel potřebuje teď.
+**Úvod** při prvním spuštění (3 karty pro každou roli) nahradil 16 pruhů s návodem; znovu z Návodu.
+
+## Vzhled (přestavba 29. 9. 2026)
+Světlo a sklo, **nic tmavého** – beze změny. Nově jeden systém v `style.css` (přepsaný celý): šest barevných rolí (akce, sedí, cheat/pozor, přes limit, text, podklad) + makra, systémové písmo, jedna sada komponent (karta, řádek seznamu, spodní list, přepínač, štítek, krokovač, velké číslo, pruh dne, kroužek, hláška), čtyři druhy tlačítek. Spodní list na mobilu vyjíždí zdola, na počítači je panel vpravo. Robert má na počítači sloupec 720 px, trenér 1060 px. Ruční styly v kódu: 413 → 85 (zbytek jsou dynamické šířky pruhů a pár výjimek v trénincích).
 
 ## Vstupy a čeština
 - **Každé číslo má meze** (`omez()`): chůze 0–600 min, gramy 0–5 000, piva 0–40, smažené 0–3 000 g, váha 30–400 kg; u trenéra výška 120–230, věk 15–100, bílkoviny 60–400, tempo 0,3–1,2 %, kroky 0–30 000. Mimo meze appka řekne a uloží nejbližší povolenou hodnotu.
@@ -76,26 +75,26 @@ Světlo a sklo, **nic tmavého**. Karty, dlaždice, toast i aktivní položka me
 Nákup škálovaný na aktuální váhu · datované týdny · spodní hranice jídla · příloha na 10 g (v hmotnosti na talíři) · „kolik co stojí“ počítáno živě · start 134,4 · tolerance dne `dayTol` · suroviny v nákupním stavu místo vařeného.
 
 ## Rozhodnutí Rudy (platí)
-Robert edituje výchozí suroviny/recepty jako vlastní verzi · hvězdičky + Oblíbené · spodní hranice jídla ano · vláknina ne · trénink jako týdenní šablona + výjimky · tempo mění jen trenér · odměrky ano · rutina v generátoru zapnutá · žádný tmavý režim, žádné foto jídla, žádný přepis do frameworku · repozitář veřejný, klíče přes Secrets · push notifikace do Později · kalorie a recepty se počítají ze suchých surovin · porce se dělí vážením hotové dávky.
+Robert edituje výchozí suroviny/recepty jako vlastní verzi · hvězdičky + Oblíbené · spodní hranice jídla ano · vláknina ne · trénink jako týdenní šablona + výjimky · tempo mění jen trenér · odměrky ano · rutina v generátoru zapnutá · žádný tmavý režim, žádné foto jídla, žádný přepis do frameworku · repozitář veřejný, klíče přes Secrets · push notifikace do Později · kalorie a recepty se počítají ze suchých surovin · porce se dělí vážením hotové dávky · **29. 9.:** přestavba na tři obrazovky pro každou roli · nastavení trenéra se ukládá hned (se Zpět) · Vaření bez pohledu „den po dni“ · u trenéra listování po týdnech místo 7/14/28 dní · Robert na počítači ve sloupci 720 px.
 
 ## Kontrola kvality
-`tools/check.js` (výpočty, referenční čísla v CLAUDE.md) · `tools/ftest.py` (funkční scénáře) · `tools/qa.py` (3 šířky × všechny obrazovky: přetečení, prvky mimo viewport, rolování do strany na 390 px, díry v rozvržení, překryvy, kontrast, malé písmo, klikací průchod) · `tools/cloudtest.py` (dva prohlížeče proti nasazené adrese a ostré databázi, 21 kontrol, testovací data po sobě maže).
+`tools/check.js` (výpočty, referenční čísla v CLAUDE.md) · `tools/ftest.py` (funkční scénáře, přepsané na nové rozhraní) · `tools/qa.py` (3 šířky × všechny obrazovky a záložky: přetečení, prvky mimo viewport, rolování do strany na 390 px, díry, překryvy, kontrast, malé písmo, klikací průchod; nově výška Dnes, počet ⓘ na obrazovce a počet ručních stylů) · `tools/cloudtest.py` (dva prohlížeče proti nasazené adrese a ostré databázi; zápis váhy upraven na list).
 
-**Poslední stav (29. 9. 2026):** check.js referenční čísla sedí · ftest `errors: none` · qa 246 interakcí, 0 přetečení, 0 děr · cloudtest `errors: none`.
-
-Nad rámec toho proběhla 21. 9. hloubková kontrola: fuzzing všech číselných polí nepřátelskými hodnotami napříč obrazovkami × 2 role × 2 šířky, proklik všech tlačítek, scénáře chybného zadání a spuštění úplně prázdné appky. Nálezy: 0. Netestováno na skutečném iOS Safari – všechno běží v headless Chromiu.
+**Poslední stav (29. 9. 2026, po přestavbě):** check.js referenční čísla beze změny · ftest `errors: none` · qa 0 přetečení, 0 prvků mimo, rolování do strany nikde, díry žádné, 79 kliknutí bez chyby, Dnes 1 437–1 476 px, ⓘ max 0 · všechny spodní listy prověřené na 390 i 1440 px bez přetečení. **cloudtest po přestavbě zatím neběžel** – spustit po nasazení. Netestováno na skutečném iOS Safari.
 
 ## Vyřešeno
-- **Rozdíl 2 511,75 vs. 2 473,00 kcal (středa)** je jen zaokrouhlení přílohy. Při 5 g vyjde 2 511,75, bez zaokrouhlení 2 503,34, na 10 g 2 473,00. Napříč týdnem není 10 g systematicky níž (týden celkem +83 kcal).
+- **Rozdíl 2 511,75 vs. 2 473,00 kcal (středa)** je jen zaokrouhlení přílohy. Při 5 g vyjde 2 511,75, bez zaokrouhlení 2 503,34, na 10 g 2 473,00.
 - **Převod na suché gramy** kontrolní čísla nezměnil.
 - **Kroky se předvyplňovaly cílem** – opraveno, `daySteps()` vrací `null`, cíl je `stepsGoal()`.
-- **„Pití“ v hláškách** znamenalo celý cheat včetně smaženého – teď se jmenuje cheat a vypíše, co v něm je (`cheatPopis`).
+- **„Pití“ v hláškách** – teď cheat s výpisem obsahu (`cheatPopis`).
 - **Zaseknutá fronta synchronizace** a **klient přepisující globální recepty** – viz Synchronizace.
+- **Opraveno při přestavbě (29. 9.):** na počítači chybělo Více (Recepty, Suroviny, Návod nešly otevřít) · Nastavení bylo ve Více dvakrát · úkol a připomínka „Dojdi na nákup“ vedly na neexistující obrazovku · „Odškrtnout vše zpět“ volalo neexistující `A.shopReset` · Databáze › Suroviny otevírala Nákup · pole kroků v Robertově Nastavení nic neukládalo · „Nastavit“ z doporučení a přepnutí fáze se nelogovaly (chyběly značky v grafu) · graf váhy u trenéra neměl značky zásahů · kalendář (.ics) neměl kroky · dvě různá razítka „poslední návštěva trenéra“, a novinky mizely po prvním překreslení · Nádoby dvakrát · Návod tvrdil „večer nic neukládáš“, zatímco úkol chtěl uzavřít den · trenér mohl z Více otevřít Robertovy obrazovky mimo náhled a psát mu do dat · mrtvý kód (staré menu, `A.cheatAdd`, `parseCheat`, `popEl`, `quietHeader`, `VIEWS.zprava`, `catchUpAlert`, `noteCard`).
 
 ## Otevřené věci / NEXT
+- **Nasadit přestavbu:** `git push` (spustí Action) a pak `python3 tools/cloudtest.py` proti ostré databázi. Robertovi říct, že appka vypadá jinak: tři obrazovky dole, drž se karty Teď.
 - **Čeká na Rudu:** ťuknout „Zapomenout odložené“ v dialogu synchronizace (20 odmítnutých zápisů globálních receptů, data v pořádku) · poslat Robertovi adresu a heslo z env · změnit si vlastní heslo · smazat testovací plán „Cvik pokus“.
 - **Rozhodnutí vlastníka:** zaokrouhlení přílohy 10 g vs. 5 g · poměrné kalorie za nedokončený cvik · přejmenování cviku se nepropisuje do uložených tréninků.
 - **Přesunout repozitář mimo Google Drive** (git se tam rozbil).
 - **Sdílený Supabase projekt:** appka sedí v `GPT-Codex-app-lab` spolu s druhou appkou; až bude místo, přestěhovat podle NAVOD A3.
-- **NEXT: týden reálných dat od Roberta**, pak kontrola měr, parseru a stupnice cheatu.
-- Později: web push · onboarding při prvním otevření · widget · fáze chůze auto-přepínání · více klientů (netestováno).
+- **NEXT: týden reálných dat od Roberta v novém rozhraní**, pak kontrola měr, parseru a stupnice cheatu – a zeptat se ho, jestli se v appce vyzná.
+- Později: web push · widget · fáze chůze auto-přepínání · více klientů (netestováno).

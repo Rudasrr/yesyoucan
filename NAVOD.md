@@ -116,10 +116,10 @@ Referenční čísla, na kterých `check.js` stojí, jsou v `CLAUDE.md`. Když s
 
 ## A6. Data a zálohy
 
-- Robert i ty máte v Účtu **Export** (XLSX) a **Zálohu** (JSON) – to je nejrychlejší záchrana.
+- Robert i ty máte v **Více → Nastavení** export do Excelu a zálohu (JSON) – to je nejrychlejší záchrana.
 - Databázi zálohuješ `npx --yes supabase@latest db dump --linked --project-ref reizexthhcyemkpplvmt -f zaloha.sql`.
-- Appka funguje offline: data se drží v prohlížeči a odešlou se, jakmile je signál. Poslední stav sync poznáš podle tečky vpravo nahoře.
-- Výchozí suroviny a recepty jsou „globální“ (společné). Když si je Robert upraví, vznikne jeho vlastní verze a tvoje původní zůstane. Ty měníš globální verzi v Databáze / Recepty / Suroviny.
+- Appka funguje offline: data se drží v prohlížeči a odešlou se, jakmile je signál. Stav poznáš podle tečky vpravo nahoře; když svítí červeně, ťukni na ni a appka řekne, co vázne.
+- Výchozí suroviny a recepty jsou „globální“ (společné). Když si je Robert upraví, vznikne jeho vlastní verze a tvoje původní zůstane. Ty měníš globální verzi v záložce **Databáze**.
 
 ## A7. Co poslat Robertovi
 
@@ -127,7 +127,19 @@ Tři věty a dva údaje:
 
 > Tady je tvoje appka: **https://rudasrr.github.io/yesyoucan/** – otevři to v telefonu a přidej si to na plochu (Safari: Sdílet → Přidat na plochu; Chrome: ⋮ → Přidat na plochu).
 > Přihlásíš se e-mailem **r.pesek24@gmail.com** a heslem, které ti posílám zvlášť – hned si ho změň přes „Zapomenuté heslo“.
-> Nic nevymýšlej: otevři **Dnes**, nahoře ti řekne jeden krok, co máš udělat. Ráno se zvaž, přes den odškrtávej jídla a zapiš chůzi. Zbytek dopočítám já.
+> Nic nevymýšlej: otevři **Dnes** a drž se karty **Teď** – vždycky ti řekne jeden další krok. Pod ní je celý den v jednom seznamu, stačí odškrtávat.
+
+## A8. Jak appku používáš ty (trenér)
+
+Tři záložky dole (na počítači nahoře), zbytek pod kolečkem **T** vpravo nahoře.
+
+- **Robert** – barva a jedna věta řeknou, jestli zasáhnout. Hlavní tlačítko rovnou pošle navržený vzkaz. Pod tím jen signály, které vyžadují akci – každý má svoje tlačítko (vzkaz, nastavit, otevřít). Týden jako sedm políček, **Zkopírovat týdenní zprávu** dá do schránky hotový text. Ťuknutím na den vidíš, co snědl, chůzi, kroky, hlad a poznámku a můžeš odpovědět. **Vzkazy** je jedno vlákno – co tam napíšeš, Robert uvidí nahoře na Dnes.
+- **Plán → Cíle** – tempo hubnutí, cíl chůze, cíl kroků, tempo chůze a udržovací týden. **Ukládá se hned** a každá změna jde vrátit tlačítkem Zpět v hlášce. Věci na roky (výška, věk, start, cílové hodnoty, bílkoviny, cíle chodů) jsou v **Profil a výchozí hodnoty**. **Historie změn** ukazuje všechny zásahy; v grafu váhy jsou jako svislé čáry.
+- **Plán → Trénink** – tréninkové plány, sedm dní, editor dne. Méně častá tlačítka jsou pod ⋯.
+- **Databáze** – globální recepty a suroviny. Bez hledání se ukážou chody, ťuknutím se otevře jeden.
+- **Více → Pohled Roberta** – appka přesně tak, jak ji vidí on. Jen náhled, nic se neuloží; když za něj opravdu potřebuješ něco naplánovat, zapni tam „Plánovat za Roberta“.
+
+Denní kontrola: otevři **Robert**. Když je zeleno, nic nedělej.
 
 ---
 
@@ -142,30 +154,36 @@ Otevři **https://rudasrr.github.io/yesyoucan/** v telefonu a přidej si appku n
 
 Přihlásíš se e-mailem a heslem. Přihlášení drží, podruhé už ho appka nechce.
 
-## B2. Den, jak ho appka čeká
+## B2. Tři obrazovky
 
-1. **Ráno se zvaž** a číslo zapiš (Dnes → Zvážit se, nebo Měření). Vážíš se nalačno, pokaždé stejně.
-2. **Vyber jídla** – appka ti ke každému chodu nabídne recept a spočítá porce tak, aby ti den vyšel. Když něco nechceš, ťukni na 💡 a vyber jiné.
-3. **Zapiš chůzi** – tlačítka +15 / +30 / +60 minut. Cíl je hodina denně.
-4. **Odškrtávej, co máš snědené.** Když jsi jedl něco jiného, použij „co jsem snědl“ – napiš to vlastními slovy, appka si to přebere.
-5. **Večer zkontroluj den.** Zelená = hotovo. Červená ti řekne přesně, co nesedí.
+- **Dnes** – co teď a kolik ještě můžeš sníst.
+- **Plán** – co budeš jíst, co koupit a co uvařit dopředu. Tři kroky vedle sebe: Jídla → Nákup → Vaření.
+- **Pokrok** – jak ti to jde: průměr váhy, graf proti plánu, obvody a historie.
 
-Karta **„Teď“** nahoře je jediné, co musíš sledovat – je na ní vždycky jen jeden další krok.
+Recepty, suroviny, nastavení a tenhle návod jsou pod kolečkem **R** vpravo nahoře.
 
-## B3. Když se den nepovede
+## B3. Den, jak ho appka čeká
 
-- **Pivo nebo smažené** zapiš nahoře v Dnes. Appka ti sama zmenší porce jídel, ať se do dne vejdeš – nemusíš nic počítat. Bílkovina se nekrátí.
-- **Nestihl jsi jídlo** → vyber „vynechat“, appka dopočítá zbytek dne.
-- **Nemáš váhu na jídlo** → Návod → „Jak jíst bez váhy“ a domácí míry (⚖️ 🥄 ✋). Hrnek, lžíce, dlaň – stačí to.
-- **Nesedělo ti něco** → napiš dole poznámku trenérovi. Uvidí ji a odpoví přímo v appce.
+Nahoře velké číslo: **kolik ještě můžeš sníst**. Pod ním karta **Teď** s jedním krokem a jedním tlačítkem. Pod ní celý den v jednom seznamu podle času.
 
-## B4. Ostatní obrazovky
+1. **Ráno se zvaž** – číslo zapíšeš rovnou v kartě Teď. Nalačno, po WC, pokaždé stejně.
+2. **Po jídle ťukni na kolečko** u jídla. Když ťukneš na řádek, otevře se jídlo celé: suroviny, gramy, domácí míry, výměna, 💡 jiný návrh, 🍽️ mimo dům.
+3. **Chůze** – u řádku je tlačítko +15 minut. Ťuknutím na řádek zapíšeš přesně.
+4. **Trénink** (když ho máš v plánu) – ťukni na řádek a dej „Začít cvičit“, nebo jen odškrtni, co jsi udělal.
+5. **Večer zapiš kroky** z hodinek nebo telefonu.
+6. **Uzavři den** – uvidíš, jak dopadl, ťukneš, jak ti bylo s jídlem, a můžeš napsat trenérovi pár slov. Když na to zapomeneš, o půlnoci se den uzavře sám.
 
-- **Týden** – co tě čeká, dá se přeplánovat („Naplánuj mi týden“).
-- **Přehled** – kolik ubývá, jestli držíš plán a kdy budeš na cíli.
-- **Nákup** – co koupit, po porcích.
-- **Vaření** – co uvařit dopředu, ať máš hotovo.
-- **Účet** – připomínky do kalendáře, nádoby, export dat.
+## B4. Když se den nepovede
+
+- **Pivo, řízek, dort** – zapiš to ráno do řádku **Cheat** (jantarový, za posledním jídlem). Vybereš ze seznamu, u každé položky vidíš, kolik to stojí minut chůze. Appka ti zvedne cíl chůze, ať tě to nestojí tempo.
+- **Nestihl jsi jídlo** → otevři ho a vyber „— vynechat“.
+- **Jedl jsi venku** → otevři jídlo a dej 🍽️ Mimo dům.
+- **Nemáš váhu na jídlo** → u surovin vidíš domácí míry (⚖️ zvaž · 🥄 odměř · ✋ od oka). Velikost svých nádob nastavíš v Nastavení.
+- **Chceš trenérovi něco říct** → napiš to při uzavření dne. Odpověď uvidíš tamtéž a jeho vzkaz nahoře v kartě Teď.
+
+## B5. Neděle
+
+V **Plánu**: nech si navrhnout týden (⋯ → Naplánuj mi celý týden), dolaď, co nechceš, pak **Nákup** – seznam podle regálů. Co máš doma z trvanlivých, označ „mám doma“ a na lístku nebude. Ve **Vaření** vybereš dny, na které vaříš, a appka řekne, kolik čeho dát do hrnce.
 
 ---
 
@@ -175,9 +193,10 @@ Karta **„Teď“** nahoře je jediné, co musíš sledovat – je na ní vždy
 |---|---|
 | **Po přihlášení „Účet zatím nemá roli“** | V `profiles` chybí řádek s tvým UID – viz A4. |
 | **Appka se neotevře bez signálu** | Musí být přidaná na plochu a aspoň jednou otevřená online (tehdy se uloží do zařízení). |
-| **Data se neobjevila u druhého** | Tečka vpravo nahoře ukazuje stav. Zkus „Synchronizovat teď“, jinak počkej do minuty. Bez internetu se změny drží v zařízení a odešlou se samy. |
-| **Dvě zařízení, každé jinak** | Platí novější zápis. Když se to rozejde, nahraj zálohu z Účtu. |
+| **Data se neobjevila u druhého** | Tečka vpravo nahoře ukazuje stav – ťukni na ni a dej „Zkusit teď“, jinak počkej do minuty. Bez internetu se změny drží v zařízení a odešlou se samy. |
+| **Dvě zařízení, každé jinak** | Platí novější zápis. Když se to rozejde, nahraj zálohu z Nastavení. |
 | **„Nová verze – obnovit“** | Ťukni na Obnovit. Nic se neztratí. |
 | **Zapomenuté heslo** | Odkaz na přihlašovací obrazovce, e-mail přijde do pár minut (mrkni i do spamu). |
+| **Úvod při prvním spuštění chci vidět znovu** | Více → Návod → „Ukázat úvod znovu“. |
 | **Nasazení spadlo** | `gh run list --workflow deploy.yml` a `gh run view --log-failed`. Nejčastěji chybí Secrets – viz A3. |
-| **V appce jsou stará data receptů** | Trenér: Databáze → Naplnit výchozí data. Je bezpečné to pustit znovu. |
+| **V appce jsou stará data receptů** | Trenér: Více → Nastavení → Naplnit výchozí data. Je bezpečné to pustit znovu. |
