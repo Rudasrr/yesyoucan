@@ -148,8 +148,10 @@ A.syncInfo = () => {
   UI.modal(`<div class="row between"><h2>Synchronizace</h2><button class="xbtn" onclick="UI.closeModal()">×</button></div>
     <div class="stats3 two" style="padding:8px 0"><div><b>${ob.length}</b><span>čeká na odeslání</span></div><div><b class="${od.length ? 'bad' : ''}">${od.length}</b><span>odloženo kvůli chybě</span></div></div>
     ${Store.lastError ? `<div class="alert a1" style="margin-top:6px"><div style="flex:1"><b>Poslední chyba:</b> ${esc(Store.lastError)}</div></div>` : ''}
-    ${od.length ? `<div class="card tight" style="margin-top:8px"><table class="small"><tr><th>Co</th><th>Proč</th></tr>
-      ${od.slice(-8).reverse().map(x => `<tr><td class="b">${esc(popis[x.t] || x.t)}</td><td class="muted">${esc((x.msg || '').slice(0, 70))}</td></tr>`).join('')}</table>
+    ${od.length ? `<div class="card tight" style="margin-top:8px"><table class="small"><tr><th>Co</th><th class="n">kolik</th><th>Proč</th></tr>
+      ${(() => { const sk = {}; od.forEach(x => { const k = (x.t || '') + '|' + (x.msg || ''); sk[k] = (sk[k] || 0) + 1; });
+        return Object.entries(sk).map(([k, n2]) => { const t = k.split('|')[0], msg = k.slice(t.length + 1);
+          return `<tr><td class="b">${esc(popis[t] || t)}</td><td class="n">${n2}×</td><td class="muted">${esc(msg.slice(0, 80))}</td></tr>`; }).join(''); })()}</table>
       <p class="hint">Tyhle záznamy databáze odmítla. Zbytek se ukládá dál, takhle to appku neblokuje.</p></div>` : ''}
     ${!od.length && !Store.lastError ? `<p class="small muted" style="margin-top:6px">Všechno je uložené. Poslední synchronizace ${Store.lastSync ? czDateShort(Store.lastSync.slice(0, 10)) : '–'}.</p>` : ''}
     <div class="row" style="margin-top:12px"><button class="btn" onclick="A.syncNow()">Zkusit teď</button>${od.length ? `<button class="btn sec" onclick="A.syncClear()">Zapomenout odložené</button>` : ''}</div>`);

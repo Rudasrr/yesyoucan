@@ -55,7 +55,9 @@ const Store = {
       'Fazole vařené': ['Fazole suché', 2.9], 'Hrách vařený': ['Hrách suchý', 3.1], 'Brambory vařené': ['Brambory', 0.95], 'Batáty pečené': ['Batáty', 0.9] };
     let n = 0;
     const touch = (t, r) => { r.updated_at = new Date().toISOString(); this.queue(t, r); n++; };
-    this.db.recipes.forEach(r => { let ch = 0;
+    /* Globální řádky (user_id null) opravuje supabase-setup.sql. Klient je přepsát nesmí –
+       RLS to odmítne a odmítnutý zápis zbytečně straší v odložených. */
+    this.db.recipes.forEach(r => { if (r.user_id == null) return; let ch = 0;
       (r.data.items || []).forEach(it => { const m = M[it.food]; if (m) { it.food = m[0]; it.g = Math.round(it.g / m[1] * 1e4) / 1e4; ch = 1; } });
       if (ch) touch('recipes', r); });
     this.db.foods.forEach(r => { const m = M[r.data.name]; if (!m || r.user_id == null) return;   // globální řádky opraví supabase-setup.sql
