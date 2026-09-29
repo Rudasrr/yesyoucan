@@ -14,8 +14,7 @@ function S() {
   d.met = SEED.met; d.phase_thresholds = SEED.phase_thresholds; d.phases = SEED.phases;
   return d;
 }
-function saveSettings(data) { const uid = Store.ownerId(); const old = settingsRec(); Store.put('settings', 'settings:' + uid, { ...(old ? { coach_note: old.data.coach_note, coach_note_at: old.data.coach_note_at } : {}), ...data }, uid); }
-function saveCoachNote(text) { const uid = Store.ownerId(); const old = settingsRec(); Store.put('settings', 'settings:' + uid, { ...(old ? old.data : SEED.settings), coach_note: text, coach_note_at: new Date().toISOString() }, uid); }
+function saveSettings(data) { const uid = Store.ownerId(); const d = { ...data }; delete d.coach_note; delete d.coach_note_at; Store.put('settings', 'settings:' + uid, d, uid); }
 /* globální data = seed ze sešitu přepsaný tím, co je v databázi (podle id); smazané v DB mizí */
 function mergedGlobal(table, seedRows) {
   const map = new Map(seedRows.map(r => [r.id, { ...r, seed: true }]));
@@ -36,7 +35,6 @@ function savePrefs(d) { Store.put('prefs', oid('p', 'main'), d); }
 function isFav(name) { return Prefs().favs.includes(name); }
 function toggleFav(name) { const p = Prefs(); p.favs = p.favs.includes(name) ? p.favs.filter(x => x !== name) : p.favs.concat([name]); savePrefs(p); }
 function noteRecent(name) { if (!name || name === SITUACE || name === VYNECHAT) return; const p = Prefs(); p.recent = [name].concat((p.recent || []).filter(x => x !== name)).slice(0, 30); savePrefs(p); }
-function coachNote() { const r = settingsRec(); return r && r.data.coach_note ? r.data.coach_note : null; }
 function recipesFor(courseName) { return Recipes().filter(r => r.course === courseName && r.name && !r.deleted).sort((a, b) => (a.own === b.own ? (a.num || 0) - (b.num || 0) : (a.own ? 1 : -1))); }
 function Meas() { return Store.rows('measurements', Store.ownerId()).map(r => ({ id: r.id, ...r.data })); }
 function saveMeas(m) { Store.put('measurements', oid('m', m.date), m); }

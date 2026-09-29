@@ -130,7 +130,7 @@ A.exportIcs = () => {
   s.courses.forEach(c => { ics += ev('meal-' + c.key, `${COURSE_EMOJI[c.key]} ${c.name}`, c.time, 'FREQ=DAILY', 'Sněz, co máš v plánu, a odklikni v appce:'); });
   ics += ev('walk', '🚶 Chůze – zapiš minuty', '17:00', 'FREQ=DAILY', `${s.walk_min} minut denně. Zapiš do appky:`);
   ics += ev('steps', '👣 Zapiš kroky', '20:00', 'FREQ=DAILY', `Cíl ${fmt0(stepsTarget(s))} kroků. Zapiš číslo z hodinek nebo telefonu:`);
-  ics += ev('close', '🌙 Uzavři den', CLOSE_TIME, 'FREQ=DAILY', 'Mrkni na verdikt dne a napiš trenérovi pár slov:');
+  ics += ev('close', '🌙 Uzavři den', CLOSE_TIME, 'FREQ=DAILY', 'Mrkni na verdikt dne:');
   ics += ev('plan', '🗓️ Naplánuj příští týden + nákup', PLAN_TIME, 'FREQ=WEEKLY;BYDAY=SU', 'Neděle: změř obvody, naplánuj týden, dojdi na nákup:');
   ics += 'END:VCALENDAR\r\n';
   downloadBlob(new Blob([ics], { type: 'text/calendar' }), 'yesyoucan-pripominky.ics');

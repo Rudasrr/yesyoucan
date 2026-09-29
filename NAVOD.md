@@ -127,15 +127,15 @@ Tři věty a dva údaje:
 
 > Tady je tvoje appka: **https://rudasrr.github.io/yesyoucan/** – otevři to v telefonu a přidej si to na plochu (Safari: Sdílet → Přidat na plochu; Chrome: ⋮ → Přidat na plochu).
 > Přihlásíš se e-mailem **r.pesek24@gmail.com** a heslem, které ti posílám zvlášť – hned si ho změň přes „Zapomenuté heslo“.
-> Nic nevymýšlej: otevři **Dnes** a drž se karty **Teď** – vždycky ti řekne jeden další krok. Pod ní je celý den v jednom seznamu, stačí odškrtávat.
+> Nic nevymýšlej: otevři **Dnes** a drž se karty **Teď** – vždycky ti řekne jeden další krok. Pod ní je celý den v jednom seznamu, stačí odškrtávat. Psát si budeme jako doteď, appka na zprávy není.
 
 ## A8. Jak appku používáš ty (trenér)
 
 Tři záložky dole (na počítači nahoře), zbytek pod kolečkem **T** vpravo nahoře.
 
-- **Robert** – barva a jedna věta řeknou, jestli zasáhnout. Hlavní tlačítko rovnou pošle navržený vzkaz. Pod tím jen signály, které vyžadují akci – každý má svoje tlačítko (vzkaz, nastavit, otevřít). Týden jako sedm políček, **Zkopírovat týdenní zprávu** dá do schránky hotový text. Ťuknutím na den vidíš, co snědl, chůzi, kroky, hlad a poznámku a můžeš odpovědět. **Vzkazy** je jedno vlákno – co tam napíšeš, Robert uvidí nahoře na Dnes.
+- **Robert** – barva a jedna věta řeknou, jestli zasáhnout. Pod tím jen signály, které vyžadují akci – u většiny je tlačítko (nastavit, přiřadit, otevřít). Týden jako sedm políček, **Zkopírovat týdenní zprávu** dá do schránky hotový text, který mu pošleš, kudy chceš. Ťuknutím na den vidíš, co snědl, chůzi, kroky a hlad. Appka na komunikaci není – vzkazy ani poznámky v ní nejsou.
 - **Plán → Cíle** – tempo hubnutí, cíl chůze, cíl kroků, tempo chůze a udržovací týden. **Ukládá se hned** a každá změna jde vrátit tlačítkem Zpět v hlášce. Věci na roky (výška, věk, start, cílové hodnoty, bílkoviny, cíle chodů) jsou v **Profil a výchozí hodnoty**. **Historie změn** ukazuje všechny zásahy; v grafu váhy jsou jako svislé čáry.
-- **Plán → Trénink** – tréninkové plány, sedm dní, editor dne. Méně častá tlačítka jsou pod ⋯.
+- **Plán → Trénink** – tréninkové plány, sedm dní, editor dne. Méně častá tlačítka jsou pod ⋯. **Plán musí platit od nějakého data**, jinak ho Robert nevidí – nový plán se přiřadí sám, a když není přiřazený, appka to hlásí červeně s tlačítkem „Přiřadit“.
 - **Databáze** – globální recepty a suroviny. Bez hledání se ukážou chody, ťuknutím se otevře jeden.
 - **Více → Pohled Roberta** – appka přesně tak, jak ji vidí on. Jen náhled, nic se neuloží; když za něj opravdu potřebuješ něco naplánovat, zapni tam „Plánovat za Roberta“.
 
@@ -171,7 +171,7 @@ Nahoře velké číslo: **kolik ještě můžeš sníst**. Pod ním karta **Teď
 3. **Chůze** – u řádku je tlačítko +15 minut. Ťuknutím na řádek zapíšeš přesně.
 4. **Trénink** (když ho máš v plánu) – ťukni na řádek a dej „Začít cvičit“, nebo jen odškrtni, co jsi udělal.
 5. **Večer zapiš kroky** z hodinek nebo telefonu.
-6. **Uzavři den** – uvidíš, jak dopadl, ťukneš, jak ti bylo s jídlem, a můžeš napsat trenérovi pár slov. Když na to zapomeneš, o půlnoci se den uzavře sám.
+6. **Uzavři den** – uvidíš, jak dopadl, a ťukneš, jak ti bylo s jídlem. Když na to zapomeneš, den se uzavře sám.
 
 ## B4. Když se den nepovede
 
@@ -179,7 +179,7 @@ Nahoře velké číslo: **kolik ještě můžeš sníst**. Pod ním karta **Teď
 - **Nestihl jsi jídlo** → otevři ho a vyber „— vynechat“.
 - **Jedl jsi venku** → otevři jídlo a dej 🍽️ Mimo dům.
 - **Nemáš váhu na jídlo** → u surovin vidíš domácí míry (⚖️ zvaž · 🥄 odměř · ✋ od oka). Velikost svých nádob nastavíš v Nastavení.
-- **Chceš trenérovi něco říct** → napiš to při uzavření dne. Odpověď uvidíš tamtéž a jeho vzkaz nahoře v kartě Teď.
+- **Chceš trenérovi něco říct** → napiš mu jako doteď, appka na zprávy není.
 
 ## B5. Neděle
 
@@ -197,6 +197,7 @@ V **Plánu**: nech si navrhnout týden (⋯ → Naplánuj mi celý týden), dola
 | **Dvě zařízení, každé jinak** | Platí novější zápis. Když se to rozejde, nahraj zálohu z Nastavení. |
 | **„Nová verze – obnovit“** | Ťukni na Obnovit. Nic se neztratí. |
 | **Zapomenuté heslo** | Odkaz na přihlašovací obrazovce, e-mail přijde do pár minut (mrkni i do spamu). |
+| **Přidal jsem trénink, Robert ho nevidí** | Plán nemá „Platí od“. Plán → Trénink → „Přiřadit“ (appka to hlásí červeně). |
 | **Úvod při prvním spuštění chci vidět znovu** | Více → Návod → „Ukázat úvod znovu“. |
 | **Nasazení spadlo** | `gh run list --workflow deploy.yml` a `gh run view --log-failed`. Nejčastěji chybí Secrets – viz A3. |
 | **V appce jsou stará data receptů** | Trenér: Více → Nastavení → Naplnit výchozí data. Je bezpečné to pustit znovu. |

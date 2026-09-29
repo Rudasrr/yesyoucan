@@ -136,10 +136,8 @@ function renderNow(d, day, tasks, s) {
     else if (next.id === 'shop') action = `<button class="btn" onclick="App.week='${next.week}';go('nakup')">🛒 Otevřít nákup</button>`;
     else if (next.id === 'measure') action = `<button class="btn write" onclick="A.measSheet('${App.date}',true)">📏 Zapsat obvody</button>`;
   }
-  // co patří k dnešku navíc: vzkaz trenéra, nesoulad plánu a limitu, včerejší váha
+  // co patří k dnešku navíc: nesoulad plánu a limitu, včerejší váha
   const extra = [];
-  const note = coachNote(); const rec = settingsRec(); const noteAt = rec && rec.data.coach_note_at ? isoDate(new Date(rec.data.coach_note_at)) : null;
-  if (isToday && note) extra.push(`<div class="bubble note"><span>💬</span><div><span class="who">Trenér${noteAt ? ' · ' + czDateShort(noteAt) : ''}</span>${esc(note)}</div></div>`);
   if (isToday) { const mm = mismatchAlert(App.date); if (mm) extra.push(mm); }
   if (isToday) { const y = addDays(todayISO(), -1); if (y >= S().start_date && !Meas().some(m => m.date === y && m.weight != null))
     extra.push(`<div class="row nowrap small"><span class="muted" style="flex:1">Včera chybí váha. Víš ji?</span><input type="text" inputmode="decimal" placeholder="kg" style="width:90px;min-height:38px" onchange="A.fillWeight('${y}',this.value)"></div>`); }
@@ -181,7 +179,7 @@ function dayRows(d, day, tasks, s) {
   out.push(`<div class="li cheat ${b.cheatKcal > 0 ? '' : 'add'}" onclick="A.cheatSheet()" id="cheat"><span class="ck na"></span><span class="tm"></span><span class="em">🍻</span><div class="tx"><b>${b.cheatKcal > 0 ? 'Cheat · ' + esc(popis) : '+ Cheat na večer'}</b><span>${b.cheatKcal > 0 ? `${cheatStupen(b.cheatKcal, b.maxIntake).k} · ${b.cheatCoverable ? `uchodíš za ${b.cheatWalk} min navíc` : 'uchodit se nedá'}` : 'pivo, řízek, dort – zapiš dopředu'}</span></div>${b.cheatKcal > 0 ? `<span class="val" style="color:var(--cheat-ink)">${fmt0(b.cheatKcal)}</span>` : '<span class="chev">›</span>'}</div>`);
   const stT = byId.steps; if (stT) { const cil = stepsTarget(s), real = daySteps(day);
     out.push(row(stT, { ck: ROW_CK(stT.done, 'A.stepsSheet()', stT.done ? '' : 'ghost'), tm: 'večer', em: '👣', act: 'A.stepsSheet()', b: real == null ? 'Zapsat kroky' : `${fmt0(real)} kroků`, s: real == null ? `cíl ${fmt0(cil)} · podle hodinek nebo telefonu` : (real >= cil ? 'cíl splněný' : `chybí ${fmt0(cil - real)} do cíle ${fmt0(cil)}`) })); }
-  const clT = byId.close; if (clT) out.push(row(clT, { ck: ROW_CK(clT.done, 'A.closeDay()', clT.done ? '' : 'ghost'), tm: 'večer', em: '🌙', act: 'A.closeDay()', b: clT.done ? (evaluateDay(App.date).ok ? 'Den uzavřený · sedí' : 'Den uzavřený · nesedí') : 'Uzavřít den', s: clT.done ? (day.note ? 'poznámka pro trenéra ✓' : 'verdikt, hlad, poznámka') : 'verdikt, hlad, poznámka pro trenéra' }));
+  const clT = byId.close; if (clT) out.push(row(clT, { ck: ROW_CK(clT.done, 'A.closeDay()', clT.done ? '' : 'ghost'), tm: 'večer', em: '🌙', act: 'A.closeDay()', b: clT.done ? (evaluateDay(App.date).ok ? 'Den uzavřený · sedí' : 'Den uzavřený · nesedí') : 'Uzavřít den', s: 'verdikt dne a jak ti bylo s jídlem' }));
   return out;
 }
 
@@ -276,10 +274,10 @@ A.stepsSheet = () => openSheet(() => {
     real == null ? `<button class="btn sec write" onclick="A.setSteps(${cil})">✓ Ušel jsem cíl ${fmt0(cil)}</button>` : '');
 });
 
-/* ---- uzavření dne: verdikt, hlad a poznámka pro trenéra ---- */
+/* ---- uzavření dne: verdikt a hlad ---- */
 A.closeDay = () => openSheet(() => {
   const date = App.date, day = effectiveDay(date), ev = evaluateDay(date), d = ev.d;
-  const prog = dayProgress(d, day); const rep = coachReply(date);
+  const prog = dayProgress(d, day);
   const fails = d.checks.filter(c => c.state === 1);
   const closed = day.reviewed || day.closed;
   return UI.sheetHtml(`🌙 ${d.ok ? 'Den sedí' : (d.tot.kcal ? 'Den nesedí' : 'Den bez jídla')}`, czDate(date),
@@ -287,12 +285,10 @@ A.closeDay = () => openSheet(() => {
      <div class="stats3 two"><div><b>${fmt0(d.intake)} <small>/ ${fmt0(d.base.maxIntake)}</small></b><span>kcal z limitu</span></div><div><b class="${d.dayDeficit >= d.base.deficit * 0.9 ? 'ok' : 'warn'}">${fmt0(d.dayDeficit)}</b><span>deficit · ${fmt2(d.dayDeficit * 7 / KG_KCAL)} kg/týden</span></div></div>
      ${fails.map(c => `<div class="alert a2"><div><b>${esc(c.name)}:</b> ${esc(c.text)}</div></div>`).join('')}
      ${prog.planned > 0 ? `<button class="btn sec write" onclick="A.eatenAll()">✓ Zbytek jsem snědl podle plánu</button>` : ''}
-     ${realCoach() && !App.preview ? '' : hungerRow(date, day)}
-     <div class="field"><label class="f">Poznámka pro trenéra</label><textarea id="note-${date}" rows="2" class="write" placeholder="např. bolelo koleno, v práci byl dort…" onchange="A.saveNote('${date}',this.value.trim())">${esc(day.note || '')}</textarea></div>
-     ${rep && rep.reply ? `<div class="bubble"><span>💬</span><div><span class="who">Trenér${rep.at ? ' · ' + czDateShort(isoDate(new Date(rep.at))) : ''}</span>${esc(rep.reply)}</div></div>` : ''}`,
+     ${realCoach() && !App.preview ? '' : hungerRow(date, day)}`,
     closed ? `<button class="btn sec" onclick="UI.closeModal()">Hotovo</button>` : `<button class="btn write" onclick="A.closeDayOk()">Uzavřít den</button><button class="btn sec" onclick="UI.closeModal()">Ještě ne</button>`);
 });
-A.closeDayOk = () => { const ta = document.querySelector('.modal textarea[id^="note-"]'); if (ta && ta.value.trim() !== (getDay(App.date).note || '')) A.saveNote(App.date, ta.value.trim());
+A.closeDayOk = () => {
   UI.closeModal(); Undo.run('Den uzavřen', () => { const day = getDay(App.date); day.reviewed = true; saveDay(day); render(); },
   () => { const ev = evaluateDay(App.date); return ev.ok ? 'Den uzavřený a seděl. Zítra stejně.' : 'Den uzavřený. Zítra to dorovnáš.'; }); };
 A.toCourse = key => A.mealSheet(key);

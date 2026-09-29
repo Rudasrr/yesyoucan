@@ -2,8 +2,8 @@
 
 /* ---------- ROBERT: mám zasáhnout? ----------
    Dřív Dashboard (dvě verze nad sebou) a Zpráva vedle sebe: stejné metriky, stejný
-   den po dni a tři tlačítka „poslat vzkaz“, která přepisovala jeden slot. Teď jedna
-   obrazovka: verdikt a akce, co vyžaduje zásah, týden, vzkazy, graf. */
+   den po dni. Teď jedna obrazovka: verdikt, co vyžaduje zásah, týden a graf.
+   Komunikace s Robertem se v appce nevede (rozhodnutí 29. 9. 2026). */
 VIEWS.klient = function () {
   const s = S(), ov = calcOverview(s, Meas()); const uid = Store.ownerId();
   const sig = signaly();
@@ -11,8 +11,6 @@ VIEWS.klient = function () {
   const state = { 1: ['bad', '🔴 Zasáhnout', 'tint-b'], 2: ['warn', '🟡 Pohlídat', 'tint-o'], 3: ['ok', '🟢 V pořádku', 'tint-ok'] }[lvl];
   const wb = ov.weekBack;
   const line = wb && wb.lostW != null ? (wb.lostW >= wb.planW * 0.9 ? `Váha −${fmt2(wb.lostW)} kg za týden, drží tempo.` : wb.lostW > 0 ? `Váha −${fmt2(wb.lostW)} kg za týden, pomaleji než plán (${fmt2(wb.planW)}).` : 'Váha za týden nešla dolů.') : 'Zatím málo vážení na týdenní trend.';
-  const top = sig.find(x => x.msg);
-  const msg = lvl === 3 ? `Dobrá práce, ${fmt1(ov.lost)} kg dole. Drž to a jedeme dál.` : (top ? top.msg : null);
   const p = paceOverview();
   const name = (Store.clients.find(x => x.id === uid) || {}).display_name || 'Robert';
   const ch = sinceLast();
@@ -22,11 +20,9 @@ VIEWS.klient = function () {
     <div class="row"><span class="pill ${state[0]}">${state[1]}</span>${ch.items.length ? `<button class="btn ghost sm" style="margin-left:auto" onclick="A.sinceSheet()">🔔 ${ch.items.length} ${sklon(ch.items.length, 'novinka', 'novinky', 'novinek')}</button>` : ''}</div>
     <div style="font-size:19px;font-weight:750;line-height:1.3">${esc(lvl === 3 ? line : (sig[0] ? sig[0].head || line : line))}</div>
     <div class="mini"><div><b>−${fmt2(p.target)}</b><span>cíl kg/týden</span></div><div><b class="${p.ok ? 'ok' : 'bad'}">−${fmt2(p.projThis)}</b><span>plán týdne</span></div><div><b class="${p.actual == null ? '' : p.actual >= p.target * 0.9 ? 'ok' : 'bad'}">${p.actual == null ? '–' : (p.actual >= 0 ? '−' : '+') + fmt2(Math.abs(p.actual))}</b><span>realita</span></div></div>
-    ${msg ? `<button class="btn multi" onclick="A.sendCoachMsg(${JSON.stringify(msg).replace(/"/g, '&quot;')})">✉️ Poslat: „${esc(msg)}“</button>` : ''}
   </div>
-  ${sig.length ? `<div class="card flush"><div class="lh">${lvl === 3 ? 'Na vědomí' : 'Co vyžaduje akci'}</div>${sig.map((x, i) => `<div class="sig"><span class="sv l${x.lv}"></span><div class="sx">${esc(x.text)}</div>${x.apply ? `<button class="btn sm" onclick="${x.apply}">${esc(x.label)}</button>` : x.msg ? `<button class="btn sec sm" onclick="A.msgSheet(${i})">Vzkaz</button>` : x.go ? `<button class="btn sec sm" onclick="${x.go}">${esc(x.label || 'Otevřít')}</button>` : ''}</div>`).join('')}</div>` : ''}
+  ${sig.length ? `<div class="card flush"><div class="lh">${lvl === 3 ? 'Na vědomí' : 'Co vyžaduje akci'}</div>${sig.map((x, i) => `<div class="sig"><span class="sv l${x.lv}"></span><div class="sx">${esc(x.text)}</div>${x.apply ? `<button class="btn sm" onclick="${x.apply}">${esc(x.label)}</button>` : x.go ? `<button class="btn sec sm" onclick="${x.go}">${esc(x.label || 'Otevřít')}</button>` : ''}</div>`).join('')}</div>` : ''}
   ${weekCard()}
-  ${threadCardC()}
   <div class="card"><div class="ch"><h2>Váha proti plánu</h2>${ov.avgWeekLoss != null ? `<span class="pill ${ov.avgWeekLoss >= ov.cur * s.rate_pct / 100 * 0.9 ? 'ok' : 'warn'}">−${fmt2(ov.avgWeekLoss)} kg/týden</span>` : ''}</div>
     ${lineChart({ series: [{ name: 'plán', color: '#9aa3b8', dash: true, pts: Array.from({ length: Math.max(84, (ov.last ? ov.last.idx : 0) + 14) + 1 }, (_, i) => [i, planWeightAt(s, i)]) }, { name: 'ranní váha', color: '#a8c6e4', pts: ov.rows.map(r => [r.idx, r.weight]), thin: true }, { name: 'průměr 7 dní', color: '#1478d4', pts: ov.rows.map(r => [r.idx, r.avg]), dots: true }], xLabel: 'dní od startu', yUnit: 'kg', h: 230, marks: (s.log || []).map(l => ({ x: daysBetween(s.start_date, l.at), label: l.pop.split(' ')[0] + ' ' + l.to })) })}
     <p class="hint">Průměr 7 dní ${fmt1(ov.cur)} kg · od startu −${fmt1(ov.lost)} kg · prognóza ${ov.forecast || '–'}. Svislé čáry jsou tvoje zásahy.</p></div>
@@ -53,31 +49,15 @@ A.copyReport = start => { const R = weekReport(start); const done = () => UI.toa
   if (navigator.clipboard) navigator.clipboard.writeText(R.text).then(done).catch(() => A.reportSheet(start)); else A.reportSheet(start); };
 A.reportSheet = start => { const R = weekReport(start); UI.sheet('📋 Týdenní zpráva', `${czDateShort(start)}–${czDateShort(addDays(start, 6))}`, `<pre class="small" style="white-space:pre-wrap;margin:0;font-family:inherit">${esc(R.text)}</pre>`); };
 
-/* vzkazy: Robertovy poznámky ke dnům a tvoje odpovědi v jednom vlákně, jedno pole na psaní */
-function threadCardC() {
-  const it = threadItems(6); const note = coachNote();
-  return `<div class="card stack"><h2>💬 Vzkazy</h2>
-    ${it.length ? `<div class="stack s8">${it.map(x => `<div class="bubble" style="${x.who === 'robert' ? 'background:var(--p-bg)' : ''}"><div><span class="who" style="${x.who === 'robert' ? 'color:var(--p-ink)' : ''}">${x.who === 'robert' ? 'Robert' : 'Ty'} · <a href="#" onclick="A.coachDaySheet('${x.date}');return false">${czDateShort(x.date)}</a></span>${esc(x.text)}</div></div>`).join('')}</div>` : '<p class="small muted">Zatím nic. Robertovy poznámky ke dnům a tvoje odpovědi se sbíhají sem.</p>'}
-    ${note ? `<div class="row small muted nowrap"><span style="flex:1;min-width:0">Na jeho Dnes teď visí: „${esc(note)}“</span><button class="btn ghost sm" onclick="saveCoachNote(null);render();UI.toast('Vzkaz z Dnes odebrán.')">odebrat</button></div>` : ''}
-    <div class="row nowrap"><input type="text" id="cmsg" placeholder="Napiš Robertovi…" onkeydown="if(event.key==='Enter')A.sendCoachMsg(this.value)"><button class="btn" onclick="A.sendCoachMsg(document.getElementById('cmsg').value)">Poslat</button></div></div>`;
-}
-/* jeden vzkaz = objeví se Robertovi na Dnes a zůstane ve vlákně u dnešního dne */
-A.sendCoachMsg = text => { text = String(text || '').trim(); if (!text) { UI.toast('Napiš, co mu chceš vzkázat.'); return; }
-  Undo.run('Vzkaz odeslán', () => { saveCoachNote(text); Store.put('training', oid('note', todayISO()), { reply: text, at: new Date().toISOString() }); }, 'Vzkaz odeslán – Robert ho uvidí na Dnes.'); UI.closeModal(); render(); };
-A.msgSheet = i => { const x = signaly()[i]; if (!x) return;
-  UI.sheet('✉️ Vzkaz Robertovi', esc(x.text), `<textarea id="msgt" rows="3">${esc(x.msg || '')}</textarea><p class="hint">Uvidí ho nahoře na Dnes v kartě Teď.</p>`, `<button class="btn" onclick="A.sendCoachMsg(document.getElementById('msgt').value)">Poslat</button>`); };
-
-/* den u Roberta v listu: co snědl, chůze, kroky, hlad, poznámka a odpověď */
+/* den u Roberta v listu: co snědl, chůze, kroky a hlad */
 A.coachDaySheet = date => openSheet(() => {
-  const ev = evaluateDay(date), d = ev.d, day = ev.day, s = S(); const rep = coachReply(date); const m = Meas().find(x => x.date === date);
+  const ev = evaluateDay(date), d = ev.d, day = ev.day, s = S(); const m = Meas().find(x => x.date === date);
   const steps = daySteps(getDay(date));
   return UI.sheetHtml(`${DAY_NAMES[dayIndex(date)]} ${czDateShort(date)}`, d.tot.kcal ? (ev.ok ? 'den seděl' : 'den neseděl') : 'bez jídla',
     `<div class="stats"><div class="stat"><b class="${ev.cheats.over ? 'bad' : ''}">${d.tot.kcal ? fmt0(d.intake) : '–'} <small>/ ${fmt0(d.base.maxIntake)}</small></b><span>kcal z limitu</span></div><div class="stat"><b class="${d.tot.p >= d.protTarget ? 'ok' : ''}">${fmt0(d.tot.p)} <small>g</small></b><span>bílkoviny</span></div><div class="stat"><b>${day.walk_min || 0} <small>min</small></b><span>chůze</span></div><div class="stat"><b>${steps == null ? '–' : fmt0(steps)}</b><span>kroků · cíl ${fmt0(stepsTarget(s))}</span></div></div>
     <div class="list">${d.courses.map((c, ci) => `<div class="li static"><span class="ck ${(day.meals[c.key] || {}).eaten ? 'on' : ''}">${(day.meals[c.key] || {}).eaten ? '✓' : ''}</span><span class="em">${COURSE_EMOJI[c.key]}</span><div class="tx"><b>${esc(c.sel || 'nevybráno')}</b><span>${esc(s.courses[ci].name)}${c.edited ? ' · upraveno' : ''}</span></div><span class="val k">${c.kcal ? fmt0(c.kcal) : ''}</span></div>`).join('')}
       ${d.base.cheatKcal ? `<div class="li static cheat"><span class="ck na"></span><span class="em">🍻</span><div class="tx"><b>Cheat · ${esc(cheatPopis(day))}</b></div><span class="val">${fmt0(d.base.cheatKcal)}</span></div>` : ''}</div>
-    <div class="small muted">${m && m.weight != null ? `Váha ${fmt1(m.weight)} kg · ` : 'Bez vážení · '}hlad: ${day.hunger === 'vlk' ? '😖 vlčí' : day.hunger === 'hlad' ? '😐 hlad' : day.hunger === 'ok' ? '🙂 v pohodě' : 'nezapsáno'}${day.training && day.training.rpe ? ` · trénink náročnost ${day.training.rpe}/5` : ''}</div>
-    ${day.note ? `<div class="bubble" style="background:var(--p-bg)"><div><span class="who" style="color:var(--p-ink)">Robert</span>${esc(day.note)}</div></div>` : ''}
-    <div class="field"><label class="f">Odpověď k tomuto dni</label><div class="row nowrap"><input type="text" id="rep-${date}" value="${esc(rep && rep.reply || '')}" placeholder="odpověď Robertovi…"><button class="btn sm" onclick="A.saveReply('${date}',document.getElementById('rep-${date}').value.trim())">Odeslat</button></div></div>`,
+    <div class="small muted">${m && m.weight != null ? `Váha ${fmt1(m.weight)} kg · ` : 'Bez vážení · '}hlad: ${day.hunger === 'vlk' ? '😖 vlčí' : day.hunger === 'hlad' ? '😐 hlad' : day.hunger === 'ok' ? '🙂 v pohodě' : 'nezapsáno'}${day.training && day.training.rpe ? ` · trénink náročnost ${day.training.rpe}/5` : ''}</div>`,
     `<button class="btn sec" onclick="A.tpOverride('${date}')">🏋️ Jednorázová změna tréninku</button>`);
 });
 /* novinky od minulé návštěvy */
