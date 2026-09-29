@@ -23,6 +23,7 @@ const Store = {
   load() {
     TABLES.forEach(t => { this.db[t] = LS.get('t:' + t, []); });
     this.outbox = LS.get('outbox', []);
+    this.odlozene = LS.get('odlozene', []);
     this.lastSync = LS.get('lastSync', null);
   },
   save(t) { LS.set('t:' + t, this.db[t]); },
@@ -135,17 +136,35 @@ const Store = {
     LS.set('profile', this.profile); LS.set('clients', this.clients);
     return this.profile;
   },
+  /* Zaznam, ktery databaze nikdy neprijme (treba zapis do cizich predvoleb, ktery
+     odmitne RLS), drzel celou frontu a badge svitil cervene napored. Trvale chyby se
+     proto po nekolika pokusech odlozi stranou, fronta jede dal a uzivatel se to dozvi. */
+  trvalaChyba(msg) { return /row-level security|violates|permission denied|not authorized|401|403|42501|does not exist|invalid input/i.test(msg || ''); },
   async push() {
     if (this.localMode() || !this.session || this.syncing || !navigator.onLine) return;
     this.syncing = true; UI.syncBadge();
     try {
-      while (this.outbox.length) {
+      let zbyva = this.outbox.length + 1;
+      while (this.outbox.length && zbyva-- > 0) {
         const o = this.outbox[0];
         const { error } = await this.sb.from(o.t).upsert({ id: o.rec.id, user_id: o.rec.user_id, data: o.rec.data, updated_at: o.rec.updated_at, deleted: o.rec.deleted });
-        if (error) { console.warn('push', o.t, error.message); this.lastError = error.message; break; }
+        if (error) {
+          console.warn('push', o.t, error.message);
+          this.lastError = error.message;
+          o.pokusy = (o.pokusy || 0) + 1;
+          if (this.trvalaChyba(error.message) || o.pokusy >= 5) {
+            this.outbox.shift();
+            this.odlozene = (this.odlozene || []).concat([{ t: o.t, id: o.rec.id, msg: error.message, at: new Date().toISOString() }]).slice(-20);
+            LS.set('odlozene', this.odlozene); LS.set('outbox', this.outbox);
+            continue;                      // dalsi radek uz muze projit
+          }
+          LS.set('outbox', this.outbox);
+          break;                           // docasna chyba – zkusime priste
+        }
         this.lastError = null;
         this.outbox.shift(); LS.set('outbox', this.outbox);
       }
+      if (!this.outbox.length && !(this.odlozene || []).length) this.lastError = null;
     } finally { this.syncing = false; UI.syncBadge(); }
   },
   async pull() {

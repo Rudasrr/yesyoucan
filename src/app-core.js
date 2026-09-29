@@ -84,7 +84,8 @@ const UI = {
     const el = $('#syncb'); if (!el) return;
     if (Store.localMode()) { el.innerHTML = '<span class="dot off"></span>bez cloudu'; return; }
     if (!navigator.onLine) { el.innerHTML = `<span class="dot off"></span>offline${Store.outbox.length ? ' · ' + Store.outbox.length + ' čeká' : ''}`; return; }
-    if (Store.lastError) { el.innerHTML = `<span class="dot err" title="${esc(Store.lastError)}"></span>chyba sync`; return; }
+    if (Store.lastError || (Store.odlozene || []).length) { el.innerHTML = `<span class="dot err"></span>chyba sync`; el.style.cursor = 'pointer'; el.onclick = () => A.syncInfo(); return; }
+    el.onclick = () => A.syncInfo(); el.style.cursor = 'pointer';
     if (Store.syncing || Store.outbox.length) { el.innerHTML = `<span class="dot busy"></span>ukládám…`; return; }
     el.innerHTML = '<span class="dot"></span>uloženo';
   },
@@ -138,6 +139,23 @@ const ICONS = {
   ucet: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1"/></svg>',
   more: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg>'
 };
+
+/* Co se děje se synchronizací. Dřív se uživatel dozvěděl jen to, že „chyba sync“ –
+   bez šance zjistit, co vázne, a bez možnosti s tím cokoli udělat. */
+A.syncInfo = () => {
+  const od = Store.odlozene || [], ob = Store.outbox || [];
+  const popis = { settings: 'nastavení', foods: 'suroviny', recipes: 'recepty', measurements: 'vážení', days: 'dny', week_plans: 'plány týdne', shopping: 'nákup', prefs: 'předvolby', training: 'trénink' };
+  UI.modal(`<div class="row between"><h2>Synchronizace</h2><button class="xbtn" onclick="UI.closeModal()">×</button></div>
+    <div class="stats3 two" style="padding:8px 0"><div><b>${ob.length}</b><span>čeká na odeslání</span></div><div><b class="${od.length ? 'bad' : ''}">${od.length}</b><span>odloženo kvůli chybě</span></div></div>
+    ${Store.lastError ? `<div class="alert a1" style="margin-top:6px"><div style="flex:1"><b>Poslední chyba:</b> ${esc(Store.lastError)}</div></div>` : ''}
+    ${od.length ? `<div class="card tight" style="margin-top:8px"><table class="small"><tr><th>Co</th><th>Proč</th></tr>
+      ${od.slice(-8).reverse().map(x => `<tr><td class="b">${esc(popis[x.t] || x.t)}</td><td class="muted">${esc((x.msg || '').slice(0, 70))}</td></tr>`).join('')}</table>
+      <p class="hint">Tyhle záznamy databáze odmítla. Zbytek se ukládá dál, takhle to appku neblokuje.</p></div>` : ''}
+    ${!od.length && !Store.lastError ? `<p class="small muted" style="margin-top:6px">Všechno je uložené. Poslední synchronizace ${Store.lastSync ? czDateShort(Store.lastSync.slice(0, 10)) : '–'}.</p>` : ''}
+    <div class="row" style="margin-top:12px"><button class="btn" onclick="A.syncNow()">Zkusit teď</button>${od.length ? `<button class="btn sec" onclick="A.syncClear()">Zapomenout odložené</button>` : ''}</div>`);
+};
+A.syncNow = () => { UI.closeModal(); Store.lastError = null; Store.sync().then(() => { render(); UI.toast(Store.lastError ? 'Pořád to nejde: ' + Store.lastError : 'Synchronizováno.'); }); };
+A.syncClear = () => { Store.odlozene = []; LS.set('odlozene', []); Store.lastError = null; UI.closeModal(); render(); UI.toast('Odložené záznamy zapomenuty.'); };
 
 function realCoach() { return Store.profile && Store.profile.role === 'coach'; }
 function isCoach() { return realCoach() && !App.preview; }
