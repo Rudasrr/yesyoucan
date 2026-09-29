@@ -101,7 +101,7 @@ A.saveMeas = () => {
   if (upraveno) { UI.toast('Tohle číslo mi nesedí – zkontroluj ho, zapsal jsem nejbližší rozumnou hodnotu.'); }
   if (m.weight == null && m.waist == null) { UI.toast('Zapiš aspoň váhu'); return; }
   const pl = m.weight != null ? weightPlausible(m.weight, m.date) : { ok: true };
-  if (!pl.ok && !A._forceMeas) { const mm = UI.modal(`<h2>Sedí to?</h2><p class="muted" style="margin-top:8px">Zapisuješ <b>${fmt1(m.weight)} kg</b>, ale průměr posledních dnů je <b>${fmt1(pl.prev.avg)} kg</b> (rozdíl ${(pl.diff > 0 ? '+' : '−') + fmt1(Math.abs(pl.diff))} kg je nezvyklý). Překlep, nebo jiná váha?</p><div class="row" style="margin-top:12px"><button class="btn sec" onclick="UI.closeModal()">Opravím</button><button class="btn" id="mfy">Je to správně, ulož</button></div>`); mm.querySelector('#mfy').onclick = () => { mm.remove(); A._forceMeas = true; A.saveMeas(); A._forceMeas = false; }; return; }
+  if (!pl.ok && !A._forceMeas) { const mm = UI.modal(`<h2>Sedí to?</h2><p class="muted">Zapisuješ <b>${fmt1(m.weight)} kg</b>, ale průměr posledních dnů je <b>${fmt1(pl.prev.avg)} kg</b> (rozdíl ${(pl.diff > 0 ? '+' : '−') + fmt1(Math.abs(pl.diff))} kg je nezvyklý). Překlep, nebo jiná váha?</p><div class="row"><button class="btn sec" onclick="UI.closeModal()">Opravím</button><button class="btn" id="mfy">Je to správně, ulož</button></div>`); mm.querySelector('#mfy').onclick = () => { mm.remove(); A._forceMeas = true; A.saveMeas(); A._forceMeas = false; }; return; }
   Undo.run('Zápis měření', () => { saveMeas(m); UI.closeModal(); render(); }, () => { const ov = calcOverview(S(), Meas()); return `Zápis uložen. Průměr 7 dní ${fmt1(ov.cur)} kg${ov.dev != null ? (ov.dev >= 0 ? `, ${fmt2(ov.dev)} kg před plánem.` : `, ${fmt2(-ov.dev)} kg za plánem.`) : '.'}`; });
 };
 A.delMeas = d => UI.confirm(`Smazat zápis z ${czDate(d)}?`, () => A.delMeas0(d), 'Smazat');
@@ -171,7 +171,7 @@ VIEWS._jidla = function () {
   else cta = `<button class="btn block sec" onclick="A.planTab('nakup')">🛒 Pokračovat na nákup ›</button>`;
   const emo = (d, ci) => { const v = d.sels[ci]; const k = s.courses[ci].key;
     if (!v) return '<i class="no">+</i>'; if (v === VYNECHAT) return '<i class="no">–</i>'; if (v === SITUACE) return '<i class="sit" title="podle situace">🎲</i>'; return `<i title="${esc(v)}">${COURSE_EMOJI[k]}</i>`; };
-  return `<div class="card"><div class="row nowrap" style="align-items:flex-start"><span class="dot" style="width:12px;height:12px;margin-top:6px;background:${tone}"></span><div style="flex:1;min-width:0"><b style="font-size:16px">${headline}</b><div class="small muted">${subline}</div>${msgs[0] && filled ? `<div class="small" style="margin-top:4px">${msgs[0].em} ${esc(msgs[0].text)}</div>` : ''}</div></div></div>
+  return `<div class="card"><div class="row nowrap" style="align-items:flex-start"><span class="dot" style="width:12px;height:12px;background:${tone}"></span><div class="sp"><b style="font-size:16px">${headline}</b><div class="small muted">${subline}</div>${msgs[0] && filled ? `<div class="small">${msgs[0].em} ${esc(msgs[0].text)}</div>` : ''}</div></div></div>
   <div class="card flush">${days.map(d => { const past = d.date < today; const mm = dayMismatch(d.date);
     const st = d.r.filled === 0 ? '' : d.r.state === 2 && !mm ? 's2' : (d.r.filled < 5 || mm ? 's3' : 's1');
     const kc = d.r.filled === 0 ? '<span class="muted">prázdný</span>' : (d.r.state === 2 || d.r.filled < 5 ? fmt0(d.r.kcal) : `<span class="${d.r.state === 1 ? 'bad' : 'warn'}" title="${esc(d.r.status)}">${fmt0(d.r.kcal)} · ${signed0(d.r.kcal - d.r.planLimit)}</span>`);
@@ -220,7 +220,7 @@ VIEWS._nakup = function () {
   const list = calcShopping(s, foods, recipes, wk.plan, w, weekActs(App.week, w), pick);
   const dnu = pick ? pick.length : 7;
   const dayp = `<div class="card noprint"><div class="row between"><b>Nakupuju na</b><span class="small muted">${dnu === 7 ? 'celý týden' : `${dnu} ${DEN(dnu)}`}</span></div>
-    <div class="dayp" style="margin-top:8px">${DAY_NAMES.map((d, i) => `<button class="${!pick || pick.includes(i) ? 'on' : ''}" onclick="A.shopDay(${i})" title="${d}">${DAY_SHORT[i]}</button>`).join('')}</div></div>`;
+    <div class="dayp">${DAY_NAMES.map((d, i) => `<button class="${!pick || pick.includes(i) ? 'on' : ''}" onclick="A.shopDay(${i})" title="${d}">${DAY_SHORT[i]}</button>`).join('')}</div></div>`;
   if (!list.length) return dayp + `<div class="card empty"><span class="em">🛒</span>Na vybrané dny nemáš naplánovaná jídla.<button class="btn sec sm" onclick="A.planTab('jidla')">Naplánovat jídla</button></div>`;
   const tydnu = Math.max(0.5, dnu / 7);
   const doma = [], koupit = [];
@@ -232,7 +232,7 @@ VIEWS._nakup = function () {
     const sloupcu = koupit.length > 46 ? 3 : 2;
     return `<div class="ph noprint"><div class="pt"><h1>Nákup na tisk</h1><span class="sub">${koupit.length} ${sklon(koupit.length, 'položka', 'položky', 'položek')} · jedna A4</span></div><div class="act"><button class="btn sec sm" onclick="App.shopMode='obchod';render()">Zpět</button><button class="btn sm" onclick="window.print()">Vytisknout</button></div></div>
       <div class="card ptisk"><div class="row between"><h2>Nákup · ${czDateShort(App.week)}${pick ? ` · ${pick.map(i2 => DAY_SHORT[i2]).join(' ')}` : ' · celý týden'}</h2><span class="small muted">${koupit.length}</span></div>
-      <div class="plist2" style="column-count:${sloupcu};margin-top:8px">${aisles.map(a => `<div class="pgrp"><h3>${esc(a)}</h3>${koupit.filter(x => x.aisle === a).map(x => `<div class="pln"><span class="box"></span><span class="nm">${esc(x.food)}</span><b>${x.buy}</b></div>`).join('')}</div>`).join('')}</div></div>`;
+      <div class="plist2" style="column-count:${sloupcu}">${aisles.map(a => `<div class="pgrp"><h3>${esc(a)}</h3>${koupit.filter(x => x.aisle === a).map(x => `<div class="pln"><span class="box"></span><span class="nm">${esc(x.food)}</span><b>${x.buy}</b></div>`).join('')}</div>`).join('')}</div></div>`;
   }
   const radek = x => `<tr class="${shop.checked[x.food] ? 'done' : ''}"><td style="width:34px"><input type="checkbox" class="write" ${shop.checked[x.food] ? 'checked' : ''} onchange="A.shopCheck('${esc(x.food)}',this.checked,${x.g})" aria-label="${esc(x.food)}"></td>
     <td class="nm">${esc(x.food)}${x.pstate === 'dochazi' ? ' <span class="pill warn">dochází</span>' : ''}${x.uses > 1 && (['Ořechy a semínka', 'Uzeniny'].includes(x.cat) || /Sýr|Eidam|Gouda|Feta|Šunka/.test(x.food)) ? `<div class="tiny muted">rozděl na ${x.uses} ${sklon(x.uses, 'porci', 'porce', 'porcí')} po ${fmt0(x.g / x.uses)} g</div>` : ''}${x.pantry && !shop.checked[x.food] ? `<div><button class="btn ghost sm write" style="padding:0;min-height:24px;font-size:12.5px;font-weight:600;color:var(--ink3)" onclick="A.pantry('${esc(x.food)}','mam')">mám doma ›</button></div>` : ''}</td>
@@ -349,7 +349,7 @@ VIEWS.navod = function () {
     ['Cíl chůze', `${s.walk_min} min denně`, 'Kolik minut chůze máš denně ujít. Pozor, neplést s cílem jídla.'],
     ['Tempo hubnutí', `${String(s.rate_pct).replace('.', ',')} % váhy týdně`, 'Jak rychle má váha klesat. Mění ho jen trenér.'],
   ]))}
-  ${sec('why', '🧠', 'O plánu – proč je postavený takhle', 'Cíl, klíčová čísla a rozhodnutí.', tiles(T.o_planu.goal.map(r => [r[0], r[1]])) + '<h3 style="margin:12px 0 6px">Klíčová čísla</h3>' + tiles(T.o_planu.numbers.map(r => [r[0], r[1]])) + '<h3 style="margin:12px 0 6px">Rozhodnutí</h3>' + tiles(T.o_planu.decisions.map(r => [r[0], r[1]])))}`;
+  ${sec('why', '🧠', 'O plánu – proč je postavený takhle', 'Cíl, klíčová čísla a rozhodnutí.', tiles(T.o_planu.goal.map(r => [r[0], r[1]])) + '<h3>Klíčová čísla</h3>' + tiles(T.o_planu.numbers.map(r => [r[0], r[1]])) + '<h3>Rozhodnutí</h3>' + tiles(T.o_planu.decisions.map(r => [r[0], r[1]])))}`;
 };
 
 A.logout = async () => { await Store.signOut(); App.view = 'dnes'; render(); };

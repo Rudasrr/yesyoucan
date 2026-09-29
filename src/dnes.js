@@ -333,7 +333,7 @@ A.outMeal = key => {
   const s = S(), c = s.courses.find(x => x.key === key);
   UI.sheet('🍽️ Jedl jsem mimo dům', `${esc(c.name)} · cíl ${fmt0(c.kcal)} kcal`,
     `<p class="small muted">Vyber, co se tomu nejvíc podobá. Gramáž pak dolaď – porce v restauraci bývá 350 až 500 g. Odhad je lepší než prázdný den.</p>
-    <div class="plist">${lib.map(f => `<div class="pitem" onclick="A.outPick('${key}',${JSON.stringify(f.name).replace(/"/g, '&quot;')},${f.port || 400})"><div style="flex:1"><div class="pn">${esc(f.name)}</div><div class="pi">${f.port || 400} g · ${fmt0(f.p * (f.port || 400) / 100)} g bílkovin</div></div><div class="pk">${fmt0(f.kcal * (f.port || 400) / 100)} <span>kcal</span></div></div>`).join('')}</div>`);
+    <div class="plist">${lib.map(f => `<div class="pitem" onclick="A.outPick('${key}',${JSON.stringify(f.name).replace(/"/g, '&quot;')},${f.port || 400})"><div class="sp"><div class="pn">${esc(f.name)}</div><div class="pi">${f.port || 400} g · ${fmt0(f.p * (f.port || 400) / 100)} g bílkovin</div></div><div class="pk">${fmt0(f.kcal * (f.port || 400) / 100)} <span>kcal</span></div></div>`).join('')}</div>`);
 };
 A.outPick = (key, food, g) => { UI.closeModal(); Undo.run('Jídlo mimo dům', () => {
   const day = effectiveDay(App.date), m = day.meals[key];
@@ -352,7 +352,7 @@ A.suggestDay = () => Undo.run('Návrh dne', () => { suggestDay(App.date); render
 A.quickWeigh = () => { buzz(20); const el = document.querySelector('#nw'); const r = omez(el ? el.value : '', 30, 400); const v = r.n; if (!v) { UI.toast('Zapiš číslo v kg'); return; } if (r.mimo) UI.toast('Váha mimo rozumný rozsah – zapsal jsem nejbližší hodnotu.'); App.measDate = App.date;
   const pl = weightPlausible(v, App.date);
   const save = () => Undo.run('Váha', () => { const ex = Meas().find(m => m.date === App.date) || { date: App.date }; saveMeas({ ...ex, weight: v }); render(); }, () => { const ov = calcOverview(S(), Meas()); return `Váha ${fmt1(v)} kg zapsána. Průměr 7 dní ${fmt1(ov.cur)} kg${ov.dev != null ? (ov.dev >= 0 ? `, ${fmt2(ov.dev)} kg před plánem.` : `, ${fmt2(-ov.dev)} kg za plánem.`) : '.'}`; });
-  if (!pl.ok) { const mm = UI.modal(`<h2>Sedí to?</h2><p class="muted" style="margin-top:8px">Zapisuješ <b>${fmt1(v)} kg</b>, průměr posledních dnů je <b>${fmt1(pl.prev.avg)} kg</b>. Rozdíl ${(pl.diff > 0 ? '+' : '−') + fmt1(Math.abs(pl.diff))} kg je nezvyklý – překlep?</p><div class="row" style="margin-top:12px"><button class="btn sec" onclick="UI.closeModal()">Opravím</button><button class="btn" id="mfy">Je to správně</button></div>`); mm.querySelector('#mfy').onclick = () => { mm.remove(); save(); }; return; }
+  if (!pl.ok) { const mm = UI.modal(`<h2>Sedí to?</h2><p class="muted">Zapisuješ <b>${fmt1(v)} kg</b>, průměr posledních dnů je <b>${fmt1(pl.prev.avg)} kg</b>. Rozdíl ${(pl.diff > 0 ? '+' : '−') + fmt1(Math.abs(pl.diff))} kg je nezvyklý – překlep?</p><div class="row"><button class="btn sec" onclick="UI.closeModal()">Opravím</button><button class="btn" id="mfy">Je to správně</button></div>`); mm.querySelector('#mfy').onclick = () => { mm.remove(); save(); }; return; }
   save(); };
 A.favInPlace = (btn, name) => { toggleFav(name); const on = isFav(name); btn.classList.toggle('on', on); btn.textContent = on ? '★' : '☆'; UI.toast(on ? `${name} přidáno do oblíbených.` : `${name} odebráno z oblíbených.`); };
 
@@ -443,7 +443,7 @@ function openCheatPicker() {
       `<div class="search"><input type="text" id="chq" value="${esc(CheatPick.q)}" placeholder="hledej – řízek, pizza, čokoláda…" oninput="window._chq(this.value)"></div>
       <div class="plist">${L.slice(0, 120).map(x => { const st = cheatStupen(x.kcal, limit); const min = Math.ceil(x.kcal / Math.max(1, perMin));
         return `<div class="pitem" onclick="window._chpick(${JSON.stringify(x.nazev).replace(/"/g, '&quot;')},${x.kcal})">
-          <div style="flex:1;min-width:0"><div class="pn">${esc(x.nazev)}</div><div class="pi">${esc(x.porce)} · ≈ ${min} min chůze</div></div>
+          <div class="sp"><div class="pn">${esc(x.nazev)}</div><div class="pi">${esc(x.porce)} · ≈ ${min} min chůze</div></div>
           <div class="pk">${fmt0(x.kcal)} <span>kcal</span><br><span class="cst c-${st.t}">${st.k}</span></div></div>`; }).join('')
         || '<p class="muted small">Nic takového nemám. Zapiš to vlastní položkou níže.</p>'}</div>
       <div class="row nowrap"><input type="text" id="chvl" placeholder="vlastní – např. dort od těty"><button class="btn sec sm" onclick="window._chvl()">Přidat</button></div>`);

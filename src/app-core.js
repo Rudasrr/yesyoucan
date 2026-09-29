@@ -196,7 +196,7 @@ function renderShell() {
 const CLIENT_ONLY = ['dnes', 'plan', 'pokrok'];
 function render() {
   if (!Store.profile) { renderLogin(); return; }
-  $('#login').classList.remove('on'); $('#app').classList.add('on');
+  document.body.classList.remove('out'); $('#login').classList.remove('on'); $('#app').classList.add('on');
   if (VIEW_ALIAS[App.view]) { const [to, st] = VIEW_ALIAS[App.view]; Object.assign(App, st); App.view = to; }
   if (isCoach() && CLIENT_ONLY.includes(App.view)) App.view = 'klient';
   App.ro = realCoach() && App.preview && !App.coachPlan;
@@ -224,14 +224,14 @@ function render() {
 /* Přístupy bez cloudu (jen bariéra proti omylu – v souboru jsou čitelné; skutečné ověření dělá Supabase) */
 const LOCAL_USERS = { 'r.pesek24@gmail.com': { pw: 'mamnato', role: 'client' }, 'rehor.rudolf@gmail.com': { pw: '06392', role: 'coach' } };
 function renderLogin() {
-  $('#app').classList.remove('on'); const L = $('#login'); L.classList.add('on');
+  document.body.classList.add('out'); $('#app').classList.remove('on'); const L = $('#login'); L.classList.add('on');
   // jedna přihlašovací obrazovka pro všechny – jestli je to trenér nebo klient, řekne profil
-  L.innerHTML = `<div class="card"><div class="hero-logo pic"><img src="logo.png" alt=""></div><h1>YesYouCan</h1><p class="muted small" style="margin:6px 0 14px">Přihlaš se e-mailem a heslem.</p>
+  L.innerHTML = `<div class="card"><div class="hero-logo pic"><img src="logo.png" alt=""></div><h1>YesYouCan</h1><p class="muted small">Přihlaš se e-mailem a heslem.</p>
     <div class="in"><label class="f">E-mail</label><input type="email" id="lem" autocomplete="username"></div>
-    <div class="in" style="margin-top:8px"><label class="f">Heslo</label><input type="password" id="lpw" autocomplete="current-password"></div>
-    <div id="lerr" class="bad small" style="margin-top:8px"></div>
-    <div class="row" style="margin-top:12px"><button class="btn" id="lbtn" onclick="doLogin()">Přihlásit</button>${Store.localMode() ? '' : '<button class="btn sec" onclick="doReset()">Zapomenuté heslo</button>'}</div>
-    ${Store.localMode() ? '<p class="tiny muted" style="margin-top:8px">Režim bez cloudu: data zůstávají v tomto prohlížeči.</p>' : ''}</div>`;
+    <div class="in"><label class="f">Heslo</label><input type="password" id="lpw" autocomplete="current-password"></div>
+    <div id="lerr" class="bad small"></div>
+    <div class="row"><button class="btn" id="lbtn" onclick="doLogin()">Přihlásit</button>${Store.localMode() ? '' : '<button class="btn sec" onclick="doReset()">Zapomenuté heslo</button>'}</div>
+    ${Store.localMode() ? '<p class="tiny muted">Režim bez cloudu: data zůstávají v tomto prohlížeči.</p>' : ''}</div>`;
   $('#lpw').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
   $('#lem').focus();
 }
@@ -253,7 +253,7 @@ async function doReset() {
 }
 async function afterLogin() {
   await Store.loadProfile();
-  if (Store.profile.missing) { $('#login').innerHTML = `<div class="card"><h2>Účet zatím nemá roli</h2><p class="small muted" style="margin-top:8px">Trenér musí v Supabase v tabulce <b>profiles</b> přidat řádek s tvým ID a rolí (viz NAVOD.md). Pak se přihlaš znovu.</p><button class="btn sec" onclick="Store.signOut().then(render)">Odhlásit</button></div>`; Store.profile = null; return; }
+  if (Store.profile.missing) { $('#login').innerHTML = `<div class="card"><h2>Účet zatím nemá roli</h2><p class="small muted">Trenér musí v Supabase v tabulce <b>profiles</b> přidat řádek s tvým ID a rolí (viz NAVOD.md). Pak se přihlaš znovu.</p><button class="btn sec" onclick="Store.signOut().then(render)">Odhlásit</button></div>`; Store.profile = null; return; }
   App.view = isCoach() ? 'klient' : 'dnes';
   render();
   await Store.sync(); render();
@@ -308,7 +308,7 @@ async function boot() {
   catch (e) {  // bez internetu se knihovna nenačte – jedeme z lokální kopie dat
     console.warn(e); const prof = LS.get('profile', null);
     if (prof && !prof.local) { Store.profile = prof; Store.clients = LS.get('clients', []); Store.clientId = LS.get('clientId', null); App.view = isCoach() ? 'klient' : 'dnes'; render(); UI.toast('Jsi offline – pracuješ s uloženou kopií'); }
-    else { $('#login').classList.add('on'); $('#login').innerHTML = '<div class="card"><h2>Bez internetu</h2><p class="small muted" style="margin-top:6px">První přihlášení potřebuje připojení. Připoj se a obnov stránku.</p></div>'; }
+    else { $('#login').classList.add('on'); $('#login').innerHTML = '<div class="card"><h2>Bez internetu</h2><p class="small muted">První přihlášení potřebuje připojení. Připoj se a obnov stránku.</p></div>'; }
     return;
   }
   if (cloud) {
@@ -327,7 +327,7 @@ async function boot() {
   setInterval(() => Store.sync().then(ch => { if (ch && App.view !== 'recepty') render(); }), 60000);
 }
 function showNewPassword() {
-  const m = UI.modal(`<h2>Nové heslo</h2><div class="in" style="margin-top:10px"><label class="f">Nové heslo (min. 8 znaků)</label><input type="password" id="npw"></div><div class="row" style="margin-top:10px"><button class="btn" id="npb">Uložit heslo</button></div><div id="nperr" class="bad small"></div>`);
+  const m = UI.modal(`<h2>Nové heslo</h2><div class="in"><label class="f">Nové heslo (min. 8 znaků)</label><input type="password" id="npw"></div><div class="row"><button class="btn" id="npb">Uložit heslo</button></div><div id="nperr" class="bad small"></div>`);
   m.querySelector('#npb').onclick = async () => { try { await Store.updatePassword(m.querySelector('#npw').value); m.remove(); UI.toast('Heslo změněno'); location.hash = ''; } catch (e) { m.querySelector('#nperr').textContent = e.message; } };
 }
 document.addEventListener('DOMContentLoaded', boot);

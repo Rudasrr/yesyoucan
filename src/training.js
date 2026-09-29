@@ -250,15 +250,15 @@ function openExPicker(onPick) {
     if (ExPick.fav) L = L.filter(e => isExFav(e.slug));
     L.sort((a, b) => (isExFav(b.slug) - isExFav(a.slug)) || a.ex.localeCompare(b.ex, 'cs'));
     m.querySelector('.box').innerHTML = `<div class="sh"><h2>🏋️ Cviky${help('Knihovna cviků. Hledej podle názvu, filtruj silové a kardio, hvězdičkou si označ oblíbené – ty se řadí nahoru. Tužkou cvik upravíš, tlačítkem + nový přidáš vlastní. Výchozí cviky mění trenér pro všechny, tvoje vlastní vidíš jen ty.')} <span class="muted small" style="font-weight:600">${L.length} z ${Exercises().length}</span></h2><button class="xbtn" onclick="UI.closeModal()">×</button></div>
-      <div class="frow" style="margin-top:8px"><input type="text" id="exq" placeholder="hledat cvik…" value="${esc(ExPick.q)}" style="flex:1;min-width:160px"></div>
+      <div class="search"><input type="text" id="exq" placeholder="hledat cvik…" value="${esc(ExPick.q)}"></div>
       <div class="frow"><span class="flab">Filtr</span><div class="seg">${[['', 'vše'], ['strength', 'silové'], ['cardio', 'kardio']].map(([k, l]) => `<button class="${ExPick.type === k ? 'on' : ''}" onclick="ExPick.type='${k}';window._exdraw()">${l}</button>`).join('')}</div>
         <button class="chip ${ExPick.fav ? 'on' : ''}" onclick="ExPick.fav=!ExPick.fav;window._exdraw()">★ oblíbené</button>
         <button class="btn sec sm" onclick="A.exEdit(null)">+ nový cvik</button></div>
-      <div class="plist" style="margin-top:8px">${L.map(e => `<div class="pitem" ${onPick ? `onclick="window._expick('${e.slug}')"` : ''}>
-          <div style="flex:1;min-width:0"><div class="pn">${esc(e.ex)}${e.own ? ' <span class="pill">moje</span>' : ''}${e.seed ? '' : ' <span class="pill">nový</span>'}</div>
+      <div class="plist">${L.map(e => `<div class="pitem" ${onPick ? `onclick="window._expick('${e.slug}')"` : ''}>
+          <div class="sp"><div class="pn">${esc(e.ex)}${e.own ? ' <span class="pill">moje</span>' : ''}${e.seed ? '' : ' <span class="pill">nový</span>'}</div>
             <div class="pi">${EX_TYPE_LABEL[e.type || 'strength']}${e.met ? ' · MET ' + e.met : ''}${e.note ? ' · ' + esc(e.note) : ''}</div></div>
           <button class="star ${isExFav(e.slug) ? 'on' : ''}" onclick="event.stopPropagation();A.exFav('${e.slug}')" title="oblíbené">${isExFav(e.slug) ? '★' : '☆'}</button>
-          <button class="xbtn" title="upravit" onclick="event.stopPropagation();A.exEdit('${e.slug}')">✎</button></div>`).join('') || '<p class="muted small" style="margin-top:8px">Nic takového tu není. Zkus jiné slovo, nebo si cvik přidej.</p>'}</div>`;
+          <button class="xbtn" title="upravit" onclick="event.stopPropagation();A.exEdit('${e.slug}')">✎</button></div>`).join('') || '<p class="muted small">Nic takového tu není. Zkus jiné slovo, nebo si cvik přidej.</p>'}</div>`;
     const q = m.querySelector('#exq');
     q.oninput = () => { ExPick.q = q.value; draw(); const n = m.querySelector('#exq'); n.focus(); n.setSelectionRange(n.value.length, n.value.length); };
   };
@@ -275,16 +275,16 @@ A.exEdit = sl => {
   if (sl && !e) return;
   const canDel = sl && (e.own || isCoach());
   const m = UI.modal(`<div class="sh"><h2>${sl ? 'Upravit cvik' : 'Nový cvik'}</h2><button class="xbtn" onclick="UI.closeModal()">×</button></div>
-    <div class="in" style="margin-top:10px"><label class="f">Název</label><input type="text" id="exn" value="${esc(e.ex)}"></div>
-    <div class="row" style="margin-top:8px;align-items:flex-end">
-      <div class="in"><label class="f">Typ</label><select id="ext" style="width:auto">${Object.entries(EX_TYPE_LABEL).map(([k, l]) => `<option value="${k}" ${(e.type || 'strength') === k ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
-      <div class="in"><label class="f">MET (volitelně)</label><input type="number" id="exm" step="0.5" min="0" style="width:90px" value="${e.met || ''}"></div>
-      <div class="in"><label class="f">Série</label><input type="number" id="exs" min="1" style="width:80px" value="${e.sets || ''}"></div>
-      <div class="in"><label class="f">Opakování</label><input type="number" id="exr" min="1" style="width:100px" value="${e.reps || ''}"></div></div>
-    <div class="in" style="margin-top:8px"><label class="f">Poznámka k provedení</label><input type="text" id="exnote" value="${esc(e.note || '')}" placeholder="např. kolena ven, záda rovná"></div>
-    <p class="small muted" style="margin-top:8px">MET nech prázdné u běžných silových cviků – appka použije intenzitu z plánu. Série a opakování se předvyplní, až cvik vložíš do tréninku.</p>
-    <div class="row" style="margin-top:12px"><button class="btn" id="exok">Uložit</button><button class="btn sec" onclick="UI.closeModal()">Zavřít</button>${canDel ? '<span class="sp"></span><button class="btn danger sm" id="exdel">Smazat</button>' : ''}</div>
-    <div class="bad small" id="exerr" style="margin-top:8px"></div>`, { guardEdits: true });
+    <div class="in"><label class="f">Název</label><input type="text" id="exn" value="${esc(e.ex)}"></div>
+    <div class="grid g2">
+      <div class="in"><label class="f">Typ</label><select id="ext">${Object.entries(EX_TYPE_LABEL).map(([k, l]) => `<option value="${k}" ${(e.type || 'strength') === k ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
+      <div class="in"><label class="f">MET (volitelně)</label><input type="number" id="exm" step="0.5" min="0" value="${e.met || ''}"></div>
+      <div class="in"><label class="f">Série</label><input type="number" id="exs" min="1" value="${e.sets || ''}"></div>
+      <div class="in"><label class="f">Opakování</label><input type="number" id="exr" min="1" value="${e.reps || ''}"></div></div>
+    <div class="in"><label class="f">Poznámka k provedení</label><input type="text" id="exnote" value="${esc(e.note || '')}" placeholder="např. kolena ven, záda rovná"></div>
+    <p class="small muted">MET nech prázdné u běžných silových cviků – appka použije intenzitu z plánu. Série a opakování se předvyplní, až cvik vložíš do tréninku.</p>
+    <div class="row"><button class="btn" id="exok">Uložit</button><button class="btn sec" onclick="UI.closeModal()">Zavřít</button>${canDel ? '<span class="sp"></span><button class="btn danger sm" id="exdel">Smazat</button>' : ''}</div>
+    <div class="bad small" id="exerr"></div>`, { guardEdits: true });
   m.querySelector('#exok').onclick = () => {
     const name = m.querySelector('#exn').value.trim();
     if (!name) { m.querySelector('#exerr').textContent = 'Cvik potřebuje název.'; return; }
@@ -336,12 +336,12 @@ function openWorkoutPicker(onPick) {
     const q = TwPick.q.toLowerCase();
     const L = !q ? all : all.filter(w => (w.name || '').toLowerCase().includes(q) || (w.items || []).some(it => it.ex.toLowerCase().includes(q)));
     m.querySelector('.box').innerHTML = `<div class="sh"><h2>💾 Uložené tréninky${help('Sestavený trénink si ulož pod jménem a pak ho vlož do kteréhokoli dne – do šablony týdne i jako jednorázovou změnu na konkrétní datum. Hledat jde podle názvu i podle cviku, který v tréninku je. Změna uložené šablony se do už vložených dnů nepropíše.')} <span class="muted small" style="font-weight:600">${L.length} z ${all.length}</span></h2><button class="xbtn" onclick="UI.closeModal()">×</button></div>
-      <div class="frow" style="margin-top:8px"><input type="text" id="twq" placeholder="hledat podle názvu nebo cviku…" value="${esc(TwPick.q)}" style="flex:1;min-width:160px"><button class="btn sec sm" onclick="A.twEdit(null)">+ nový</button></div>
-      <div class="plist" style="margin-top:8px">${L.map(w => `<div class="pitem" ${onPick ? `onclick="window._twpick('${w.id}')"` : ''}>
-          <div style="flex:1;min-width:0"><div class="pn">${esc(w.name || 'bez názvu')}${w.global ? '' : ' <span class="pill">moje</span>'}</div>
+      <div class="row nowrap"><div class="search sp"><input type="text" id="twq" placeholder="hledat podle názvu nebo cviku…" value="${esc(TwPick.q)}"></div><button class="btn sec sm" onclick="A.twEdit(null)">+ nový</button></div>
+      <div class="plist">${L.map(w => `<div class="pitem" ${onPick ? `onclick="window._twpick('${w.id}')"` : ''}>
+          <div class="sp"><div class="pn">${esc(w.name || 'bez názvu')}${w.global ? '' : ' <span class="pill">moje</span>'}</div>
             <div class="pi">${(w.items || []).length ? esc((w.items || []).map(it => it.ex).join(' · ')) : 'zatím prázdný'}</div></div>
           <div class="pk">${fmt0(workoutKcal(w))} <span>kcal</span><br><span class="muted">${fmt0(workoutMin(w))} min</span></div>
-          <button class="xbtn" title="upravit" onclick="event.stopPropagation();A.twEdit('${w.id}')">✎</button></div>`).join('') || '<p class="muted small" style="margin-top:8px">Zatím žádný uložený trénink. Sestav den a dej „Uložit jako trénink“, nebo si tu založ nový.</p>'}</div>`;
+          <button class="xbtn" title="upravit" onclick="event.stopPropagation();A.twEdit('${w.id}')">✎</button></div>`).join('') || '<p class="muted small">Zatím žádný uložený trénink. Sestav den a dej „Uložit jako trénink“, nebo si tu založ nový.</p>'}</div>`;
     const q2 = m.querySelector('#twq');
     q2.oninput = () => { TwPick.q = q2.value; draw(); const n = m.querySelector('#twq'); n.focus(); n.setSelectionRange(n.value.length, n.value.length); };
   };
@@ -361,15 +361,15 @@ A.twEdit = (id, seed) => {
   const grab = () => { const n = m.querySelector('#twn'), no = m.querySelector('#twnote'); if (n) w.name = n.value; if (no) w.note = no.value; };
   const draw = () => {
     m.querySelector('.box').innerHTML = `<div class="sh"><h2>${id ? 'Upravit trénink' : 'Nový trénink'}</h2><button class="xbtn" onclick="UI.closeModal()">×</button></div>
-      <div class="in" style="margin-top:10px"><label class="f">Název</label><input type="text" id="twn" value="${esc(w.name || '')}" placeholder="např. Pondělí – nohy a záda"></div>
-      <div class="tbl" style="margin-top:10px"><table class="items"><tr><th>Cvik</th><th class="n">série × opak.</th><th class="n">min</th><th class="n m-kcal">kcal</th><th></th></tr>
+      <div class="in"><label class="f">Název</label><input type="text" id="twn" value="${esc(w.name || '')}" placeholder="např. Pondělí – nohy a záda"></div>
+      <div class="tbl"><table class="items"><tr><th>Cvik</th><th class="n">série × opak.</th><th class="n">min</th><th class="n m-kcal">kcal</th><th></th></tr>
         ${items.map((it, i) => `<tr><td>${esc(it.ex)}</td><td class="n">${it.type === 'cardio' ? '–' : `${it.sets || 3} × ${it.reps || 12}`}</td><td class="n">${fmt0(itemMinutes(it))}</td><td class="n">${fmt0(itemKcal(it, currentWeight()))}</td>
           <td class="n"><button class="xbtn" onclick="window._twdel(${i})">×</button></td></tr>`).join('') || '<tr><td colspan="5" class="muted small">Zatím prázdné – přidej cvik.</td></tr>'}
         ${items.length ? `<tr><td class="b">celkem</td><td></td><td class="n b">${fmt0(items.reduce((a, it) => a + itemMinutes(it), 0))}</td><td class="n b">${fmt0(items.reduce((a, it) => a + itemKcal(it, currentWeight()), 0))}</td><td></td></tr>` : ''}</table></div>
-      <div class="row" style="margin-top:8px"><button class="btn sec sm" onclick="window._twadd()">+ přidat cvik</button></div>
-      <div class="in" style="margin-top:8px"><label class="f">Poznámka (volitelně)</label><input type="text" id="twnote" value="${esc(w.note || '')}" placeholder="např. mezi sériemi 90 s pauza"></div>
-      <div class="row" style="margin-top:12px"><button class="btn" id="twok">Uložit</button><button class="btn sec" onclick="UI.closeModal()">Zavřít</button>${id ? '<span class="sp"></span><button class="btn danger sm" id="twdel">Smazat</button>' : ''}</div>
-      <div class="bad small" id="twerr" style="margin-top:8px"></div>`;
+      <div class="row"><button class="btn sec sm" onclick="window._twadd()">+ přidat cvik</button></div>
+      <div class="in"><label class="f">Poznámka (volitelně)</label><input type="text" id="twnote" value="${esc(w.note || '')}" placeholder="např. mezi sériemi 90 s pauza"></div>
+      <div class="row"><button class="btn" id="twok">Uložit</button><button class="btn sec" onclick="UI.closeModal()">Zavřít</button>${id ? '<span class="sp"></span><button class="btn danger sm" id="twdel">Smazat</button>' : ''}</div>
+      <div class="bad small" id="twerr"></div>`;
     m.querySelector('#twok').onclick = () => {
       const name = m.querySelector('#twn').value.trim();
       if (!name) { m.querySelector('#twerr').textContent = 'Trénink potřebuje název.'; return; }
@@ -543,10 +543,10 @@ function trDraw() {
   if (App.tr.rest) {
     trModal.querySelector('.box').innerHTML = `${head}
       <div class="trrest"><div class="trlab">PAUZA</div><div class="trcd" id="trcd">${mmss(Math.ceil((App.tr.rest.end - Date.now()) / 1000))}</div>
-        <div class="bar" style="margin:12px 0"><i id="trbar" style="width:0%"></i></div>
-        <div class="row" style="justify-content:center"><button class="btn sec" onclick="A.trRestPlus(30)">+30 s</button><button class="btn" onclick="A.trRestEnd()">Jsem připravený</button></div>
-        <p class="small muted" style="margin-top:10px;text-align:center">Další: ${esc(it.ex)} · série ${trSets(App.date, i).filter(Boolean).length + 1} z ${it.sets || 1}</p></div>
-      <div class="row" style="margin-top:10px"><button class="btn sec sm" onclick="A.trFinish()">Ukončit trénink</button></div>`;
+        <div class="bar"><i id="trbar" style="width:0%"></i></div>
+        <div class="row center"><button class="btn sec" onclick="A.trRestPlus(30)">+30 s</button><button class="btn" onclick="A.trRestEnd()">Jsem připravený</button></div>
+        <p class="small muted">Další: ${esc(it.ex)} · série ${trSets(App.date, i).filter(Boolean).length + 1} z ${it.sets || 1}</p></div>
+      <div class="row"><button class="btn sec sm" onclick="A.trFinish()">Ukončit trénink</button></div>`;
     return;
   }
   const sets = trSets(App.date, i); const planned = Number(it.sets) || 1;
@@ -555,27 +555,27 @@ function trDraw() {
   const lastKg = (sets.filter(Boolean).slice(-1)[0] || {}).kg || lastWeightFor(it.ex) || '';
   const list = items.map((x, k) => `<button class="chip ${k === i ? 'on' : ''} ${st.done[k] ? 'okc' : ''}" onclick="A.trGo(${k})">${st.done[k] ? '✓ ' : ''}${esc(x.ex)}</button>`).join('');
   trModal.querySelector('.box').innerHTML = `${head}
-    <div class="chips" style="margin-top:8px">${list}</div>
-    <p class="tiny muted" style="margin-top:4px">Pořadí je na tobě – ťukni na cvik, kterým chceš začít.</p>
+    <div class="chips">${list}</div>
+    <p class="tiny muted">Pořadí je na tobě – ťukni na cvik, kterým chceš začít.</p>
     <div class="trex"><div class="tt">${esc(it.ex)}</div>${it.note ? `<div class="small muted">${esc(it.note)}</div>` : ''}
-      <div class="small muted" style="margin-top:4px">${isCardio ? `plán ${it.min} min` : `plán ${planned} × ${it.reps || 12}${it.weight ? ` · ${it.weight} kg` : ''} · pauza ${restSec(it)} s`}</div></div>
-    ${sets.filter(Boolean).length ? `<div class="tbl" style="margin-top:8px"><table class="items"><tr><th>Série</th><th class="n">opak.</th><th class="n">kg</th></tr>
+      <div class="small muted">${isCardio ? `plán ${it.min} min` : `plán ${planned} × ${it.reps || 12}${it.weight ? ` · ${it.weight} kg` : ''} · pauza ${restSec(it)} s`}</div></div>
+    ${sets.filter(Boolean).length ? `<div class="tbl"><table class="items"><tr><th>Série</th><th class="n">opak.</th><th class="n">kg</th></tr>
       ${sets.map((x, k) => x ? `<tr><td>${k + 1}.</td><td class="n">${x.reps}</td><td class="n">${x.kg || '–'}</td></tr>` : '').join('')}</table></div>` : ''}
     ${(() => {
-      if (isCardio) return st.done[i] ? `<div class="alert a3" style="margin-top:10px">Hotovo.</div>`
-        : `<div class="row" style="margin-top:10px"><button class="btn" onclick="A.trCardioDone(${i})">✓ Odcvičeno (${it.min} min)</button></div>`;
+      if (isCardio) return st.done[i] ? `<div class="alert a3">Hotovo.</div>`
+        : `<div class="row"><button class="btn" onclick="A.trCardioDone(${i})">✓ Odcvičeno (${it.min} min)</button></div>`;
       const extra = App.tr.extra === i;
-      const input = `<div class="row" style="margin-top:10px;align-items:flex-end;gap:14px">
+      const input = `<div class="grid g2">
           <div class="in"><label class="f">${extra || si >= planned ? `Série navíc (${si + 1}.)` : `Série ${si + 1} z ${planned}`} – opakování</label>
             ${stepper('trreps', it.reps || 12, 1, 0)}</div>
           <div class="in"><label class="f">Zátěž (kg)</label>${stepper('trkg', lastKg || 0, 2.5, 0)}</div></div>
-        <div class="row" style="margin-top:10px"><button class="btn" onclick="A.trSetDone(${i},${si})">✓ Série hotová</button>${extra ? `<button class="btn sec sm" onclick="App.tr.extra=null;trDraw()">Zpět</button>` : ''}</div>
-        <p class="tiny muted" style="margin-top:6px">Zapiš, kolik jsi jich opravdu udělal – i když je to míň, než je v plánu. Trenér potřebuje vidět skutečnost, ne plán.</p>`;
+        <div class="row"><button class="btn" onclick="A.trSetDone(${i},${si})">✓ Série hotová</button>${extra ? `<button class="btn sec sm" onclick="App.tr.extra=null;trDraw()">Zpět</button>` : ''}</div>
+        <p class="tiny muted">Zapiš, kolik jsi jich opravdu udělal – i když je to míň, než je v plánu. Trenér potřebuje vidět skutečnost, ne plán.</p>`;
       if (!st.done[i] || extra) return input;
-      return `<div class="alert a3" style="margin-top:10px">Hotovo, ${planned} ${planned === 1 ? 'série' : planned < 5 ? 'série' : 'sérií'} zapsaných. ${items.some((_, k) => !st.done[k]) ? 'Vyber další cvik nahoře, nebo ukonči trénink.' : 'Tohle byl poslední cvik.'}</div>
-        <div class="row" style="margin-top:8px"><button class="btn sec sm" onclick="A.trAddSet(${i})">+ ještě jedna série</button></div>`;
+      return `<div class="alert a3">Hotovo, ${planned} ${planned === 1 ? 'série' : planned < 5 ? 'série' : 'sérií'} zapsaných. ${items.some((_, k) => !st.done[k]) ? 'Vyber další cvik nahoře, nebo ukonči trénink.' : 'Tohle byl poslední cvik.'}</div>
+        <div class="row"><button class="btn sec sm" onclick="A.trAddSet(${i})">+ ještě jedna série</button></div>`;
     })()}
-    <div class="row" style="margin-top:14px"><button class="btn sec sm" onclick="A.trFinish()">Ukončit trénink</button></div>`;
+    <div class="row"><button class="btn sec sm" onclick="A.trFinish()">Ukončit trénink</button></div>`;
 }
 
 /* souhrn po tréninku + jak to šlo */
@@ -603,20 +603,20 @@ A.trFinish = () => {
     : share > 0 ? ['🙂', 'Něco je vždycky líp než nic.', 'Nedokončený trénink není prohra. Napiš dolů, co se stalo – trenér s tím může něco udělat.']
     : ['🛋️', 'Dnes to nevyšlo.', 'Stane se. Zapiš proč, ať to není jen tichá díra v týdnu.'];
   if (trTimer) clearInterval(trTimer); trTimer = null; App.tr = null;
-  const prHtml = prs.length ? `<div class="praise good" style="margin-top:8px;background:var(--y-bg)"><span class="em">🔥</span><div><div><b>${prs.length === 1 ? 'Rekord' : `${prs.length} rekordy`}!</b></div>${prs.map(x => `<div class="small">${esc(x.ex)} – ${esc(x.what.join(', '))}</div>`).join('')}</div></div>` : '';
+  const prHtml = prs.length ? `<div class="praise good"><span class="em">🔥</span><div><div><b>${prs.length === 1 ? 'Rekord' : `${prs.length} rekordy`}!</b></div>${prs.map(x => `<div class="small">${esc(x.ex)} – ${esc(x.what.join(', '))}</div>`).join('')}</div></div>` : '';
   if (trModal) { trModal.remove(); trModal = null; }
   const m = UI.modal(`<div class="sh"><h2>Trénink hotový</h2><button class="xbtn" onclick="UI.closeModal()">×</button></div>
-    <div class="praise good" style="margin-top:10px"><span class="em">${praise[0]}</span><div><div>${praise[1]}</div><div class="small muted" style="margin-top:2px">${praise[2]}</div></div></div>
+    <div class="praise good"><span class="em">${praise[0]}</span><div><div>${praise[1]}</div><div class="small muted">${praise[2]}</div></div></div>
     ${prHtml}
-    <div class="stats3" style="padding:12px 0"><div><b>${doneN} <small>/ ${items.length}</small></b><span>cviků</span></div>
+    <div class="stats3"><div><b>${doneN} <small>/ ${items.length}</small></b><span>cviků</span></div>
       <div><b>${setsDone} <small>/ ${setsPlan}</small></b><span>sérií</span></div>
       <div><b class="m-kcal">${fmt0(kcal)}</b><span>kcal navíc${mins ? ` · ${mins} min` : ''}</span></div></div>
     ${volume ? `<p class="small muted">Zvedl jsi dohromady <b>${fmt0(volume)} kg</b> (opakování × zátěž).</p>` : ''}
-    ${pendingN ? `<div class="alert a2" style="margin-top:8px">${pendingN === 1 ? 'Jeden cvik máš rozdělaný' : `${pendingN} cviky máš rozdělané`} – do kalorií dne se počítá až celý cvik, takže ti tam ${fmt0(pending)} kcal zatím chybí. Dotáhni série a připíšou se samy.</div>` : ''}
-    <div class="in" style="margin-top:10px"><label class="f">Jak těžké to bylo?</label><div class="chips" id="trrpe">${RPES.map(([v, l]) => `<button class="chip" data-v="${v}">${v} · ${l}</button>`).join('')}</div></div>
-    <div class="in" style="margin-top:10px"><label class="f">Jak se cítíš?</label><div class="chips" id="trfeel">${FEELS.map(([v, em, l]) => `<button class="chip" data-v="${v}">${em} ${l}</button>`).join('')}</div></div>
-    <div class="in" style="margin-top:10px"><label class="f">Poznámka pro trenéra</label><input type="text" id="trnote" placeholder="např. bolelo levé koleno, dřepy jsem zkrátil"></div>
-    <div class="row" style="margin-top:12px"><button class="btn" id="trsave">Uložit a zavřít</button></div>`);
+    ${pendingN ? `<div class="alert a2">${pendingN === 1 ? 'Jeden cvik máš rozdělaný' : `${pendingN} cviky máš rozdělané`} – do kalorií dne se počítá až celý cvik, takže ti tam ${fmt0(pending)} kcal zatím chybí. Dotáhni série a připíšou se samy.</div>` : ''}
+    <div class="in"><label class="f">Jak těžké to bylo?</label><div class="chips" id="trrpe">${RPES.map(([v, l]) => `<button class="chip" data-v="${v}">${v} · ${l}</button>`).join('')}</div></div>
+    <div class="in"><label class="f">Jak se cítíš?</label><div class="chips" id="trfeel">${FEELS.map(([v, em, l]) => `<button class="chip" data-v="${v}">${em} ${l}</button>`).join('')}</div></div>
+    <div class="in"><label class="f">Poznámka pro trenéra</label><input type="text" id="trnote" placeholder="např. bolelo levé koleno, dřepy jsem zkrátil"></div>
+    <div class="row"><button class="btn" id="trsave">Uložit a zavřít</button></div>`);
   let rpe = null, feel = null;
   const pick = (box, set) => m.querySelectorAll(`#${box} .chip`).forEach(b => b.onclick = () => {
     m.querySelectorAll(`#${box} .chip`).forEach(x => x.classList.remove('on')); b.classList.add('on'); set(b.dataset.v);
@@ -645,5 +645,5 @@ function trSummaryLine(date) {
   const st = trState(date); if (!st.finished) return '';
   const items = trPlanned(date); const doneN = items.filter((_, k) => st.done[k]).length;
   const r = RPES.find(x => x[0] === st.rpe); const f = FEELS.find(x => x[0] === st.feel);
-  return `<div class="notice" style="margin-top:8px"><b>Trénink zapsaný:</b> ${doneN} z ${items.length} cviků${r ? ` · náročnost ${r[0]} (${r[1]})` : ''}${f ? ` · ${f[1]} ${f[2]}` : ''}${st.note ? `<div class="small" style="margin-top:4px">„${esc(st.note)}“</div>` : ''}</div>`;
+  return `<div class="notice"><b>Trénink zapsaný:</b> ${doneN} z ${items.length} cviků${r ? ` · náročnost ${r[0]} (${r[1]})` : ''}${f ? ` · ${f[1]} ${f[2]}` : ''}${st.note ? `<div class="small">„${esc(st.note)}“</div>` : ''}</div>`;
 }

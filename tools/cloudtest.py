@@ -117,9 +117,9 @@ with sync_playwright() as p:
 
     print('\n3 · Robert uloží vážení → trenér ho vidí')
     w = 131.4
-    robert.evaluate("go('mereni')")
-    robert.fill('#m_weight', str(w)); robert.fill('#m_waist', '119')
-    robert.click('text=Uložit zápis'); robert.wait_for_timeout(400)
+    robert.evaluate("go('pokrok');A.measSheet(todayISO(),true)"); robert.wait_for_timeout(200)
+    robert.fill('#m_weight', str(w).replace('.', ',')); robert.fill('#m_waist', '119')
+    robert.click('.modal >> text=Uložit zápis'); robert.wait_for_timeout(400)
     # appka se u nezvyklé váhy ptá – testovací data se od reálných liší, potvrdíme
     if robert.query_selector('.modal'):
         robert.click('text=Je to správně, ulož'); robert.wait_for_timeout(400)
@@ -130,10 +130,9 @@ with sync_playwright() as p:
     check('vážení dorazilo trenérovi', seen)
     check('trenér má vážení ve svém pohledu na klienta',
           coach.evaluate(f"Meas().some(m=>m.date===todayISO() && m.weight==={w})"))
-    # souhrn Dashboardu při jediném vážení hlásí „málo dat na trend“, číslo je až v Detailu
-    dash = coach.evaluate("(()=>{ go('klient'); App.dashDetail = true; render(); return document.querySelector('#main').innerText })()")
-    check('Dashboard (Detail) ho ukazuje', str(w).replace('.', ',') in dash, dash.replace('\n', ' · ')[:150])
-    coach.evaluate('App.dashDetail = false; render()')
+    # obrazovka Robert ukazuje průměr 7 dní pod grafem – při jediném vážení je to právě tohle číslo
+    dash = coach.evaluate("(()=>{ go('klient'); return document.querySelector('#main').innerText })()")
+    check('obrazovka Robert ho ukazuje', str(w).replace('.', ',') in dash, dash.replace('\n', ' · ')[:150])
 
     print('\n4 · trenér uloží Nastavení a Trénink → Robert je vidí')
     coach.evaluate("saveSettings({...S(), rate_pct: 0.75})")
