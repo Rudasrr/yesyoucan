@@ -130,7 +130,6 @@ A.cookWeigh = (id, v) => { const list = cooks(); const c = list.find(x => x.id =
 /* ===== Progres v tréninku (trenér) ===== */
 function exerciseHistory(ex) { const uid = Store.ownerId(); let done = 0, weeks = new Set(); Store.rows('days', uid).forEach(r => { const d = r.data; if (!d.training || !d.training.done) return; const act = dayActivityPlan(d.date); (act.items || []).forEach((it, i) => { if (it.ex === ex && d.training.done[i]) { done++; weeks.add(mondayOf(d.date)); } }); }); return { done, weeks: weeks.size }; }
 function progressSuggestion(it) { if (it.type !== 'strength') return null; const h = exerciseHistory(it.ex); if (h.weeks >= 2 && h.done >= 4) { const lib = EX_LIB.find(e => e.ex === it.ex); return lib && lib.timed ? { text: `${h.done}× splněno ve ${h.weeks} týdnech → +10 s`, apply: { reps: it.reps + 10 } } : (it.reps < 15 ? { text: `${h.done}× splněno ve ${h.weeks} týdnech → +1 opakování`, apply: { reps: it.reps + 1 } } : { text: `${h.done}× splněno, ${it.reps} opak. → +1 série, zpět na 10`, apply: { sets: it.sets + 1, reps: 10 } }); } return h.done ? { text: `${h.done}× splněno` } : null; }
-A.tpApplyProgress = (j) => { const pl = trainingPlans().find(p => p.id === App.tpId); const it = pl.days[App.tpDay].items[j]; const sg = progressSuggestion(it); if (!sg || !sg.apply) return; Object.assign(it, sg.apply); Undo.run(`Progres: ${it.ex} → ${it.sets} × ${it.reps}`, () => saveTrainingPlan(pl)); render(); };
 
 /* ===== Fáze chůze: návrh přepnutí tempa ===== */
 const PHASE_KMH = [[124, 5], [117, 5.5], [110, 6], [102, 6.5], [0, 7]];
@@ -222,9 +221,8 @@ function signaly() {
   // udržovací týden – jeden práh všude: po 8 týdnech upozornit, Plán radí 6–10
   const mw = (s.maint_weeks || []).slice().sort(); const odKdy = mw.length ? mw[mw.length - 1] : s.start_date; const tydnu = Math.floor(daysBetween(odKdy, t) / 7);
   if (tydnu >= 8) push(2, `${tydnu} týdnů bez udržovacího týdne. Po osmi týdnech deficitu se vyplatí jeden týden na nule.`, { go: "App.coachTab='cile';go('nastaveni')", label: 'Zařadit' });
-  const apl = activePlanFor(t); const plans = trainingPlans();
-  if (!apl && plans.length) push(1, `Tréninkový plán „${plans[plans.length - 1].name}“ není přiřazený – Robert ho nevidí a jede na výchozích ${s.walk_min} min chůze.`, { head: 'Tréninkový plán není přiřazený.', apply: `A.tpAssign('${plans[plans.length - 1].id}')`, label: 'Přiřadit' });
-  else if (!apl) push(3, `Žádný tréninkový plán – Robert jede na výchozích ${s.walk_min} min chůze.`, { go: "App.coachTab='trenink';go('nastaveni')", label: 'Trénink' });
+  const apl = activePlanFor(t);
+  if (!apl) push(3, `Žádný tréninkový plán – Robert jede na výchozích ${s.walk_min} min chůze.`, { go: "App.coachTab='trenink';go('nastaveni')", label: 'Trénink' });
   return out.sort((a, b) => a.lv - b.lv);
 }
 

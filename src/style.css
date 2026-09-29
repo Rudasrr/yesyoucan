@@ -288,7 +288,7 @@ input[type=range]{appearance:auto;-webkit-appearance:auto;accent-color:var(--p);
 .sh{display:flex;align-items:flex-start;gap:10px}
 .sh h2{flex:1;font-size:19px;font-weight:800;letter-spacing:-.02em;padding-top:6px}
 .sh .shsub{display:block;font-size:13px;color:var(--ink2);font-weight:600;letter-spacing:0;margin-top:2px}
-.shfoot{display:flex;gap:8px;flex-wrap:wrap;position:sticky;bottom:calc(-20px - env(safe-area-inset-bottom));margin:0 -18px calc(-20px - env(safe-area-inset-bottom));padding:12px 18px calc(16px + env(safe-area-inset-bottom));background:linear-gradient(rgba(255,255,255,0),#fff 30%)}
+.shfoot{display:flex;gap:8px;flex-wrap:wrap;position:sticky;bottom:calc(-20px - env(safe-area-inset-bottom));margin:0 -18px calc(-20px - env(safe-area-inset-bottom));padding:12px 18px calc(16px + env(safe-area-inset-bottom));background:#fff;border-top:1px solid var(--line2);z-index:2}
 .shfoot .btn{flex:1 1 auto}
 @media(min-width:900px){
   .modal{justify-content:flex-end;align-items:stretch}

@@ -135,7 +135,7 @@ Tři záložky dole (na počítači nahoře), zbytek pod kolečkem **T** vpravo 
 
 - **Robert** – barva a jedna věta řeknou, jestli zasáhnout. Pod tím jen signály, které vyžadují akci – u většiny je tlačítko (nastavit, přiřadit, otevřít). Týden jako sedm políček, **Zkopírovat týdenní zprávu** dá do schránky hotový text, který mu pošleš, kudy chceš. Ťuknutím na den vidíš, co snědl, chůzi, kroky a hlad. Appka na komunikaci není – vzkazy ani poznámky v ní nejsou.
 - **Plán → Cíle** – tempo hubnutí, cíl chůze, cíl kroků, tempo chůze a udržovací týden. **Ukládá se hned** a každá změna jde vrátit tlačítkem Zpět v hlášce. Věci na roky (výška, věk, start, cílové hodnoty, bílkoviny, cíle chodů) jsou v **Profil a výchozí hodnoty**. **Historie změn** ukazuje všechny zásahy; v grafu váhy jsou jako svislé čáry.
-- **Plán → Trénink** – tréninkové plány, sedm dní, editor dne. Méně častá tlačítka jsou pod ⋯. **Plán musí platit od nějakého data**, jinak ho Robert nevidí – nový plán se přiřadí sám, a když není přiřazený, appka to hlásí červeně s tlačítkem „Přiřadit“.
+- **Plán → Trénink** – Robertův týden jako sedm konkrétních dní (tento a příští týden). Ťukni na den, nastav chůzi a cviky a při uložení vyber **Každé úterý** (platí od dneška dál, minulé dny zůstanou) nebo **Jen 29. 9.** (jednorázová výjimka). Kalorie řešit nemusíš – appka se ozve jen, když se Robertovi nevejdou jídla nebo je v týdnu málo pohybu.
 - **Databáze** – globální recepty a suroviny. Bez hledání se ukážou chody, ťuknutím se otevře jeden.
 - **Více → Pohled Roberta** – appka přesně tak, jak ji vidí on. Jen náhled, nic se neuloží; když za něj opravdu potřebuješ něco naplánovat, zapni tam „Plánovat za Roberta“.
 
@@ -197,7 +197,7 @@ V **Plánu**: nech si navrhnout týden (⋯ → Naplánuj mi celý týden), dola
 | **Dvě zařízení, každé jinak** | Platí novější zápis. Když se to rozejde, nahraj zálohu z Nastavení. |
 | **„Nová verze – obnovit“** | Ťukni na Obnovit. Nic se neztratí. |
 | **Zapomenuté heslo** | Odkaz na přihlašovací obrazovce, e-mail přijde do pár minut (mrkni i do spamu). |
-| **Přidal jsem trénink, Robert ho nevidí** | Plán nemá „Platí od“. Plán → Trénink → „Přiřadit“ (appka to hlásí červeně). |
+| **Přidal jsem trénink, Robert ho nevidí** | Zkontroluj v Plán → Trénink, že je u toho dne vidět; na starých verzích appky musel mít plán vyplněné „Platí od“. Robertovi pomůže synchronizace (tečka vpravo nahoře). |
 | **Úvod při prvním spuštění chci vidět znovu** | Více → Návod → „Ukázat úvod znovu“. |
 | **Nasazení spadlo** | `gh run list --workflow deploy.yml` a `gh run view --log-failed`. Nejčastěji chybí Secrets – viz A3. |
 | **V appce jsou stará data receptů** | Trenér: Více → Nastavení → Naplnit výchozí data. Je bezpečné to pustit znovu. |

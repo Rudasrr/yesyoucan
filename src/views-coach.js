@@ -58,7 +58,7 @@ A.coachDaySheet = date => openSheet(() => {
     <div class="list">${d.courses.map((c, ci) => `<div class="li static"><span class="ck ${(day.meals[c.key] || {}).eaten ? 'on' : ''}">${(day.meals[c.key] || {}).eaten ? '✓' : ''}</span><span class="em">${COURSE_EMOJI[c.key]}</span><div class="tx"><b>${esc(c.sel || 'nevybráno')}</b><span>${esc(s.courses[ci].name)}${c.edited ? ' · upraveno' : ''}</span></div><span class="val k">${c.kcal ? fmt0(c.kcal) : ''}</span></div>`).join('')}
       ${d.base.cheatKcal ? `<div class="li static cheat"><span class="ck na"></span><span class="em">🍻</span><div class="tx"><b>Cheat · ${esc(cheatPopis(day))}</b></div><span class="val">${fmt0(d.base.cheatKcal)}</span></div>` : ''}</div>
     <div class="small muted">${m && m.weight != null ? `Váha ${fmt1(m.weight)} kg · ` : 'Bez vážení · '}hlad: ${day.hunger === 'vlk' ? '😖 vlčí' : day.hunger === 'hlad' ? '😐 hlad' : day.hunger === 'ok' ? '🙂 v pohodě' : 'nezapsáno'}${day.training && day.training.rpe ? ` · trénink náročnost ${day.training.rpe}/5` : ''}</div>`,
-    `<button class="btn sec" onclick="A.tpOverride('${date}')">🏋️ Jednorázová změna tréninku</button>`);
+    `<button class="btn sec" onclick="A.trDaySheet('${date}')">🏋️ Trénink tohoto dne</button>`);
 });
 /* novinky od minulé návštěvy */
 A.sinceSheet = () => { const ch = sinceLast();
