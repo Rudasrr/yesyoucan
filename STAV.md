@@ -80,7 +80,7 @@ Robert edituje výchozí suroviny/recepty jako vlastní verzi · hvězdičky + O
 ## Kontrola kvality
 `tools/check.js` (výpočty, referenční čísla v CLAUDE.md) · `tools/ftest.py` (funkční scénáře, přepsané na nové rozhraní) · `tools/qa.py` (3 šířky × všechny obrazovky a záložky: přetečení, prvky mimo viewport, rolování do strany na 390 px, díry, překryvy, kontrast, malé písmo, klikací průchod; nově výška Dnes, počet ⓘ na obrazovce a počet ručních stylů) · `tools/cloudtest.py` (dva prohlížeče proti nasazené adrese a ostré databázi; zápis váhy upraven na list).
 
-**Poslední stav (29. 9. 2026, po přestavbě):** check.js referenční čísla beze změny · ftest `errors: none` · qa 0 přetečení, 0 prvků mimo, rolování do strany nikde, díry žádné, 79 kliknutí bez chyby, Dnes 1 437–1 476 px, ⓘ max 0 · všechny spodní listy prověřené na 390 i 1440 px bez přetečení. **cloudtest po přestavbě zatím neběžel** – spustit po nasazení. Netestováno na skutečném iOS Safari.
+**Poslední stav (29. 9. 2026, po přestavbě):** check.js referenční čísla beze změny · ftest `errors: none` · qa 0 přetečení, 0 prvků mimo, rolování do strany nikde, díry žádné, 79 kliknutí bez chyby, Dnes 1 437–1 476 px, ⓘ max 0 · všechny spodní listy prověřené na 390 i 1440 px bez přetečení. cloudtest proti nasazené verzi `errors: none` (21 kontrol). Netestováno na skutečném iOS Safari.
 
 ## Vyřešeno
 - **Rozdíl 2 511,75 vs. 2 473,00 kcal (středa)** je jen zaokrouhlení přílohy. Při 5 g vyjde 2 511,75, bez zaokrouhlení 2 503,34, na 10 g 2 473,00.
@@ -91,7 +91,7 @@ Robert edituje výchozí suroviny/recepty jako vlastní verzi · hvězdičky + O
 - **Opraveno při přestavbě (29. 9.):** na počítači chybělo Více (Recepty, Suroviny, Návod nešly otevřít) · Nastavení bylo ve Více dvakrát · úkol a připomínka „Dojdi na nákup“ vedly na neexistující obrazovku · „Odškrtnout vše zpět“ volalo neexistující `A.shopReset` · Databáze › Suroviny otevírala Nákup · pole kroků v Robertově Nastavení nic neukládalo · „Nastavit“ z doporučení a přepnutí fáze se nelogovaly (chyběly značky v grafu) · graf váhy u trenéra neměl značky zásahů · kalendář (.ics) neměl kroky · dvě různá razítka „poslední návštěva trenéra“, a novinky mizely po prvním překreslení · Nádoby dvakrát · Návod tvrdil „večer nic neukládáš“, zatímco úkol chtěl uzavřít den · trenér mohl z Více otevřít Robertovy obrazovky mimo náhled a psát mu do dat · mrtvý kód (staré menu, `A.cheatAdd`, `parseCheat`, `popEl`, `quietHeader`, `VIEWS.zprava`, `catchUpAlert`, `noteCard`).
 
 ## Otevřené věci / NEXT
-- **Nasadit přestavbu:** `git push` (spustí Action) a pak `python3 tools/cloudtest.py` proti ostré databázi. Robertovi říct, že appka vypadá jinak: tři obrazovky dole, drž se karty Teď.
+- **Přestavba nasazená 29. 9.** Robertovi říct, že appka vypadá jinak: tři obrazovky dole, drž se karty Teď.
 - **Čeká na Rudu:** ťuknout „Zapomenout odložené“ v dialogu synchronizace (20 odmítnutých zápisů globálních receptů, data v pořádku) · poslat Robertovi adresu a heslo z env · změnit si vlastní heslo · smazat testovací plán „Cvik pokus“.
 - **Rozhodnutí vlastníka:** zaokrouhlení přílohy 10 g vs. 5 g · poměrné kalorie za nedokončený cvik · přejmenování cviku se nepropisuje do uložených tréninků.
 - **Přesunout repozitář mimo Google Drive** (git se tam rozbil).

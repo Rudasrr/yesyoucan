@@ -210,10 +210,10 @@ function signaly() {
   else if (!posl && daysBetween(s.start_date, t) >= 2) push(1, 'Zatím žádné vážení.', { head: 'Zatím se nevážil.', msg: 'Zvaž se zítra ráno po WC, nalačno – od toho se všechno počítá.' });
   // dny bez zápisu
   let noLog = 0; for (let k = 1; k <= 7; k++) if (!evaluateDay(addDays(t, -k)).logged) noLog++;
-  if (noLog >= 2) push(1, `${noLog} z posledních 7 dnů bez jakéhokoli zápisu.`, { head: `${noLog} dny bez zápisu.`, msg: 'Pár dní nic nezapsáno – stačí odkliknout jídla a chůzi, ať vidím, jak to jde.' });
+  if (noLog >= 2) push(1, `${noLog} z posledních 7 dnů bez jakéhokoli zápisu.`, { head: `${noLog} ${DEN(noLog)} bez zápisu.`, msg: 'Pár dní nic nezapsáno – stačí odkliknout jídla a chůzi, ať vidím, jak to jde.' });
   // přes limit po sobě
   let pres = 0; for (let k = 1; k <= 14; k++) { const ev = evaluateDay(addDays(t, -k)); if (!ev.logged) break; if (ev.cheats.over > 0) pres++; else break; }
-  if (pres >= 3) push(1, `${pres} ${DEN(pres)} po sobě přes limit. Zeptej se proč, než se z toho stane zvyk.`, { head: `${pres} dny po sobě přes limit.`, msg: 'Pár dní po sobě přes limit – co se děje? Najdeme, co s tím.' });
+  if (pres >= 3) push(1, `${pres} ${DEN(pres)} po sobě přes limit. Zeptej se proč, než se z toho stane zvyk.`, { head: `${pres} ${DEN(pres)} po sobě přes limit.`, msg: 'Pár dní po sobě přes limit – co se děje? Najdeme, co s tím.' });
   // tempo
   paceGuard().forEach(g => push(g.lv, g.text.replace(/^[^\wÁ-ž]+ /, ''), g.text.includes('rychleji') ? { head: 'Hubne rychleji, než je zdravé.', msg: 'Hubneš rychleji, než je zdravé – dojídej přílohy do limitu.' } : g.text.includes('míň, než smí') ? { msg: 'Dojídej přílohy do limitu – deficit je teď moc velký.' } : { go: "go('nastaveni')", label: 'Plán' }));
   if (ov.rows.length > 14) { const a = ov.rows[ov.rows.length - 1].avg, b = ov.rows[ov.rows.length - 15].avg;
