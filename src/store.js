@@ -32,6 +32,17 @@ const Store = {
      protoze filtruje podle updated_at, ktere je starsi nez posledni sync. Proto se
      pri zmene verze globalni radky zahodi (nahradi je vestaveny SEED) a vynuti se
      plne stazeni. Vlastni data uzivatele se nedotknou. */
+  /* Jednorázové srovnání s databází. Řádky smazané v databázi natvrdo (úklid testů,
+     ruční mazání) přírůstkový pull nikdy nepřinese a v prohlížeči by strašily dál –
+     třeba „poslední vážení 18. 9.“ po smazání všech vážení. Při změně DATA_EPOCH se
+     zahodí lokální kopie a stáhne se všechno znovu; neodeslané změny zůstanou ve frontě. */
+  refreshEpoch() {
+    const DATA_EPOCH = '2026-09-30';
+    if (this.localMode() || !navigator.onLine || LS.get('dataEpoch', null) === DATA_EPOCH) return false;   // bez signálu by zůstala prázdná appka
+    TABLES.forEach(t => { this.db[t] = []; this.save(t); });
+    this.lastSync = null; LS.set('lastSync', null); LS.set('dataEpoch', DATA_EPOCH);
+    return true;
+  },
   refreshSeed() {
     if (LS.get('seedVer', null) === SEED.version) return 0;
     let n = 0;

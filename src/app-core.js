@@ -300,6 +300,7 @@ async function boot() {
   registerSW();
   Store.load();
   Store.refreshSeed();
+  Store.refreshEpoch();
   Store.migrateDry();
   let cloud = false;
   try { cloud = await Store.initCloud(); }
