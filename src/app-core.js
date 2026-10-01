@@ -1,7 +1,7 @@
 /* ===== Jádro ===== */
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const $ = sel => document.querySelector(sel);
-const App = { view: 'dnes', date: todayISO(), week: mondayOf(todayISO()), ro: false, moreOpen: false, preview: false, coachPlan: false, openCourse: null };
+const App = { view: 'dnes', date: todayISO(), week: mondayOf(todayISO()), ro: false, moreOpen: false, preview: false, openCourse: null };
 const A = {};  // akce
 const oid = (p, k) => `${p}:${Store.ownerId()}:${k}`;  // id unikátní napříč uživateli
 
@@ -136,11 +136,13 @@ const UI = {
    Zbytek je pod kolečkem s iniciálou vpravo nahoře (Více). */
 const NAV_CLIENT = [['dnes', 'Dnes'], ['plan', 'Plán'], ['pokrok', 'Pokrok']];
 const MORE_CLIENT = [['recepty', 'Recepty', 'všech 200 jídel a tvoje vlastní', '📖'], ['suroviny', 'Suroviny', 'hodnoty na 100 g, vlastní suroviny', '🥦'], ['ucet', 'Nastavení', 'připomínky, nádoby, záloha, odhlášení', '⚙️'], ['navod', 'Návod', 'pravidla, slovníček, jak appka počítá', '📘']];
-const NAV_COACH = [['klient', 'Robert'], ['nastaveni', 'Plán'], ['databaze', 'Databáze']];
+/* Trenér plánuje cíle a trénink, ne jídlo (1. 10. 2026) – databáze potravin ani
+   plánování jídel za Roberta v jeho menu nejsou. */
+const NAV_COACH = [['klient', 'Robert'], ['nastaveni', 'Plán']];
 const MORE_COACH = [['__preview', 'Pohled Roberta', 'appka přesně tak, jak ji vidí on', '👁️'], ['ucet', 'Nastavení', 'účet, výchozí data, odhlášení', '⚙️'], ['navod', 'Návod', 'pravidla, slovníček, jak appka počítá', '📘']];
 /* staré názvy obrazovek (odkazy v úkolech, připomínkách, testech) → nové místo */
 const VIEW_ALIAS = { tyden: ['plan', { planTab: 'jidla' }], jidlo: ['plan', {}], nakup: ['plan', { planTab: 'nakup' }], spiz: ['plan', { planTab: 'nakup' }], vareni: ['plan', { planTab: 'vareni' }],
-  mereni: ['pokrok', {}], prehled: ['pokrok', {}], zprava: ['klient', {}], trenink: ['nastaveni', { coachTab: 'trenink' }] };
+  mereni: ['pokrok', {}], prehled: ['pokrok', {}], zprava: ['klient', {}], databaze: ['klient', {}], trenink: ['nastaveni', { coachTab: 'trenink' }] };
 const ICONS = {
   dnes: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
   plan: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="15" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>',
@@ -170,9 +172,7 @@ A.syncClear = () => { Store.odlozene = []; LS.set('odlozene', []); Store.lastErr
 
 function realCoach() { return Store.profile && Store.profile.role === 'coach'; }
 function isCoach() { return realCoach() && !App.preview; }
-A.togglePreview = () => { App.preview = !App.preview; App.coachPlan = false; App.view = App.preview ? 'dnes' : 'klient'; UI.closeModal(); render(); window.scrollTo(0, 0); UI.toast(App.preview ? 'Vidíš appku Robertovýma očima – jen náhled, nic se neuloží.' : 'Zpět v trenérském pohledu.'); };
-/* Plánování za klienta: primárně si den skládá sám, tohle je pojistka pro trenéra. */
-A.toggleCoachPlan = () => { App.coachPlan = !App.coachPlan; render(); UI.toast(App.coachPlan ? 'Plánuješ za Roberta – co uložíš, uvidí u sebe.' : 'Zpátky jen na koukání.'); };
+A.togglePreview = () => { App.preview = !App.preview; App.view = App.preview ? 'dnes' : 'klient'; UI.closeModal(); render(); window.scrollTo(0, 0); UI.toast(App.preview ? 'Vidíš appku Robertovýma očima – jen náhled, nic se neuloží.' : 'Zpět v trenérském pohledu.'); };
 function nav() { return isCoach() ? NAV_COACH : NAV_CLIENT; }
 function moreItems() { return isCoach() ? MORE_COACH : MORE_CLIENT; }
 function go(v) {
@@ -194,20 +194,19 @@ function renderShell() {
 }
 
 /* obrazovky, které patří Robertovi – trenér je vidí jen v náhledu, ať neklikne omylem do jeho dat */
-const CLIENT_ONLY = ['dnes', 'plan', 'pokrok'];
+const CLIENT_ONLY = ['dnes', 'plan', 'pokrok', 'recepty', 'suroviny'];
 function render() {
   if (!Store.profile) { renderLogin(); return; }
   document.body.classList.remove('out'); $('#login').classList.remove('on'); $('#app').classList.add('on');
   if (VIEW_ALIAS[App.view]) { const [to, st] = VIEW_ALIAS[App.view]; Object.assign(App, st); App.view = to; }
   if (isCoach() && CLIENT_ONLY.includes(App.view)) App.view = 'klient';
-  App.ro = realCoach() && App.preview && !App.coachPlan;
+  App.ro = realCoach() && App.preview;
   renderShell();
   const el = $('#main'); el.className = App.ro ? 'wrap ro' : 'wrap';
   const V = VIEWS[App.view] || (isCoach() ? VIEWS.klient : VIEWS.dnes);
   let head = '';
-  if (isCoach() && Store.clients.length > 1 && App.view !== 'databaze') head = `<div class="row small muted">Klient: <select style="width:auto;min-height:34px;padding:3px 8px" onchange="Store.clientId=this.value;LS.set('clientId',this.value);render()">${Store.clients.map(c => `<option value="${c.id}" ${c.id === Store.clientId ? 'selected' : ''}>${esc(c.display_name || c.name || c.email || c.id.slice(0, 8))}</option>`).join('')}</select></div>`;
-  const planBtns = `<span class="row" style="margin-left:auto"><button class="btn sec sm" onclick="A.toggleCoachPlan()">${App.coachPlan ? '👁️ Jen koukat' : '✏️ Plánovat za Roberta'}</button><button class="btn sm" onclick="A.togglePreview()">Zpět do trenéra</button></span>`;
-  if (App.preview) head += `<div class="notice ${App.coachPlan ? 'warn' : ''}"><span>${App.coachPlan ? '✏️ Plánuješ za Roberta – co uložíš, uvidí u sebe.' : '👁️ Robertův pohled – jen náhled, nic se neuloží.'}</span>${planBtns}</div>`;
+  if (isCoach() && Store.clients.length > 1) head = `<div class="row small muted">Klient: <select style="width:auto;min-height:34px;padding:3px 8px" onchange="Store.clientId=this.value;LS.set('clientId',this.value);render()">${Store.clients.map(c => `<option value="${c.id}" ${c.id === Store.clientId ? 'selected' : ''}>${esc(c.display_name || c.name || c.email || c.id.slice(0, 8))}</option>`).join('')}</select></div>`;
+  if (App.preview) head += `<div class="notice"><span>👁️ Robertův pohled – jen náhled, nic se neuloží.</span><span class="row" style="margin-left:auto"><button class="btn sm" onclick="A.togglePreview()">Zpět do trenéra</button></span></div>`;
   // překreslení nesmí sebrat kurzor z rozepsaného pole ani odskočit se stránkou
   const ae = document.activeElement;
   const keep = ae && ae.id && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA') && el.contains(ae)

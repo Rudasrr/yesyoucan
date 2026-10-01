@@ -56,10 +56,9 @@ Robert i trenér se v appce ztráceli: Dnes měla 4 641 px (5,5 obrazovky), stej
 - **Plán**: Jídla → Nákup → Vaření. Jídla = týden jako sedm řádků (emoji chodů, kcal, stav), den se otevře v listu, jedno hlavní tlačítko podle situace (naplánovat / doplnit / dorovnat / opravit / pokračovat na nákup), zbytek pod ⋯. Nákup = dny, regály, u trvanlivých „mám doma“, sekce Doma, list Celá spíž, tisk pod ⋯. Vaření = V lednici, dny, co uvařit, rozpis do hrnce v listu. Pohled „den po dni“ zrušen.
 - **Pokrok**: průměr 7 vážení, cesta ke 102 kg, graf proti plánu se značkami zásahů trenéra, tři kroužky, listy Obvody / Historie zápisů / Plán proti skutečnosti. Zápis váhy a obvodů v listu (+ Zápis), váha se zapisuje hlavně na Dnes.
 
-**Trenér: Robert · Plán · Databáze** + Více (Pohled Roberta, Nastavení, Návod).
+**Trenér: Robert · Plán** + Více (Pohled Roberta, Nastavení, Návod). Od 1. 10. bez Databáze a bez plánování jídel za Roberta – trenér plánuje cíle a trénink, ne jídlo.
 - **Robert** (Dashboard + týdenní přehled): verdikt 🔴🟡🟢 z `signaly()`, jedna věta, cíl/plán/realita → signály s akcí → týden (sedm políček, čtyři čísla) → graf váhy se značkami → Čísla za 6 týdnů a 28 dní v listu. Den se otevře v listu (jídla, chůze, kroky, hlad, jednorázová změna tréninku). Novinky od poslední návštěvy pod 🔔.
 - **Plán → Cíle**: tempo (posuvník), cíl chůze, cíl kroků, tempo chůze s fází, udržovací týden; Profil a výchozí hodnoty a Historie změn v listech. Ukládá se hned, každá změna přes `commitSettings` do logu. **Plán → Trénink**: Robertův týden – sedm konkrétních dní (tento / příští týden), den v listu, uložení „každé X od dneška“ nebo „jen tento den“; pod tím jen varování (jídla se nevejdou, málo pohybu, tempo) a odkazy na uložené tréninky a knihovnu cviků.
-- **Databáze**: Recepty (bez hledání přehled chodů) a Suroviny (kategorie sbalené).
 
 **Úvod** při prvním spuštění (3 karty pro každou roli) nahradil 16 pruhů s návodem; znovu z Návodu.
 
@@ -97,7 +96,7 @@ Na základě prověrky všech funkcí (schváleno vlastníkem bez výjimek):
 - **Porce z vaření** podle krabičky, ne podle limitu dne.
 - **Udržování po cíli** (`settings.maintain`) – dřív deficit u cíle běžel dál.
 - **Recepty a suroviny jako kopie „(moje)“** místo „moje verze“; textový rozpoznávač snědeného pryč („Jedl jsem něco jiného“: recept, mimo dům, suroviny); Spíž jen mám doma / došlo.
-- **Trenér:** signály jen z potvrzených dnů (nový signál „nepotvrzené dny“), přehled „Jak Robert cvičí“ (série, zátěž, náročnost), „Co Robert mění“ (vyměňované a upravované recepty).
+- **Trenér:** signály jen z potvrzených dnů (nový signál „nepotvrzené dny“), přehled „Jak Robert cvičí“ (série, zátěž, náročnost). („Co Robert mění“ a Databáze 1. 10. odebrány – trenér jídlo neplánuje.)
 - **Chyba s dopadem – opraveno:** úklid `cloudtest.py` mazal natvrdo i Robertovo nastavení (`settings:<uid>`); po každém testu appka jela na výchozích hodnotách – cíl chůze 60 místo nastavených 70 min (od 30. 9. odpoledne do 1. 10. ráno). Nastavení obnoveno ze zálohy, cloudtest teď nastavení vrací a maže jen měkce.
 - **Zálohy:** týdenní šifrovaná záloha GitHub Action (`backup.yml`, heslo `BACKUP_PASSPHRASE` v `~/.yesyoucan.env`).
 - **Push připomínky – nasazené 1. 10.:** funkce `remind` běží (bez `x-cron-secret` vrací 403), plánovač `yesyoucan-remind` každých 15 min, tabulka `push_subs`. Neověřeno na skutečném telefonu – headless prohlížeč notifikace neumí. **Ověřit:** Robert na iPhonu (appka na ploše) → Více → Nastavení → Zapnout připomínky, pak `curl -s -H "x-cron-secret: $CRON_SECRET" "$SUPABASE_URL/functions/v1/remind?test=1"` – musí přijít „Připomínky fungují ✓“.
@@ -107,6 +106,7 @@ Na základě prověrky všech funkcí (schváleno vlastníkem bez výjimek):
 - **Jak šel den:** při potvrzení dne Robert ťukne na hotové odpovědi (nálada, hlad, chutě, pohyb, spánek, stres) a může dopsat text. Trenér vidí v listu dne, v kartě týdne (emoji nálady) a vzorce jako signály. Jednosměrný záznam – na přání vlastníka výjimka z pravidla „žádná komunikace“.
 - **Týdenní shrnutí** pro Roberta: neděle odpoledne a pondělí–úterý na Dnes, kdykoli v Pokroku; pochvala, tip a výzva k vážení a obvodům.
 - Týdenní zpráva ke zkopírování odstraněna (byla to komunikace).
+- **Trenér neplánuje jídlo:** odebrána záložka Databáze, přehled „Co Robert mění“ a „Plánovat za Roberta“ v náhledu. Pohled Roberta je jen ke čtení.
 
 ## Otevřené věci / NEXT
 - **29. 9. odpoledne:** z appky odstraněna veškerá komunikace (vzkazy, odpovědi, poznámky ke dni a k tréninku) – rozhodnutí vlastníka. Opraveno: trenér přidal trénink, Robert ho neviděl – „Plán 1“ neměl „Platí od“. Trénink přestavěn na **Robertův týden** (konkrétní dny, uložení „každé X od dneška“ / „jen tento den“, verze na pozadí – úprava už nepřepisuje minulé dny). **Ostrá data Roberta smazána** na přání vlastníka (vážení, dny, plány jídel, nákup, předvolby, trénink, jeho verze receptu, historie změn nastavení; nastavení a cíle zůstaly) – záloha `~/yesyoucan-zalohy/robert-pred-smazanim-2026-09-29.json`. Historická data dodá vlastník v Excelu (import zatím není).

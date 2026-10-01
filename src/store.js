@@ -9,11 +9,11 @@ const LS = {
 };
 
 /* Náhled Robertova rozhraní je jen ke koukání. Trenér, který chce psát,
-   si musí zapnout „Plánovat za Roberta“ – jinak se zápis zahodí tady,
+   zápis se zahodí tady,
    ne až u jednotlivých tlačítek (těch je moc a jedno by se vždycky zapomnělo). */
 function previewOnly() {
-  if (typeof App === 'undefined' || !App.preview || App.coachPlan) return false;
-  UI.toast('Jen náhled – nic se neuloží. Psát můžeš přes „Plánovat za Roberta“.');
+  if (typeof App === 'undefined' || !App.preview) return false;
+  UI.toast('Jen náhled – nic se neuloží.');
   return true;
 }
 

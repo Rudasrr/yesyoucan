@@ -163,12 +163,13 @@ with sync_playwright() as p:
     pg.fill('#st_steps_goal','8000'); pg.press('#st_steps_goal','Tab'); pg.wait_for_timeout(150)
     print('kroky → faktor:', pg.evaluate("S().steps_goal+' / '+S().activity"))
     pg.evaluate("A.applyAdvice(JSON.stringify({protein_min:175}))"); print('doporučení v historii:', pg.evaluate("(S().log||[]).some(l=>l.k==='protein_min')"))
-    pg.evaluate("go('databaze');A.editFood('f1')"); pg.fill('#fn','Hovězí přední TEST'); pg.click('#fsave'); pg.wait_for_timeout(100)
+    pg.evaluate("A.editFood('f1')"); pg.fill('#fn','Hovězí přední TEST'); pg.click('#fsave'); pg.wait_for_timeout(100)
     print('food renamed:', pg.evaluate("Foods().find(f=>f.id==='f1').name"), 'recipes using:', pg.evaluate("Recipes().filter(r=>r.items.some(i=>i.food==='Hovězí přední TEST')).length"))
     pg.evaluate("A.seedAll()"); pg.click('.modal #cy'); pg.wait_for_timeout(300)
     print('seeded foods rows:', pg.evaluate("Store.db.foods.length"), 'f1 name after seed:', pg.evaluate("Foods().find(f=>f.id==='f1').name"))
     # ro mode
     pg.evaluate("go('__preview')"); print('ro class:', pg.evaluate("document.querySelector('#main').className"), 'view:', pg.evaluate("App.view")); pg.evaluate("A.togglePreview()")
+    print('trenér bez databáze a plánování jídel:', pg.evaluate("!NAV_COACH.some(x=>x[0]==='databaze') && typeof A.toggleCoachPlan==='undefined'"), '· go(databaze) →', pg.evaluate("(go('databaze'),App.view)"))
     # reload persistence
     pg.reload(); pg.wait_for_timeout(300); print('after reload profile:', pg.evaluate("Store.profile && Store.profile.role"), 'meas:', pg.evaluate("Store.db.measurements.length"))
     print('errors:', errs or 'none'); b.close()

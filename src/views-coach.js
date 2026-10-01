@@ -184,31 +184,7 @@ A.seedMeas = () => UI.confirm('Nahrát 14 vážení a obvody (27. 8. – 9. 9. 2
   UI.toast('Vážení nahrána'); render();
 }, 'Nahrát vážení');
 
-/* Co Robert na jídlech mění: které recepty vyměňuje za jiné, které upravuje
-   (výměna suroviny, gramy, odebrání) a co si vybírá místo nich. Podle toho jde
-   databáze vyladit – recept, který pořád mění, je špatně. */
-A.changesSheet = () => {
-  const s = S(); const t = todayISO(); const nahr = {}, uprav = {}, misto = {}; let dni = 0;
-  for (let k = 1; k <= 28; k++) { const dt = addDays(t, -k); const rec = Store.rows('days', Store.ownerId()).find(r => r.data.date === dt); if (!rec) continue; dni++;
-    const day = effectiveDay(dt);
-    s.courses.forEach(c => { const m = day.meals[c.key] || {};
-      if (m.planned && m.sel && m.sel !== m.planned) { nahr[m.planned] = (nahr[m.planned] || 0) + 1; if (m.sel !== VYNECHAT) misto[m.sel] = (misto[m.sel] || 0) + 1; }
-      const e = Object.keys(m.swaps || {}).length + Object.keys(m.grams || {}).length + Object.keys(m.removed || {}).length + (m.sel !== SITUACE ? (m.extra || []).length : 0);
-      if (e && m.sel) uprav[m.sel] = (uprav[m.sel] || 0) + e; }); }
-  const top = (o, unit) => { const L = Object.entries(o).sort((a, b) => b[1] - a[1]).slice(0, 8); return L.length ? `<div class="list">${L.map(([n, k]) => `<div class="li static"><div class="tx"><b>${esc(n === VYNECHAT ? 'vynecháno' : n === SITUACE ? 'podle situace / mimo dům' : n)}</b></div><span class="val">${k}× ${unit}</span></div>`).join('')}</div>` : '<p class="small muted">Nic.</p>'; };
-  UI.sheet('🔁 Co Robert mění', `posledních 28 dní · ${dni} ${sklon(dni, 'den', 'dny', 'dní')} se zápisem`,
-    `<div class="lh" style="padding-left:0">Naplánoval, ale vyměnil</div>${top(nahr, '')}<div class="lh" style="padding-left:0">Upravuje (suroviny, gramy)</div>${top(uprav, 'změn')}<div class="lh" style="padding-left:0">Vybírá místo toho</div>${top(misto, '')}
-    <p class="hint">Recept, který Robert pořád mění nebo upravuje, stojí za opravu v databázi.</p>`);
-};
-/* ---------- DATABÁZE ---------- */
-App.dbTab = 'recipes';
-VIEWS.databaze = function () {
-  const foods = Foods(); const recipes = Recipes().filter(r => !r.own && !r.deleted);
-  const t = App.dbTab === 'foods' ? 'foods' : 'recipes';
-  return `<div class="ph"><div class="pt"><h1>Databáze</h1><span class="sub">úpravy platí pro všechny</span></div><div class="act"><button class="btn sm" onclick="${t === 'recipes' ? 'A.editRecipe()' : "A.editFood(null,'global')"}">+ Nový</button></div></div>
-  <div class="seg"><button class="${t === 'recipes' ? 'on' : ''}" onclick="App.dbTab='recipes';render()">Recepty · ${recipes.length}</button><button class="${t === 'foods' ? 'on' : ''}" onclick="App.dbTab='foods';render()">Suroviny · ${foods.length}</button></div>
-  ${t === 'recipes' ? recipeBrowser(recipes) : VIEWS._suroviny()}`;
-};
+/* ---------- RECEPTY: přehled po chodech (Robertova obrazovka Recepty) ---------- */
 /* 200 receptů pod sebou dělalo 18 000 px. Bez hledání a filtru se ukážou chody,
    ťuknutím se rozbalí jen ten jeden. */
 function recipeBrowser(recipes) {
@@ -218,7 +194,6 @@ function recipeBrowser(recipes) {
   return recipeFilterBar(recipes) + `<div class="card flush">${s.courses.map(c => { const n = recipes.filter(r => r.course === c.name && !r.deleted).length;
     return `<div class="navrow" onclick="window._rf('c:${c.key}')"><span class="ico">${COURSE_EMOJI[c.key]}</span><div class="tx"><b>${esc(c.name)}</b><span>${n} ${sklon(n, 'recept', 'recepty', 'receptů')} · cíl ${c.kcal} kcal</span></div><span class="chev">›</span></div>`; }).join('')}
     ${favs.length ? `<div class="navrow" onclick="window._rf('fav')"><span class="ico">⭐</span><div class="tx"><b>Oblíbené</b><span>${favs.length}</span></div><span class="chev">›</span></div>` : ''}
-    <div class="navrow" onclick="A.changesSheet()"><span class="ico">🔁</span><div class="tx"><b>Co Robert mění</b><span>recepty, které vyměňuje nebo upravuje · 4 týdny</span></div><span class="chev">›</span></div>
     ${recipes.some(r => r.own || r.overridden) ? `<div class="navrow" onclick="window._rf('own')"><span class="ico">📌</span><div class="tx"><b>Moje recepty a verze</b><span>${recipes.filter(r => r.own || r.overridden).length}</span></div><span class="chev">›</span></div>` : ''}</div>`;
 }
 

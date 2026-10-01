@@ -195,7 +195,6 @@ A.dayMenu = () => {
     !prog.missing.length && prog.planned > 0 ? ['✓ Snědl jsem všechno podle plánu', 'A.eatenAll()', 'výjimky pak oprav u jídla'] : null,
     ['↺ Vrátit plán z Týdne', 'A.resetDay()', 'jídla podle Plánu, chůze a cheat zůstanou'],
     ['🔎 Kontrola dne a vzorec', 'A.dayCheck()', 'co sedí, co ne a jak se limit počítá'],
-    App.preview && App.coachPlan ? ['🏋️ Upravit trénink tohoto dne', `A.trDaySheet('${App.date}','day')`, 'jen pro tento den'] : null
   ]);
 };
 

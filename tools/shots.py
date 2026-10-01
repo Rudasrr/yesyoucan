@@ -28,6 +28,6 @@ if __name__=='__main__':
     elif which=='mobile':
         shots([(f'mob-{v}',SETUP_CLIENT,v,True,None) for v in ['dnes','plan','pokrok','more','ucet','suroviny']])
     elif which=='coach':
-        shots([(f'coach-{v}',SETUP_CLIENT+SETUP_COACH,v,False,None) for v in ['klient','nastaveni','databaze','ucet']])
+        shots([(f'coach-{v}',SETUP_CLIENT+SETUP_COACH,v,False,None) for v in ['klient','nastaveni','ucet']])
     elif which=='modals':
-        shots([('modal-meal',SETUP_CLIENT,'dnes',True,"A.mealSheet('obed')"),('modal-own',SETUP_CLIENT,'recepty',True,'A.editOwn()'),('modal-recipe',SETUP_CLIENT+SETUP_COACH,'databaze',False,"A.editRecipe('r1')"),('coach-mob',SETUP_CLIENT+SETUP_COACH,'klient',True,None)])
+        shots([('modal-meal',SETUP_CLIENT,'dnes',True,"A.mealSheet('obed')"),('modal-own',SETUP_CLIENT,'recepty',True,'A.editOwn()'),('coach-mob',SETUP_CLIENT+SETUP_COACH,'klient',True,None)])

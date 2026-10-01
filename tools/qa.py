@@ -3,8 +3,8 @@ from playwright.sync_api import sync_playwright
 import os; URL='file://'+os.path.abspath(os.path.join(os.path.dirname(__file__),'..','out','index.html'))
 SETUP=open(os.path.join(os.path.dirname(__file__),'shots.py')).read().split("SETUP_CLIENT='''")[1].split("'''")[0]
 VIEWS_C=['dnes','plan','pokrok','navod','recepty','suroviny','more','ucet']
-SUBTABS=[('plan','planTab',['jidla','nakup','vareni']),('nastaveni','coachTab',['cile','trenink']),('databaze','dbTab',['recipes','foods'])]
-VIEWS_K=['klient','nastaveni','databaze','more','ucet']
+SUBTABS=[('plan','planTab',['jidla','nakup','vareni']),('nastaveni','coachTab',['cile','trenink'])]
+VIEWS_K=['klient','nastaveni','more','ucet']
 WIDTHS=[390,768,1440]
 CHECK_JS='''(() => {
   const out={overflow:0, offscreen:[], contrast:[], tiny:[], sidescroll:[], holes:[]};
