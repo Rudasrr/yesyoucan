@@ -74,12 +74,36 @@ function celebrate(kind) {
 
 /* Hlad je jediný signál, který trenérovi z čísel chybí. Pět dní vlčího hladu v řadě
    znamená, že tempo je moc rychlé. */
+/* ===== Jak šel den: krátký záznam pro trenéra při potvrzení dne (1. 10. 2026) =====
+   Trenér potřebuje kontext, ne čísla navíc. Robert ťukne na hotové odpovědi (všechno
+   nepovinné, nic ho nezdrží) a může dopsat pár slov. Je to jednosměrný záznam dne –
+   v appce dál nejsou vzkazy ani odpovědi. Hlad zůstává v day.hunger (signály s ním počítají). */
 const HLAD = [['ok', '🙂 v pohodě'], ['hlad', '😐 hlad'], ['vlk', '😖 vlčí hlad']];
-A.setHunger = (date, v) => Undo.run('Hlad', () => { const day = getDay(date); day.hunger = day.hunger === v ? null : v; saveDay(day); render(); },
-  v === 'vlk' ? 'Zapsáno. Když to bude pět dní v řadě, trenér to uvidí a zpomalí tempo.' : 'Zapsáno.');
-function hungerRow(date, day) {
-  return `<div class="field"><label class="f">Jak ti dnes bylo s jídlem?</label><div class="chips">${HLAD.map(([k, l]) => `<button class="chip ${day.hunger === k ? 'on' : ''} write" onclick="A.setHunger('${date}','${k}')">${l}</button>`).join('')}</div><div class="hint">Pro trenéra cennější než většina čísel – pět dní hladu v řadě znamená zpomalit.</div></div>`;
+const CHECKIN = [
+  ['feel', '😊 Jak ses cítil?', [['super', '😀 skvěle'], ['ok', '🙂 dobře'], ['meh', '😐 nic moc'], ['bad', '😣 špatně']]],
+  ['hunger', '🍽️ Hlad', HLAD],
+  ['crave', '🍫 Chutě na sladké nebo slané', [['ne', 'žádné'], ['trochu', 'trochu'], ['silne', 'silné']]],
+  ['move', '🚶 Pohyb šel', [['lehce', 'lehce'], ['akorat', 'akorát'], ['tezce', 'těžce'], ['bolest', '🤕 něco bolí']]],
+  ['sleep', '😴 Spánek minulou noc', [['dobre', 'dobře'], ['prumer', 'průměrně'], ['spatne', 'špatně']]],
+  ['stress', '🧠 Stres', [['klid', 'klid'], ['bezny', 'běžný'], ['hodne', 'hodně']]]];
+const checkinVal = (day, k) => k === 'hunger' ? day.hunger : ((day.checkin || {})[k]);
+const checkinLabel = (k, v) => { const q = CHECKIN.find(x => x[0] === k); const o = q && q[2].find(x => x[0] === v); return o ? o[1] : ''; };
+/* zápis bez hlášky – ťuká se rychle za sebou, toast by jen překážel */
+A.setCheckin = (date, k, v) => { const day = getDay(date);
+  if (k === 'hunger') day.hunger = day.hunger === v ? null : v;
+  else { day.checkin = day.checkin || {}; if (k === 'note') day.checkin.note = String(v || '').trim().slice(0, 500) || null; else day.checkin[k] = day.checkin[k] === v ? null : v; }
+  saveDay(day); render(); };
+A.setHunger = (date, v) => A.setCheckin(date, 'hunger', v);
+function checkinHtml(date, day) {
+  return `<div class="stack s8">${CHECKIN.map(([k, q, opts]) => `<div class="field"><label class="f">${q}</label><div class="chips">${opts.map(([v, l]) => `<button class="chip ${checkinVal(day, k) === v ? 'on' : ''} write" onclick="A.setCheckin('${date}','${k}','${v}')">${l}</button>`).join('')}</div></div>`).join('')}
+    <div class="field"><label class="f">✍️ Chceš něco dodat? <span class="muted">(nepovinné)</span></label><textarea id="ci-note" rows="2" class="write" placeholder="např. v práci byl dort, bolelo koleno…" onchange="A.setCheckin('${date}','note',this.value)">${esc((day.checkin || {}).note || '')}</textarea></div></div>`;
 }
+function hungerRow(date, day) { return checkinHtml(date, day); }
+/* krátké shrnutí pro trenéra: „😀 skvěle · hlad · chutě silné · …“ */
+function checkinSummary(day) { const parts = CHECKIN.map(([k]) => { const v = checkinVal(day, k); if (!v) return ''; const l = checkinLabel(k, v);
+  return k === 'feel' ? l : k === 'hunger' ? 'hlad: ' + l.replace(/^\S+ /, '') : k === 'crave' ? 'chutě ' + l : k === 'move' ? 'pohyb ' + l.replace(/^\S+ /, '') : k === 'sleep' ? 'spánek ' + l : 'stres ' + l; }).filter(Boolean);
+  return parts.join(' · '); }
+const FEEL_EM = { super: '😀', ok: '🙂', meh: '😐', bad: '😣' };
 
 /* ===== Generátor: rutina (stejná snídaně a svačina) ===== */
 function routineOn() { const p = Prefs(); return p.routine !== false; }
@@ -134,7 +158,7 @@ function sinceLast() {
   if (!seen) return { first: true, items: [] };
   const uid = Store.ownerId(); const items = [];
   Store.rows('measurements', uid).filter(r => r.updated_at > seen).forEach(r => items.push(`⚖️ ${czDateShort(r.data.date)}: váha ${fmt1(r.data.weight)} kg${r.data.waist ? `, pas ${r.data.waist} cm` : ''}`));
-  Store.rows('days', uid).filter(r => r.updated_at > seen).forEach(r => { const d = r.data; const ev = evaluateDay(d.date); const bits = []; if (ev.confirmed) bits.push(ev.ok ? 'den OK' : 'den nesedí'); if (ev.cheats.beers) bits.push(`🍺 ${ev.cheats.beers}`); if (ev.cheats.over) bits.push(`+${ev.cheats.over} kcal přes`); if (d.training && Object.values(d.training.done || {}).some(Boolean)) bits.push('🏋️ trénink'); if ((d.walk_min || 0)) bits.push(`🚶 ${d.walk_min} min`); if (d.steps != null) bits.push(`👣 ${fmt0(d.steps)}`); items.push(`📅 ${czDateShort(d.date)}: ${bits.join(' · ') || 'zápis upraven'}`); });
+  Store.rows('days', uid).filter(r => r.updated_at > seen).forEach(r => { const d = r.data; const ev = evaluateDay(d.date); const bits = []; if (ev.confirmed) bits.push(ev.ok ? 'den OK' : 'den nesedí'); if (ev.cheats.beers) bits.push(`🍺 ${ev.cheats.beers}`); if (ev.cheats.over) bits.push(`+${ev.cheats.over} kcal přes`); if (d.training && Object.values(d.training.done || {}).some(Boolean)) bits.push('🏋️ trénink'); if (checkinSummary(d)) bits.push(checkinSummary(d)); if ((d.checkin || {}).note) bits.push(`„${esc(d.checkin.note.slice(0, 60))}“`); if ((d.walk_min || 0)) bits.push(`🚶 ${d.walk_min} min`); if (d.steps != null) bits.push(`👣 ${fmt0(d.steps)}`); items.push(`📅 ${czDateShort(d.date)}: ${bits.join(' · ') || 'zápis upraven'}`); });
   Store.rows('week_plans', uid).filter(r => r.updated_at > seen).forEach(r => items.push(`🗓️ Plán týdne od ${czDateShort(r.data.week)} (${r.data.plan.flat().filter(Boolean).length}/35)`));
   Store.rows('recipes', uid).filter(r => r.updated_at > seen).forEach(r => items.push(`📖 Recept: ${esc(r.data.name)}${r.data.overrides ? ' (jeho verze)' : ''}`));
   return { first: false, since: seen, items };
@@ -186,6 +210,13 @@ function signaly() {
   // hlad
   let vlk = 0; for (let k = 0; k <= 7; k++) if (effectiveDay(addDays(t, -k)).hunger === 'vlk') vlk++;
   if (vlk >= 3) push(1, `${vlk}× vlčí hlad za týden. Tempo je nejspíš moc rychlé – zpomal dřív, než to vzdá.`, { head: 'Opakovaně vlčí hlad.', go: "go('nastaveni')", label: 'Tempo' });
+  // vzorce z denního záznamu (posledních 7 dnů)
+  { const ci = Array.from({ length: 7 }, (_, k) => effectiveDay(addDays(t, -k - 1))); const n = f => ci.filter(f).length;
+    const bol = n(d => (d.checkin || {}).move === 'bolest'); if (bol >= 2) push(1, `${bol}× za týden „něco bolí“ při pohybu. Podívej se na dny a zvaž lehčí trénink.`, { head: 'Opakovaně ho něco bolí.', go: "App.coachTab='trenink';go('nastaveni')", label: 'Trénink' });
+    const sp = n(d => (d.checkin || {}).sleep === 'spatne'); if (sp >= 3) push(2, `${sp}× za týden špatný spánek – s ním roste hlad a padá vůle.`);
+    const st = n(d => (d.checkin || {}).stress === 'hodne'); if (st >= 3) push(2, `${st}× za týden hodně stresu.`);
+    const cr = n(d => (d.checkin || {}).crave === 'silne'); if (cr >= 3) push(2, `${cr}× za týden silné chutě – zvaž, jestli limit není moc nízký, nebo přidej sytější přílohy.`);
+    const fl = n(d => (d.checkin || {}).feel === 'bad'); if (fl >= 3) push(2, `${fl}× za týden se cítil špatně.`); }
   // plánování
   const thisMon = mondayOf(t), nextMon = addDays(thisMon, 7); const pt = weekPlanned(thisMon), pn = weekPlanned(nextMon);
   if (pt < 35) push(pt === 0 ? 1 : 2, `Tento týden má naplánováno ${pt}/35 jídel.`, {});

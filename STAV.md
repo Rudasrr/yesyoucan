@@ -102,6 +102,12 @@ Na základě prověrky všech funkcí (schváleno vlastníkem bez výjimek):
 - **Zálohy:** týdenní šifrovaná záloha GitHub Action (`backup.yml`, heslo `BACKUP_PASSPHRASE` v `~/.yesyoucan.env`).
 - **Push připomínky – nasazené 1. 10.:** funkce `remind` běží (bez `x-cron-secret` vrací 403), plánovač `yesyoucan-remind` každých 15 min, tabulka `push_subs`. Neověřeno na skutečném telefonu – headless prohlížeč notifikace neumí. **Ověřit:** Robert na iPhonu (appka na ploše) → Více → Nastavení → Zapnout připomínky, pak `curl -s -H "x-cron-secret: $CRON_SECRET" "$SUPABASE_URL/functions/v1/remind?test=1"` – musí přijít „Připomínky fungují ✓“.
 
+## 1. 10. 2026
+- **Trénink na měsíc dopředu:** kalendář měsíce, kopírování dne / týdne / měsíce, „vrátit měsíc na šablonu“.
+- **Jak šel den:** při potvrzení dne Robert ťukne na hotové odpovědi (nálada, hlad, chutě, pohyb, spánek, stres) a může dopsat text. Trenér vidí v listu dne, v kartě týdne (emoji nálady) a vzorce jako signály. Jednosměrný záznam – na přání vlastníka výjimka z pravidla „žádná komunikace“.
+- **Týdenní shrnutí** pro Roberta: neděle odpoledne a pondělí–úterý na Dnes, kdykoli v Pokroku; pochvala, tip a výzva k vážení a obvodům.
+- Týdenní zpráva ke zkopírování odstraněna (byla to komunikace).
+
 ## Otevřené věci / NEXT
 - **29. 9. odpoledne:** z appky odstraněna veškerá komunikace (vzkazy, odpovědi, poznámky ke dni a k tréninku) – rozhodnutí vlastníka. Opraveno: trenér přidal trénink, Robert ho neviděl – „Plán 1“ neměl „Platí od“. Trénink přestavěn na **Robertův týden** (konkrétní dny, uložení „každé X od dneška“ / „jen tento den“, verze na pozadí – úprava už nepřepisuje minulé dny). **Ostrá data Roberta smazána** na přání vlastníka (vážení, dny, plány jídel, nákup, předvolby, trénink, jeho verze receptu, historie změn nastavení; nastavení a cíle zůstaly) – záloha `~/yesyoucan-zalohy/robert-pred-smazanim-2026-09-29.json`. Historická data dodá vlastník v Excelu (import zatím není).
 - **Přestavba nasazená 29. 9.** Robertovi říct, že appka vypadá jinak: tři obrazovky dole, drž se karty Teď.

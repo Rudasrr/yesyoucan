@@ -149,9 +149,9 @@ Zkouška bez čekání na čas: `curl -s -H "x-cron-secret: $CRON_SECRET" "$SUPA
 
 Tři záložky dole (na počítači nahoře), zbytek pod kolečkem **T** vpravo nahoře.
 
-- **Robert** – barva a jedna věta řeknou, jestli zasáhnout. Pod tím jen signály, které vyžadují akci – u většiny je tlačítko (nastavit, přiřadit, otevřít). Týden jako sedm políček a čtyři čísla. Ťuknutím na den vidíš, co snědl, chůzi, kroky a hlad. Appka na komunikaci není – vzkazy, poznámky ani zprávy k posílání v ní nejsou.
+- **Robert** – barva a jedna věta řeknou, jestli zasáhnout. Pod tím jen signály, které vyžadují akci – u většiny je tlačítko (nastavit, přiřadit, otevřít). Týden jako sedm políček a čtyři čísla. Ťuknutím na den vidíš, co snědl, chůzi, kroky a **jak šel den** (nálada, hlad, chutě, pohyb, spánek, stres a jeho poznámka). V kartě týdne je u dne emoji nálady. Appka na komunikaci není – vzkazy, poznámky ani zprávy k posílání v ní nejsou.
 - **Plán → Cíle** – tempo hubnutí, cíl chůze, cíl kroků (běžná chůze mimo procházku – Robert zapisuje kroky celkem, appka procházku odečte), tempo chůze a udržovací týden. U cíle zapni **Udržování** (appka to připomene). **Ukládá se hned** a každá změna jde vrátit tlačítkem Zpět v hlášce. Věci na roky (výška, věk, start, cílové hodnoty, bílkoviny, cíle chodů) jsou v **Profil a výchozí hodnoty**. **Historie změn** ukazuje všechny zásahy; v grafu váhy jsou jako svislé čáry.
-- **Plán → Trénink** – Robertův týden jako sedm konkrétních dní (tento a příští týden). Ťukni na den, nastav chůzi a cviky a při uložení vyber **Každé úterý** (platí od dneška dál, minulé dny zůstanou) nebo **Jen 29. 9.** (jednorázová výjimka). Kalorie řešit nemusíš – appka se ozve jen, když se Robertovi nevejdou jídla nebo je v týdnu málo pohybu.
+- **Plán → Trénink** – kalendář měsíce, šipkami listuješ dopředu. Ťukni na den, nastav chůzi a cviky a při uložení vyber **Každé úterý** (šablona od dneška, minulé dny zůstanou) nebo **Jen 29. 9.** Hotový den zkopíruješ na další dny („zkopírovat na další dny“, rychle každé úterý na 4 nebo 8 týdnů), pod kalendářem kopíruješ celý **týden** nebo **měsíc**. Tečka u dne = plán na konkrétní datum. Kalorie řešit nemusíš – appka se ozve jen, když se Robertovi nevejdou jídla nebo je v týdnu málo pohybu.
 - **Databáze** – globální recepty a suroviny. Bez hledání se ukážou chody, ťuknutím se otevře jeden. **Co Robert mění** ukáže recepty, které vyměňuje nebo upravuje – kandidáti na opravu.
 - **Dny bez potvrzení** jsou šedé s otazníkem: appka neví, co Robert jedl, proto je nehodnotí. Když jich přibývá, appka to hlásí.
 - **Více → Pohled Roberta** – appka přesně tak, jak ji vidí on. Jen náhled, nic se neuloží; když za něj opravdu potřebuješ něco naplánovat, zapni tam „Plánovat za Roberta“.
@@ -188,7 +188,8 @@ Nahoře velké číslo: **kolik ještě můžeš sníst**. Pod ním karta **Teď
 3. **Chůze** – u řádku je tlačítko +15 minut. Ťuknutím na řádek zapíšeš přesně.
 4. **Trénink** (když ho máš v plánu) – ťukni na řádek a dej „Začít cvičit“, nebo jen odškrtni, co jsi udělal.
 5. **Večer zapiš kroky** – celé číslo z telefonu nebo hodinek. Procházku si appka odečte sama.
-6. **Potvrď den** – „Jedl jsi podle plánu?“ Co bylo jinak, oprav ťuknutím na jídlo, zbytek potvrdíš jedním tlačítkem. Bez potvrzení appka neví, co jsi opravdu snědl, a den nehodnotí.
+6. **Potvrď den** – „Jedl jsi podle plánu?“ Co bylo jinak, oprav ťuknutím na jídlo, zbytek potvrdíš jedním tlačítkem. Pod tím pár otázek, jak šel den (nálada, hlad, chutě, pohyb, spánek, stres) – stačí ťuknout, a když chceš, dopiš pár slov. Trenér tak ví, jak ti to šlo. Bez potvrzení appka neví, co jsi opravdu snědl, a den nehodnotí.
+7. **Neděle a pondělí** – nahoře na Dnes uvidíš **Tvůj týden**: jak sis vedl, pochvalu a tip. Odtud rovnou zapíšeš váhu a obvody. Shrnutí najdeš kdykoli v Pokroku.
 
 ## B4. Když se den nepovede
 

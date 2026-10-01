@@ -35,9 +35,58 @@ VIEWS.pokrok = function () {
   <div class="card flush">
     <div class="navrow" onclick="A.circSheet()"><span class="ico">📏</span><div class="tx"><b>Obvody</b><span>${esc(waistTxt)}</span></div><span class="chev">›</span></div>
     <div class="navrow" onclick="A.historySheet()"><span class="ico">🗓️</span><div class="tx"><b>Historie zápisů</b><span>${ov.count} ${sklon(ov.count, 'vážení', 'vážení', 'vážení')}${ov.last ? ' · poslední ' + czDateShort(ov.last.date) : ''}</span></div><span class="chev">›</span></div>
+    <div class="navrow" onclick="A.resumeSheet()"><span class="ico">🏆</span><div class="tx"><b>Týdenní shrnutí</b><span>jak se ti dařilo, týden po týdnu</span></div><span class="chev">›</span></div>
     <div class="navrow" onclick="A.planVsRealSheet()"><span class="ico">📐</span><div class="tx"><b>Plán proti skutečnosti</b><span>po týdnech, cíle a čísla plánu</span></div><span class="chev">›</span></div>
   </div>`;
 };
+/* ---------- TÝDENNÍ SHRNUTÍ (1. 10. 2026) ----------
+   Jednou týdně Robert uvidí, jak si vedl: čísla, pochvala za to, co se povedlo, jeden
+   tip na příští týden a výzva k týdennímu vážení a obvodům. V neděli od poledne
+   (tento týden) a v pondělí a úterý (minulý týden) nahoře na Dnes; kdykoli v Pokroku. */
+function weekResume(start) {
+  const s = S(), R = weekReport(start), w = currentWeight(); const planW = w * s.rate_pct / 100;
+  const st = stepsStat(R.days); const cilChuze = (s.walk_min || 60) * R.past;
+  const wins = [], tips = [];
+  if (R.delta != null && R.delta <= -planW * 0.9) wins.push(`Váha −${fmt2(-R.delta)} kg – přesně tempo plánu.`);
+  else if (R.delta != null && R.delta < 0) wins.push(`Váha jde dolů: −${fmt2(-R.delta)} kg za týden.`);
+  if (R.okN >= 5) wins.push(`${R.okN} ${DEN(R.okN)} v pořádku – tohle je ten návyk.`);
+  if (R.weigh >= Math.min(6, R.past)) wins.push(`Vážil ses ${R.weigh}× – proto ti průměr říká pravdu.`);
+  if (R.walk >= cilChuze * 0.9 && R.walk > 0) wins.push(`Chůze ${fmt0(R.walk)} min – cíl splněný.`);
+  if (st && st.avg >= stepsTarget(s)) wins.push(`Běžná chůze v průměru ${fmt0(st.avg)} kroků – nad cílem.`);
+  if (R.trainPlanned && R.trainDone >= R.trainPlanned) wins.push(`Všechny tréninky odcvičené (${R.trainDone}).`);
+  if (R.potvrz.length < R.past - 1) tips.push('Každý večer potvrď den – jedno ťuknutí, a appka ví, jak ti to jde.');
+  else if (R.weigh < R.past - 2) tips.push('Zvaž se každé ráno – jedno číslo nic neznamená, sedm už ano.');
+  else if (R.walk < cilChuze * 0.7) tips.push(`Chůze byla ${fmt0(R.walk)} min z ${fmt0(cilChuze)}. Rozděl ji klidně na 2× 30 minut.`);
+  else if (R.over >= 2) tips.push(`${R.over} ${DEN(R.over)} přes limit – zapiš si cheat ráno dopředu, appka ti zvedne chůzi.`);
+  else if (st && st.avg < stepsTarget(s)) tips.push(`Běžná chůze ${fmt0(st.avg)} kroků z ${fmt0(stepsTarget(s))} – schody, procházka po obědě.`);
+  else if (R.delta != null && R.delta >= 0) tips.push('Váha tenhle týden stála. Jeden týden nic neznamená – drž limit a uvidíš příští.');
+  const head = wins[0] || (R.recs.length ? 'Týden je za tebou – každý zapsaný den se počítá.' : 'Tenhle týden je zatím prázdný.');
+  return { R, st, wins, tip: tips[0] || 'Pokračuj stejně – funguje to.', head };
+}
+function resumeStart() { const t = todayISO(), di = dayIndex(t), h = nowMin();
+  if (di === 6 && h >= 12 * 60) return mondayOf(t);
+  if (di <= 1) return addDays(mondayOf(t), -7);
+  return null; }
+function obvodyTentoTyden() { const t = todayISO(); return Meas().some(m => m.date >= addDays(t, -6) && m.waist != null); }
+function resumeCard() {
+  const start = resumeStart(); if (!start || App.date !== todayISO() || realCoach() && !App.preview) return '';
+  if (LS.get('resumeSeen', null) === start) return '';
+  const X = weekResume(start); const R = X.R; if (!R.recs.length && !R.weigh) return '';
+  return `<div class="card tint-ok stack s8"><div class="row between nowrap"><b>🏆 Tvůj týden ${czDateShort(start)}–${czDateShort(addDays(start, 6))}</b><button class="xbtn sm" onclick="LS.set('resumeSeen','${start}');render()" aria-label="skrýt">×</button></div>
+    <div style="font-size:18px;font-weight:750;line-height:1.3">${esc(X.head)}</div>
+    <div class="stats3"><div><b>${R.okN} <small>/ ${R.past}</small></b><span>dní v pořádku</span></div><div><b class="${R.delta != null && R.delta < 0 ? 'ok' : ''}">${R.delta != null ? (R.delta > 0 ? '+' : '−') + fmt2(Math.abs(R.delta)) : '–'} <small>kg</small></b><span>váha za týden</span></div><div><b>${fmt0(R.walk)} <small>min</small></b><span>chůze</span></div></div>
+    <div class="small">💡 ${esc(X.tip)}</div>
+    <div class="row">${obvodyTentoTyden() ? '' : `<button class="btn sm write" onclick="A.measSheet(todayISO(),true)">📏 Zapsat váhu a obvody</button>`}<button class="btn sec sm" onclick="A.resumeSheet('${start}')">Celé shrnutí</button></div></div>`;
+}
+A.resumeSheet = start => { App.resumeW = start || resumeStart() || addDays(mondayOf(todayISO()), -7); openSheet(() => {
+  const st0 = App.resumeW; const X = weekResume(st0); const R = X.R; const t = todayISO();
+  return UI.sheetHtml(`🏆 Týden ${czDateShort(st0)}–${czDateShort(addDays(st0, 6))}`, esc(X.head),
+    `<div class="row between nowrap"><button class="iconbtn" onclick="App.resumeW=addDays(App.resumeW,-7);window._sheetRedraw()" aria-label="týden zpět">‹</button><span class="small muted">${st0 === mondayOf(t) ? 'tento týden' : 'listuj po týdnech'}</span><button class="iconbtn" ${st0 >= mondayOf(t) ? 'disabled' : ''} onclick="App.resumeW=addDays(App.resumeW,7);window._sheetRedraw()" aria-label="další týden">›</button></div>
+    ${X.wins.length ? `<div class="list">${X.wins.map(x => `<div class="li static"><span class="em">✅</span><div class="tx"><b style="-webkit-line-clamp:3">${esc(x)}</b></div></div>`).join('')}</div>` : ''}
+    <div class="stats"><div class="stat"><b>${R.okN} <small>/ ${R.past}</small></b><span>dní v pořádku</span></div><div class="stat"><b>${R.potvrz.length}</b><span>potvrzených dní</span></div><div class="stat"><b>${R.weigh}×</b><span>vážení</span></div><div class="stat"><b>${R.delta != null ? (R.delta > 0 ? '+' : '−') + fmt2(Math.abs(R.delta)) : '–'} <small>kg</small></b><span>váha (průměr 7)</span></div><div class="stat"><b>${fmt0(R.walk)} <small>min</small></b><span>chůze</span></div><div class="stat"><b>${X.st ? fmt0(X.st.avg) : '–'}</b><span>běžná chůze Ø kroků</span></div><div class="stat"><b>${R.trainDone} <small>/ ${R.trainPlanned}</small></b><span>tréninků</span></div><div class="stat"><b>${R.beers} 🍺 · ${R.over}</b><span>piv · dnů přes limit</span></div></div>
+    <div class="alert a4"><div>💡 ${esc(X.tip)}</div></div>`,
+    obvodyTentoTyden() ? '' : `<button class="btn write" onclick="UI.closeModal();A.measSheet(todayISO(),true)">📏 Zapsat váhu a obvody</button>`); }); };
+
 /* zápis měření v listu: váha denně, obvody v neděli (nebo kdykoli na požádání) */
 A.measSheet = (date, withCirc) => {
   App.measDate = date || todayISO();

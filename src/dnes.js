@@ -55,6 +55,7 @@ VIEWS.dnes = function () {
     <div class="pt"><h1>${isToday ? 'Dnes' : dn}</h1><span class="sub">${isToday ? dn.toLowerCase() + ' ' : ''}${czDateShort(App.date)}${st >= 2 && isToday ? ` · 🔥 ${st} ${sklon(st, 'den', 'dny', 'dnů')} v řadě` : ''}</span></div>
     <div class="act">${isToday ? '' : `<button class="btn sec sm" onclick="App.date=todayISO();render()">Dnes</button>`}<button class="iconbtn" onclick="A.dayShift(1)" ${isToday ? 'disabled' : ''} aria-label="další den">›</button><button class="iconbtn" onclick="A.dayMenu()" aria-label="další akce">⋯</button></div></div>
   ${s.maintain ? `<div class="notice">🏁 Udržování – cíl dosažen, deficit je nula. Jíš na celkový výdej.</div>` : isMaintWeek(s, App.date) ? `<div class="notice">⚖️ Udržovací týden – deficit nula, limit na celkovém výdeji. Jídlo, chůze i trénink jedou dál.</div>` : ''}
+  ${resumeCard()}
   ${renderHero(d, day, s, w)}
   ${renderNow(d, day, tasks, s)}
   <div class="card flush"><div class="list" id="timeline">${dayRows(d, day, tasks, s).join('')}</div></div>`;
@@ -293,7 +294,7 @@ A.closeDay = () => openSheet(() => {
     `${done ? `<div class="status st${d.ok ? 2 : 1}">${esc(d.summary)}</div>` : `<p class="small muted">Co jsi nejedl nebo jedl jinak, oprav ťuknutím. Zbytek beru jako snědený podle plánu.</p>`}
      <div class="list">${rows}</div>
      ${done ? fails.map(c => `<div class="alert a2"><div><b>${esc(c.name)}:</b> ${esc(c.text)}</div></div>`).join('') : ''}
-     ${realCoach() && !App.preview ? '' : hungerRow(date, day)}`,
+     ${realCoach() && !App.preview ? '' : `<div class="lh" style="padding-left:0">Jak šel den – pár ťuknutí pro trenéra</div>${checkinHtml(date, day)}`}`,
     done ? `<button class="btn sec" onclick="UI.closeModal()">Hotovo</button><button class="btn ghost write" onclick="A.unconfirmDay()">Ještě opravit</button>`
       : `<button class="btn write" onclick="A.closeDayOk()">✓ Ano, potvrdit den</button><button class="btn sec" onclick="UI.closeModal()">Ještě ne</button>`);
 });
