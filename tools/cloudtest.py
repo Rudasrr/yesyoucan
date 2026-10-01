@@ -12,7 +12,7 @@ Spuštění:  python3 tools/cloudtest.py [--keep]
 
 Každá chyba zápisu nebo čtení se vypíše jako:  CHYBA <tabulka> <operace> <text>
 """
-import os, sys, json, pathlib, urllib.request, urllib.parse, datetime
+import json, os, sys, pathlib, urllib.request, urllib.parse, datetime
 from playwright.sync_api import sync_playwright
 
 ENV = pathlib.Path.home() / '.yesyoucan.env'
@@ -74,27 +74,44 @@ def sync(pg):
     pg.wait_for_timeout(300)
 
 
+def _rest(method, path, body=None):
+    url, key = cfg.get('SUPABASE_URL'), cfg.get('SUPABASE_SERVICE_KEY')
+    req = urllib.request.Request(f'{url}/rest/v1/{path}', method=method, data=json.dumps(body).encode() if body is not None else None,
+        headers={'apikey': key, 'Authorization': 'Bearer ' + key, 'Content-Type': 'application/json', 'Prefer': 'return=representation'})
+    return json.load(urllib.request.urlopen(req))
+
+
+def now_iso():
+    return datetime.datetime.now(datetime.timezone.utc).isoformat(timespec='milliseconds').replace('+00:00', 'Z')
+
+
 def cleanup(ids):
-    """Smazat testovací řádky natvrdo – service-role klíčem, mimo repozitář."""
+    """Testovací řádky smazat MĚKCE (deleted=true, updated_at=teď) – tvrdé smazání se do
+    prohlížečů nepropíše a smazané řádky by tam strašily dál. Robertovo nastavení se
+    nemaže, ale vrací do stavu před testem (dřív ho úklid mazal celé – 30. 9. 2026)."""
     url, key = cfg.get('SUPABASE_URL'), cfg.get('SUPABASE_SERVICE_KEY')
     if not (url and key):
         print('\nÚklid přeskočen (chybí SUPABASE_SERVICE_KEY) – smaž ručně:')
         for t, i in ids:
-            print(f"  delete from public.{t} where id = '{i}';")
+            print(f"  update public.{t} set deleted = true, updated_at = now()::text where id = '{i}';")
         return
     for t, i in ids:
-        req = urllib.request.Request(
-            f'{url}/rest/v1/{t}?id=eq.{urllib.parse.quote(i)}', method='DELETE',
-            headers={'apikey': key, 'Authorization': 'Bearer ' + key})
         try:
-            urllib.request.urlopen(req).read()
+            if t == 'settings':
+                if SETTINGS_BEFORE is not None:
+                    _rest('PATCH', f'settings?id=eq.{urllib.parse.quote(i)}', {'data': SETTINGS_BEFORE, 'updated_at': now_iso(), 'deleted': False})
+                else:   # před testem žádné nastavení nebylo – appka jede na výchozím
+                    _rest('PATCH', f'settings?id=eq.{urllib.parse.quote(i)}', {'deleted': True, 'updated_at': now_iso()})
+                continue
+            _rest('PATCH', f'{t}?id=eq.{urllib.parse.quote(i)}', {'deleted': True, 'updated_at': now_iso()})
         except Exception as e:
             print(f'  úklid {t}/{i}: {e}')
-    print(f'\nÚklid: smazáno {len(ids)} testovacích řádků.')
+    print(f'\nÚklid: {len(ids)} testovacích řádků smazáno (měkce), nastavení vráceno.')
 
 
 today = datetime.date.today().isoformat()
 created = []
+SETTINGS_BEFORE = None
 
 with sync_playwright() as p:
     b = p.chromium.launch()
@@ -135,6 +152,7 @@ with sync_playwright() as p:
     check('obrazovka Robert ho ukazuje', str(w).replace('.', ',') in dash, dash.replace('\n', ' · ')[:150])
 
     print('\n4 · trenér uloží Nastavení a Trénink → Robert je vidí')
+    SETTINGS_BEFORE = coach.evaluate("(()=>{ const r = settingsRec(); return r ? r.data : null })()")
     coach.evaluate("saveSettings({...S(), rate_pct: 0.75})")
     created.append(('settings', coach.evaluate("'settings:'+Store.ownerId()")))
     tid = coach.evaluate("""(()=>{ const id = oid('tp','cloudtest');
