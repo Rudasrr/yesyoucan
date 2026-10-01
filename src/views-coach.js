@@ -1,7 +1,7 @@
 /* ===== Obrazovky trenéra: Robert · Plán · Databáze ===== */
 
 /* ---------- ROBERT: mám zasáhnout? ----------
-   Dřív Dashboard (dvě verze nad sebou) a Zpráva vedle sebe: stejné metriky, stejný
+   Dřív Dashboard (dvě verze nad sebou) a Týdenní přehled vedle sebe: stejné metriky, stejný
    den po dni. Teď jedna obrazovka: verdikt, co vyžaduje zásah, týden a graf.
    Komunikace s Robertem se v appce nevede (rozhodnutí 29. 9. 2026). */
 VIEWS.klient = function () {
@@ -30,7 +30,7 @@ VIEWS.klient = function () {
     <div class="navrow" onclick="go('__preview')"><span class="ico">👁️</span><div class="tx"><b>Pohled Roberta</b><span>appka přesně tak, jak ji vidí on</span></div><span class="chev">›</span></div></div>`;
 };
 
-/* týden: sedm políček, čtyři čísla a týdenní zpráva jedním tlačítkem */
+/* týden: sedm políček a čtyři čísla */
 function weekCard() {
   const today = todayISO(); const start = App.repWeek || mondayOf(today);
   const R = weekReport(start);
@@ -42,12 +42,8 @@ function weekCard() {
     return `<button class="${ev.ok ? 'd2' : 'd1'}" onclick="A.coachDaySheet('${dt}')">${DAY_SHORT[dayIndex(dt)]}<small>${ev.cheats.beers ? '🍺' + ev.cheats.beers : ev.ok ? '✓' : '✗'}</small></button>`; }).join('');
   return `<div class="card stack"><div class="row between nowrap"><button class="iconbtn" onclick="App.repWeek=addDays('${start}',-7);render()" aria-label="týden zpět">‹</button><b>Týden ${czDateShort(start)}–${czDateShort(addDays(start, 6))}</b><button class="iconbtn" onclick="App.repWeek=addDays('${start}',7);render()" ${start >= mondayOf(today) ? 'disabled' : ''} aria-label="další týden">›</button></div>
     <div class="dots7">${cells}</div>
-    <div class="stats"><div class="stat"><b>${R.weigh} <small>/ ${R.past}</small></b><span>vážení</span></div><div class="stat"><b>${R.okN} <small>/ ${R.potvrz.length}</small></b><span>potvrzených v pořádku</span></div><div class="stat"><b>${fmt0(R.walk)} <small>min</small></b><span>chůze</span></div><div class="stat"><b>${R.beers} 🍺 · ${R.over}</b><span>piv · dnů přes limit</span></div></div>
-    <button class="btn sec" onclick="A.copyReport('${start}')">📋 Zkopírovat týdenní zprávu</button></div>`;
+    <div class="stats"><div class="stat"><b>${R.weigh} <small>/ ${R.past}</small></b><span>vážení</span></div><div class="stat"><b>${R.okN} <small>/ ${R.potvrz.length}</small></b><span>potvrzených v pořádku</span></div><div class="stat"><b>${fmt0(R.walk)} <small>min</small></b><span>chůze</span></div><div class="stat"><b>${R.beers} 🍺 · ${R.over}</b><span>piv · dnů přes limit</span></div></div></div>`;
 }
-A.copyReport = start => { const R = weekReport(start); const done = () => UI.toast('Zpráva zkopírovaná do schránky.');
-  if (navigator.clipboard) navigator.clipboard.writeText(R.text).then(done).catch(() => A.reportSheet(start)); else A.reportSheet(start); };
-A.reportSheet = start => { const R = weekReport(start); UI.sheet('📋 Týdenní zpráva', `${czDateShort(start)}–${czDateShort(addDays(start, 6))}`, `<pre class="small" style="white-space:pre-wrap;margin:0;font-family:inherit">${esc(R.text)}</pre>`); };
 
 /* den u Roberta v listu: co snědl, chůze, kroky a hlad */
 A.coachDaySheet = date => openSheet(() => {

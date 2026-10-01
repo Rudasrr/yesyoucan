@@ -154,7 +154,7 @@ with sync_playwright() as p:
     pg.evaluate("localLogin('client')"); print('mismatch today:', pg.evaluate("JSON.stringify(dayMismatch(todayISO()))"))
     pg.evaluate("A.fitDay(todayISO())"); print('after fit:', pg.evaluate("JSON.stringify(dayMismatch(todayISO()))"), pg.evaluate("(()=>{const w=currentWeight();const r=calcPlanDay(S(),Foods(),Recipes(),getWeek(App.week).plan[dayIndex(todayISO())],w,planActFor(todayISO(),w));return r.kcal.toFixed(0)+'/'+r.planLimit.toFixed(0)})()"))
     pg.evaluate("localLogin('coach')")
-    pg.evaluate("go('klient')"); print('zprava text lines:', pg.evaluate("weekReport(mondayOf(todayISO())).text.split('\\n').length"))
+    pg.evaluate("go('klient')"); print('týden v číslech:', pg.evaluate("(()=>{const R=weekReport(mondayOf(todayISO()));return R.weigh+'/'+R.past+' vážení, '+R.okN+' OK'})()"), '· tlačítko zprávy:', pg.evaluate("!!document.querySelector('[onclick*=copyReport]')"))
     print('verdikt:', pg.evaluate("document.querySelector('#main .card .pill').textContent"), '· signálů:', pg.evaluate("document.querySelectorAll('#main .sig').length"))
     print('Robert bez vzkazů:', pg.evaluate("!document.querySelector('#cmsg') && !/Vzkaz/.test(document.querySelector('#main').innerText)"))
     print('paceGuard:', pg.evaluate("paceGuard().map(g=>g.text)"))

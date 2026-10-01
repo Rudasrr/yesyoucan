@@ -140,7 +140,7 @@ function sinceLast() {
   return { first: false, since: seen, items };
 }
 
-/* ===== Týden v číslech a týdenní zpráva ===== */
+/* ===== Týden v číslech (pro kartu týdne u trenéra) ===== */
 function weekReport(start) {
   const s = S(), ov = calcOverview(s, Meas()); const uid = Store.ownerId(); const today = todayISO();
   const days = Array.from({ length: 7 }, (_, i) => addDays(start, i)); const past = days.filter(dt => dt <= today).length;
@@ -153,17 +153,7 @@ function weekReport(start) {
   const wRows = ov.rows.filter(r => days.includes(r.date)); const wStart = ov.rows.filter(r => r.date < start).slice(-1)[0]; const wEnd = wRows.slice(-1)[0];
   const delta = wStart && wEnd ? wEnd.avg - wStart.avg : null;
   const fed = potvrz.filter(e => e.d.tot.kcal); const intakeAvg = fed.length ? fed.reduce((a, e) => a + e.d.intake, 0) / fed.length : 0; const limitAvg = fed.length ? fed.reduce((a, e) => a + e.d.base.maxIntake, 0) / fed.length : 0;
-  const say = [];
-  if (delta != null) say.push(delta <= -0.6 ? `Váha −${fmt2(-delta)} kg za týden – přesně tempo plánu, chval.` : delta < 0 ? `Váha −${fmt2(-delta)} kg – směr dobrý, tempo pomalejší; zkontroluj pátky a limit.` : `Váha +${fmt2(delta)} kg – týden bez úbytku; ptej se na pití a víkend.`);
-  if (past >= 5 && weigh < 5) say.push(`Vážil se jen ${weigh}× – bez čísel nevidíš trend. Připomeň ranní váhu.`);
-  if (okN >= 5) say.push(`${okN} z 7 dnů v pořádku – disciplína drží.`); else if (recs.length) say.push(`Jen ${okN} ${DEN(okN)} v pořádku z ${recs.length} zapsaných – podívej se, co nejčastěji nesedí (${(() => { const c = {}; evs.forEach(e => e.d.checks.filter(x => x.state === 1).forEach(x => { c[x.name] = (c[x.name] || 0) + 1; })); return Object.entries(c).sort((a, b) => b[1] - a[1]).map(x => x[0].toLowerCase()).slice(0, 2).join(', ') || 'zápisy chybí'; })()}).`);
-  if (beers > 6 || over >= 2) say.push(`Cheaty: ${beers} piv, ${over} ${DEN(over)} přes limit – pátek řeš explicitně.`);
-  if (trainPlanned && trainDone < trainPlanned) say.push(`Trénink splnil ${trainDone} z ${trainPlanned} – zjisti proč (čas, bolest, chuť) a případně zkrať.`);
-  if (intakeAvg && intakeAvg < limitAvg - 300) say.push(`Jedl průměrně ${fmt0(intakeAvg)} kcal při limitu ${fmt0(limitAvg)} – deficit je moc velký, ať dojídá přílohy.`);
-  if (!say.length) say.push('Týden v normě – krátká pochvala stačí.');
-  const st = stepsStat(days);
-  const text = `Týden ${czDateShort(start)}–${czDateShort(addDays(start, 6))}\nVáha: ${wEnd ? fmt1(wEnd.avg) + ' kg (Ø7)' : '–'}${delta != null ? `, změna ${(delta > 0 ? '+' : '') + fmt2(delta)} kg` : ''}, od startu −${fmt1(ov.lost)} kg\nDny v pořádku: ${okN}/${recs.length} · vážení ${weigh}/${past} · chůze ${fmt0(walk)} min · trénink ${trainDone}/${trainPlanned} · běžná chůze Ø ${st ? fmt0(st.avg) + ' kroků' : '–'}\nCheaty: ${beers} piv, ${fmt0(fried)} g smaženého, ${over} dnů přes limit\nPrůměrný příjem ${fmt0(intakeAvg)} kcal / limit ${fmt0(limitAvg)}\nCo říct:\n${say.map(x => '– ' + x).join('\n')}`;
-  return { start, days, past, recs, evs, okN, potvrz, walk, beers, fried, over, trainPlanned, trainDone, weigh, wEnd, delta, say, text };
+  return { start, days, past, recs, evs, okN, potvrz, walk, beers, fried, over, trainPlanned, trainDone, weigh, wEnd, delta };
 }
 
 /* ===== Signály pro trenéra: jedno místo, jedny prahy =====
@@ -183,7 +173,7 @@ function signaly() {
   if (nepotv >= 2) push(nepotv >= 4 ? 1 : 2, `${nepotv} ze 7 posledních dnů nepotvrzených – nevíš, co opravdu jedl. Hodnocení dnů i přes limit počítá jen s potvrzenými.`, { head: `${nepotv} ${DEN(nepotv)} nepotvrzených.` });
   // přes limit po sobě
   let pres = 0; for (let k = 1; k <= 14; k++) { const ev = evaluateDay(addDays(t, -k)); if (!ev.confirmed) break; if (ev.cheats.over > 0) pres++; else break; }
-  if (pres >= 3) push(1, `${pres} ${DEN(pres)} po sobě přes limit. Zeptej se proč, než se z toho stane zvyk.`, { head: `${pres} ${DEN(pres)} po sobě přes limit.` });
+  if (pres >= 3) push(1, `${pres} ${DEN(pres)} po sobě přes limit. Otevři ty dny v týdnu a podívej se, co je táhne nahoru.`, { head: `${pres} ${DEN(pres)} po sobě přes limit.` });
   // tempo
   paceGuard().forEach(g => push(g.lv, g.text.replace(/^[^\wÁ-ž]+ /, ''), g.text.includes('rychleji') ? { head: 'Hubne rychleji, než je zdravé.', go: "go('nastaveni')", label: 'Tempo' } : { go: "go('nastaveni')", label: 'Plán' }));
   if (ov.rows.length > 14) { const a = ov.rows[ov.rows.length - 1].avg, b = ov.rows[ov.rows.length - 15].avg;
@@ -191,7 +181,7 @@ function signaly() {
   // kroky
   { const cil = stepsTarget(s), w2 = currentWeight(); let pod = 0, kcal = 0, zapsano = 0;
     for (let k = 1; k <= 7; k++) { const d2 = effectiveDay(addDays(t, -k)); const bk = daySteps(d2); if (bk == null) continue; zapsano++; if (bk < cil) { pod++; kcal += (cil - bk) * kcalPerStep(w2); } }
-    if (pod >= 3) push(1, `${pod} ${DEN(pod)} pod cílem ${fmt0(cil)} kroků – ${fmt0(kcal)} kcal, to je ${fmt2(kcal / KG_KCAL)} kg úbytku, který nebude. Sniž cíl, nebo se zeptej.`, {});
+    if (pod >= 3) push(1, `${pod} ${DEN(pod)} pod cílem ${fmt0(cil)} kroků – ${fmt0(kcal)} kcal, to je ${fmt2(kcal / KG_KCAL)} kg úbytku, který nebude. Zvaž nižší cíl kroků.`, {});
     else if (zapsano <= 2 && daysBetween(s.start_date, t) >= 7) push(2, `Kroky za poslední týden zapsal jen ${zapsano}×. Bez nich nevíš, jestli faktor běžného výdeje sedí.`, {}); }
   // hlad
   let vlk = 0; for (let k = 0; k <= 7; k++) if (effectiveDay(addDays(t, -k)).hunger === 'vlk') vlk++;

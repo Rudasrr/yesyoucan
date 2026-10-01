@@ -57,7 +57,7 @@ Robert i trenér se v appce ztráceli: Dnes měla 4 641 px (5,5 obrazovky), stej
 - **Pokrok**: průměr 7 vážení, cesta ke 102 kg, graf proti plánu se značkami zásahů trenéra, tři kroužky, listy Obvody / Historie zápisů / Plán proti skutečnosti. Zápis váhy a obvodů v listu (+ Zápis), váha se zapisuje hlavně na Dnes.
 
 **Trenér: Robert · Plán · Databáze** + Více (Pohled Roberta, Nastavení, Návod).
-- **Robert** (Dashboard + Zpráva): verdikt 🔴🟡🟢 z `signaly()`, jedna věta, cíl/plán/realita → signály s akcí → týden (sedm políček, čtyři čísla, **Zkopírovat týdenní zprávu** pro poslání mimo appku) → graf váhy se značkami → Čísla za 6 týdnů a 28 dní v listu. Den se otevře v listu (jídla, chůze, kroky, hlad, jednorázová změna tréninku). Novinky od poslední návštěvy pod 🔔.
+- **Robert** (Dashboard + týdenní přehled): verdikt 🔴🟡🟢 z `signaly()`, jedna věta, cíl/plán/realita → signály s akcí → týden (sedm políček, čtyři čísla) → graf váhy se značkami → Čísla za 6 týdnů a 28 dní v listu. Den se otevře v listu (jídla, chůze, kroky, hlad, jednorázová změna tréninku). Novinky od poslední návštěvy pod 🔔.
 - **Plán → Cíle**: tempo (posuvník), cíl chůze, cíl kroků, tempo chůze s fází, udržovací týden; Profil a výchozí hodnoty a Historie změn v listech. Ukládá se hned, každá změna přes `commitSettings` do logu. **Plán → Trénink**: Robertův týden – sedm konkrétních dní (tento / příští týden), den v listu, uložení „každé X od dneška“ nebo „jen tento den“; pod tím jen varování (jídla se nevejdou, málo pohybu, tempo) a odkazy na uložené tréninky a knihovnu cviků.
 - **Databáze**: Recepty (bez hledání přehled chodů) a Suroviny (kategorie sbalené).
 
