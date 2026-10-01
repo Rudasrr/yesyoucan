@@ -432,6 +432,18 @@ svg.chart{width:100%;height:auto;display:block;max-height:320px}
 .spark{display:block}
 
 /* ---------- trénink ---------- */
+/* kalendář měsíce: 7 sloupců, den jako malé tlačítko */
+.tmgrid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
+.tmh{font-size:11px;font-weight:800;color:var(--ink3);text-align:center;letter-spacing:.04em}
+.tmd{position:relative;min-height:50px;border:1px solid var(--line);background:#fff;border-radius:11px;padding:4px 2px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;cursor:pointer;min-width:0;color:var(--ink)}
+.tmd b{font-size:14px;font-weight:800;line-height:1.1}
+.tmd span{font-size:11px;color:var(--ink2);white-space:nowrap;overflow:hidden;max-width:100%}
+.tmd.tr{background:var(--gl-p)}
+.tmd.dnes{outline:2px solid var(--p);outline-offset:-1px}
+.tmd.past{opacity:.45;cursor:default}
+.tmd.sel{background:var(--p);border-color:var(--p);color:#fff}.tmd.sel span{color:#fff}
+.tmd i{position:absolute;top:4px;right:4px;width:6px;height:6px;border-radius:50%;background:var(--p)}
+.tm0{min-height:50px}
 .trrest{text-align:center;padding:12px 4px;display:flex;flex-direction:column;gap:10px}
 .trrest .trlab{font-size:12px;font-weight:800;letter-spacing:.08em;color:var(--ink2)}
 .trrest .trcd{font-size:64px;font-weight:850;line-height:1;letter-spacing:-.03em;font-variant-numeric:tabular-nums}

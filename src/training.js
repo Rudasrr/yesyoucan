@@ -100,7 +100,6 @@ function paceMessageForClient() { const s = S(), ov = calcOverview(s, Meas()); i
    Dřív se plány zakládaly s polem „Platí od“ – bez něj je Robert neviděl – a úprava
    šablony zpětně přepsala i minulé dny, které už odcvičil. Teď si appka verze drží
    sama: změna šablony vytvoří na pozadí novou verzi platnou od dneška. */
-App.trWeek = null;
 /* šablona, která platí dnes (nejnovější verze s active_from ≤ dnes) */
 function trTemplate() { return activePlanFor(todayISO()); }
 /* změna šablony týdne od dneška; minulé dny zůstanou na staré verzi */
@@ -122,32 +121,112 @@ function adoptLegacyPlan() {
 }
 function trDaySummary(ap) { const items = ap.items || [];
   return `🚶 ${ap.walk_min ?? S().walk_min} min${items.length ? ' · 🏋️ ' + items.map(it => esc(it.ex)).join(', ') : ''}`; }
+/* ---- Měsíc: plán tréninku dopředu (1. 10. 2026) ----
+   Trenér plánuje aspoň na měsíc. Kalendář měsíce, den se upravuje v listu a dny,
+   týdny i celý měsíc jdou kopírovat. Zkopírovaný den se uloží jako plán konkrétního
+   data (výjimka to:<uid>:<datum>); šablona „každé X“ zůstává základem pro dny, které
+   trenér nenaplánoval. */
+const MESICE = ['leden', 'únor', 'březen', 'duben', 'květen', 'červen', 'červenec', 'srpen', 'září', 'říjen', 'listopad', 'prosinec'];
+const monthStart = d => d.slice(0, 8) + '01';
+const addMonths = (m, n) => { const [y, mo] = m.split('-').map(Number); const t = new Date(Date.UTC(y, mo - 1 + n, 1)); return t.toISOString().slice(0, 10); };
+const monthName = m => { const [y, mo] = m.split('-').map(Number); return `${MESICE[mo - 1]} ${y}`; };
+function monthDays(m) { const out = []; for (let d = m; d.slice(0, 7) === m.slice(0, 7); d = addDays(d, 1)) out.push(d); return out; }
+/* plán dne tak, jak ho uvidí Robert (výjimka > šablona > výchozí chůze) */
+function trDayData(dt) { const ap = dayActivityPlan(dt); return { walk_min: ap.walk_min != null ? Number(ap.walk_min) : S().walk_min, walk_kmh: ap.walk_kmh || S().walk_kmh, items: JSON.parse(JSON.stringify(ap.items || [])) }; }
+const trSame = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+/* kopírování: dvojice [zdroj, cíl]; do minulosti ne, přepsání vlastního plánu se potvrzuje */
+function trCopyPairs(pairs, label) {
+  /* den, který by po kopii vypadal stejně jako teď (třeba podle šablony), se nepřepisuje –
+     jinak by zbytečně zamrzl a nereagoval na pozdější změnu šablony */
+  const t = todayISO(); const P = pairs.filter(([src, dst]) => dst >= t && src !== dst && !trSame(trDayData(src), trDayData(dst)));
+  if (!P.length) { UI.toast('Nic se nezměnilo – vybrané dny už mají stejný plán.'); App.trSel = null; UI.closeModal(); return; }
+  const prepis = P.filter(([, dst]) => trainingOverride(dst)).length;
+  const run = () => { UI.closeModal(); Undo.run(label, () => P.forEach(([src, dst]) => Store.put('training', oid('to', dst), trDayData(src))),
+    `${label}: ${P.length} ${sklon(P.length, 'den', 'dny', 'dní')}. Robert je uvidí v Dnes.`); App.trSel = null; render(); };
+  if (prepis) UI.confirm(`${prepis} ${sklon(prepis, 'den už má', 'dny už mají', 'dní už má')} vlastní plán – přepsat?`, run, 'Přepsat'); else run();
+}
+
+App.trMonth = null; App.trSel = null;
 VIEWS.trenink = function () {
   if (!App.ro) adoptLegacyPlan();
   const s = S(), w = currentWeight(), ov = calcOverview(s, Meas()); const t = todayISO();
-  const thisMon = mondayOf(t), nextMon = addDays(thisMon, 7);
-  if (App.trWeek !== thisMon && App.trWeek !== nextMon) App.trWeek = thisMon;
-  const mon = App.trWeek; const days = Array.from({ length: 7 }, (_, i) => addDays(mon, i));
+  if (!App.trMonth) App.trMonth = monthStart(t);
+  const m = App.trMonth; const days = monthDays(m); const gridStart = mondayOf(m);
+  const gridEnd = addDays(mondayOf(days[days.length - 1]), 6); const grid = []; for (let d = gridStart; d <= gridEnd; d = addDays(d, 1)) grid.push(d);
   const acts = days.map(dt => { const ap = dayActivityPlan(dt); const act = { planWalk: ap.walk_min != null ? Number(ap.walk_min) : s.walk_min, planKcal: sessionKcal(ap.items || [], w) }; const b = calcBase(s, w, act.planWalk, 0, ap.walk_kmh || s.walk_kmh, 0, 0, act); return { dt, ap, act, b }; });
-  // co z toho plyne: jen problémy, žádná mechanika kalorií
+  const fut = acts.filter(x => x.dt >= t);
   const warns = [];
-  acts.filter(x => x.b.planBelowBmr && x.dt >= t).forEach(x => warns.push(`${DAY_NAMES[dayIndex(x.dt)]}: málo pohybu – limit drží spodní hranice a deficit dne je o ${fmt0(x.b.bmr - (x.b.minOut - x.b.deficit))} kcal menší. Přidej chůzi.`));
-  acts.filter(x => x.dt >= t).forEach(x => { const mm = dayMismatch(x.dt); if (mm) warns.push(`${DAY_NAMES[dayIndex(x.dt)]}: Robertova jídla se ${mm.diff > 0 ? `nedojí do limitu (chybí ${fmt0(mm.diff)} kcal)` : `nevejdou (o ${fmt0(-mm.diff)} kcal víc)`} – uvidí „Dorovnat“.`); });
-  const weekDef = acts.reduce((a, x) => a + (x.b.minOut - x.b.planLimit), 0); const cil = w * s.rate_pct / 100;
-  if (weekDef / KG_KCAL < cil * 0.97) warns.push(`Týden dá −${fmt2(weekDef / KG_KCAL)} kg místo −${fmt2(cil)} – brzdí ho dny s málo pohybem.`);
-  const lastWeekAct = (() => { let k = 0; for (let i = 0; i < 7; i++) { const dt = addDays(thisMon, -7 + i); const d = getDay(dt); const a = dayAct(dt, d, w); k += (d.walk_min || 0) * calcBase(s, w, 0, 0, s.walk_kmh, 0, 0).walkPerMin + a.doneKcal; } return k; })();
-  const weekAct = acts.reduce((a, x) => a + x.act.planWalk * x.b.walkPerMin + x.act.planKcal, 0);
-  if (lastWeekAct > 0 && weekAct > lastWeekAct * 1.2) warns.push(`Aktivita je o ${Math.round((weekAct / lastWeekAct - 1) * 100)} % víc, než Robert zvládl minulý týden. Doporučené navýšení je do 20 %.`);
-  if (ov.cur > 124 && acts.some(x => (x.ap.items || []).some(it => /Běh|Švihadlo|Angličák/.test(it.ex)))) warns.push('Nad 124 kg sešit nedoporučuje běh ani skoky. Nahraď chůzí do kopce nebo kolem.');
-  return `<div class="seg"><button class="${mon === thisMon ? 'on' : ''}" onclick="App.trWeek='${thisMon}';render()">Tento týden · ${czDateShort(thisMon)}</button><button class="${mon === nextMon ? 'on' : ''}" onclick="App.trWeek='${nextMon}';render()">Příští · ${czDateShort(nextMon)}</button></div>
-  <div class="card flush"><div class="list">${acts.map(x => { const past = x.dt < t; const vyj = x.ap.source === 'override';
-    return `<div class="li ${x.dt === t ? 'cur' : ''} ${past ? 'done' : ''}" onclick="A.trDaySheet('${x.dt}')"><span class="tm">${DAY_SHORT[dayIndex(x.dt)]}<br>${parseISO(x.dt).getDate()}. ${parseISO(x.dt).getMonth() + 1}.</span><span class="em">${(x.ap.items || []).length ? '🏋️' : '🚶'}</span><div class="tx"><b>${(x.ap.items || []).length ? (x.ap.items || []).map(it => esc(it.ex)).join(', ') : 'Jen chůze'}</b><span>${x.act.planWalk} min chůze${(x.ap.items || []).length ? ` · ~${fmt0(x.act.planKcal)} kcal cviky` : ''}${vyj ? ' · jen tento den' : ''}${x.dt === t ? ' · dnes' : ''}</span></div>${vyj ? '<span class="pill info">výjimka</span>' : ''}<span class="chev">›</span></div>`; }).join('')}</div></div>
-  <div class="card stack s8"><div class="row between"><h2>Týden</h2><span class="pill ${weekDef / KG_KCAL >= cil * 0.97 ? 'ok' : 'warn'}">−${fmt2(weekDef / KG_KCAL)} kg/týden</span></div>
-    ${warns.map(x => `<div class="alert a2"><div>${esc(x)}</div></div>`).join('') || '<div class="small muted">V pořádku: tempo drží cíl, jídla se vejdou, navýšení aktivity do 20 %.</div>'}</div>
+  const nizko = fut.filter(x => x.b.planBelowBmr); if (nizko.length) warns.push(`${nizko.length} ${sklon(nizko.length, 'den', 'dny', 'dní')} s málo pohybem (${nizko.slice(0, 4).map(x => czDateShort(x.dt)).join(', ')}${nizko.length > 4 ? '…' : ''}) – limit drží spodní hranice a deficit je menší. Přidej chůzi.`);
+  fut.forEach(x => { const mm = dayMismatch(x.dt); if (mm) warns.push(`${czDateShort(x.dt)}: Robertova jídla se ${mm.diff > 0 ? `nedojí do limitu (chybí ${fmt0(mm.diff)} kcal)` : `nevejdou (o ${fmt0(-mm.diff)} kcal víc)`} – uvidí „Dorovnat“.`); });
+  if (ov.cur > 124 && fut.some(x => (x.ap.items || []).some(it => /Běh|Švihadlo|Angličák/.test(it.ex)))) warns.push('Nad 124 kg sešit nedoporučuje běh ani skoky. Nahraď chůzí do kopce nebo kolem.');
+  const def = fut.reduce((a, x) => a + (x.b.minOut - x.b.planLimit), 0); const kgT = fut.length ? def / fut.length * 7 / KG_KCAL : null; const cil = w * s.rate_pct / 100;
+  if (kgT != null && kgT < cil * 0.97) warns.push(`Zbytek měsíce dá −${fmt2(kgT)} kg/týden místo −${fmt2(cil)} – brzdí ho dny s málo pohybem.`);
+  const trenDni = acts.filter(x => (x.ap.items || []).length).length;
+  const cell = dt => { const inM = dt.slice(0, 7) === m.slice(0, 7); if (!inM) return '<div class="tm0"></div>';
+    const ap = dayActivityPlan(dt); const n = (ap.items || []).length; const vyj = ap.source === 'override';
+    return `<button class="tmd ${dt === t ? 'dnes' : ''} ${dt < t ? 'past' : ''} ${n ? 'tr' : ''}" onclick="A.trDaySheet('${dt}')" aria-label="${czDate(dt)}"><b>${parseISO(dt).getDate()}</b><span>${n ? '🏋️' + n : '🚶' + (ap.walk_min ?? s.walk_min)}</span>${vyj ? '<i></i>' : ''}</button>`; };
+  return `<div class="row between nowrap"><button class="iconbtn" onclick="App.trMonth=addMonths(App.trMonth,-1);render()" aria-label="předchozí měsíc">‹</button><b style="font-size:17px">${monthName(m)}</b><button class="iconbtn" onclick="App.trMonth=addMonths(App.trMonth,1);render()" aria-label="další měsíc">›</button></div>
+  <div class="card stack s8"><div class="tmgrid">${DAY_SHORT.map(d => `<div class="tmh">${d}</div>`).join('')}${grid.map(cell).join('')}</div>
+    <div class="row between small muted"><span>${trenDni} ${sklon(trenDni, 'tréninkový den', 'tréninkové dny', 'tréninkových dní')} · tečka = naplánováno na datum</span></div>
+    <div class="row"><button class="btn sec sm" onclick="A.trCopyWeekSheet()">📑 Kopírovat týden</button><button class="btn sec sm" onclick="A.trCopyMonthSheet()">📑 Kopírovat měsíc</button><button class="btn ghost sm" onclick="A.trResetMonth()">↺ vrátit měsíc na šablonu</button></div></div>
+  <div class="card stack s8"><div class="row between"><h2>Měsíc</h2>${kgT != null ? `<span class="pill ${kgT >= cil * 0.97 ? 'ok' : 'warn'}">−${fmt2(kgT)} kg/týden</span>` : ''}</div>
+    ${warns.slice(0, 6).map(x => `<div class="alert a2"><div>${esc(x)}</div></div>`).join('') || '<div class="small muted">V pořádku: tempo drží cíl, jídla se vejdou.</div>'}${warns.length > 6 ? `<div class="small muted">a dalších ${warns.length - 6}…</div>` : ''}</div>
   <div class="card flush"><div class="navrow" onclick="A.trInsight()"><span class="ico">📈</span><div class="tx"><b>Jak Robert cvičí</b><span>odcvičené tréninky, náročnost, zátěž u cviků</span></div><span class="chev">›</span></div>
     <div class="navrow" onclick="A.twLibrary()"><span class="ico">💾</span><div class="tx"><b>Uložené tréninky</b><span>${Workouts().length} · vložíš je do kteréhokoli dne</span></div><span class="chev">›</span></div>
     <div class="navrow" onclick="A.exLibrary()"><span class="ico">🏋️</span><div class="tx"><b>Knihovna cviků</b><span>${Exercises().length} cviků · upravit nebo přidat</span></div><span class="chev">›</span></div></div>`;
 };
+
+/* ---- kopírovat den: vybrat cílové dny v kalendáři příštích 8 týdnů ---- */
+A.trCopyDaySheet = src => { App.trSel = new Set(); App.trCopySrc = src; UI.closeModal(); openSheet(trCopyDayHtml); };
+function trCopyDayHtml() {
+  const src = App.trCopySrc, t = todayISO(), sel = App.trSel || new Set(); const start = mondayOf(t);
+  const dny = Array.from({ length: 56 }, (_, i) => addDays(start, i)); const den = DAY_NAMES[dayIndex(src)].toLowerCase();
+  const sum = trDaySummary(dayActivityPlan(src));
+  return UI.sheetHtml(`Zkopírovat ${czDateShort(src)}`, sum, `<div class="row"><button class="btn ghost sm" onclick="A.trSelQuick('weekday',4)">každé ${den} · 4 týdny</button><button class="btn ghost sm" onclick="A.trSelQuick('weekday',8)">každé ${den} · 8 týdnů</button><button class="btn ghost sm" onclick="A.trSelQuick('none')">nic</button></div>
+    <div class="tmgrid">${DAY_SHORT.map(d => `<div class="tmh">${d}</div>`).join('')}${dny.map(d => { const lab = parseISO(d).getDate() === 1 ? `1. ${parseISO(d).getMonth() + 1}.` : parseISO(d).getDate(); const ap = dayActivityPlan(d); const n = (ap.items || []).length;
+      return d < t || d === src ? `<div class="tmd past"><b>${lab}</b></div>` : `<button class="tmd ${sel.has(d) ? 'sel' : ''} ${n && !sel.has(d) ? 'tr' : ''}" onclick="A.trSelToggle('${d}')"><b>${lab}</b><span>${n ? '🏋️' + n : '🚶' + (ap.walk_min ?? S().walk_min)}</span></button>`; }).join('')}</div>`,
+    `<button class="btn" ${sel.size ? '' : 'disabled'} onclick="A.trCopyDayGo()">Zkopírovat na ${sel.size} ${sklon(sel.size, 'den', 'dny', 'dní')}</button>`);
+}
+A.trSelToggle = d => { const s = App.trSel; s.has(d) ? s.delete(d) : s.add(d); if (window._sheetRedraw) window._sheetRedraw(); };
+A.trSelQuick = (k, n) => { const src = App.trCopySrc, t = todayISO(); App.trSel = new Set();
+  if (k === 'weekday') for (let i = 1; i <= n; i++) { const d = addDays(src, 7 * i); if (d >= t) App.trSel.add(d); }
+  if (window._sheetRedraw) window._sheetRedraw(); };
+A.trCopyDayGo = () => trCopyPairs([...App.trSel].sort().map(d => [App.trCopySrc, d]), `Zkopírován ${czDateShort(App.trCopySrc)}`);
+
+/* ---- kopírovat týden: zdrojový týden → vybrané týdny ---- */
+A.trCopyWeekSheet = () => { const t = todayISO(); App.trWkSrc = mondayOf(App.trMonth < monthStart(t) ? t : App.trMonth); if (App.trMonth === monthStart(t)) App.trWkSrc = mondayOf(t); App.trSel = new Set(); openSheet(trCopyWeekHtml); };
+function trCopyWeekHtml() {
+  const t = todayISO(); const src = App.trWkSrc; const sel = App.trSel;
+  const zdroje = Array.from({ length: 10 }, (_, i) => addDays(mondayOf(t), 7 * (i - 2)));
+  const cile = Array.from({ length: 12 }, (_, i) => addDays(mondayOf(t), 7 * i)).filter(x => x !== src);
+  const wk = mon => `${czDateShort(mon)}–${czDateShort(addDays(mon, 6))}`;
+  const nahled = Array.from({ length: 7 }, (_, i) => { const ap = dayActivityPlan(addDays(src, i)); const n = (ap.items || []).length; return `<div class="tmd"><b>${DAY_SHORT[i]}</b><span>${n ? '🏋️' + n : '🚶' + (ap.walk_min ?? S().walk_min)}</span></div>`; }).join('');
+  return UI.sheetHtml('Zkopírovat týden', 'vyber, který týden a kam', `<div class="field"><label class="f">Který týden</label><div class="chips scroll">${zdroje.map(m => `<button class="chip ${m === src ? 'on' : ''}" onclick="App.trWkSrc='${m}';App.trSel.delete('${m}');window._sheetRedraw()">${wk(m)}</button>`).join('')}</div></div>
+    <div class="tmgrid">${nahled}</div>
+    <div class="field"><label class="f">Kam (lze víc)</label><div class="chips">${cile.map(m => `<button class="chip ${sel.has(m) ? 'on' : ''}" onclick="A.trSelToggle('${m}')">${wk(m)}</button>`).join('')}</div></div>
+    <div class="row"><button class="btn ghost sm" onclick="App.trSel=new Set([1,2,3].map(i=>addDays(App.trWkSrc,7*i)).filter(x=>x>=mondayOf(todayISO())));window._sheetRedraw()">3 následující týdny</button><button class="btn ghost sm" onclick="App.trSel=new Set();window._sheetRedraw()">nic</button></div>`,
+    `<button class="btn" ${sel.size ? '' : 'disabled'} onclick="A.trCopyWeekGo()">Zkopírovat do ${sel.size} ${sklon(sel.size, 'týdne', 'týdnů', 'týdnů')}</button>`);
+}
+A.trCopyWeekGo = () => { const src = App.trWkSrc; const pairs = []; [...App.trSel].sort().forEach(mon => { for (let i = 0; i < 7; i++) pairs.push([addDays(src, i), addDays(mon, i)]); }); trCopyPairs(pairs, `Zkopírován týden od ${czDateShort(src)}`); };
+
+/* ---- kopírovat měsíc: n-tý den v týdnu → stejný n-tý den v cílovém měsíci ---- */
+A.trCopyMonthSheet = () => { App.trSel = new Set(); openSheet(trCopyMonthHtml); };
+function trCopyMonthHtml() {
+  const src = App.trMonth; const sel = App.trSel; const cile = [1, 2, 3, 4, 5, 6].map(n => addMonths(src, n));
+  return UI.sheetHtml(`Zkopírovat ${monthName(src)}`, 'den se mapuje podle pořadí v měsíci – 1. pondělí na 1. pondělí',
+    `<div class="field"><label class="f">Kam (lze víc)</label><div class="chips">${cile.map(m => `<button class="chip ${sel.has(m) ? 'on' : ''}" onclick="A.trSelToggle('${m}')">${monthName(m)}</button>`).join('')}</div></div>
+     <p class="hint">Pátý výskyt dne v týdnu (třeba 5. středa), který cílový měsíc nemá, se přeskočí.</p>`,
+    `<button class="btn" ${sel.size ? '' : 'disabled'} onclick="A.trCopyMonthGo()">Zkopírovat do ${sel.size} ${sklon(sel.size, 'měsíce', 'měsíců', 'měsíců')}</button>`);
+}
+A.trCopyMonthGo = () => { const src = App.trMonth; const pairs = [];
+  const nth = d => Math.floor((parseISO(d).getDate() - 1) / 7);
+  [...App.trSel].sort().forEach(tm => { const target = monthDays(tm);
+    monthDays(src).forEach(d => { const dst = target.find(x => dayIndex(x) === dayIndex(d) && nth(x) === nth(d)); if (dst) pairs.push([d, dst]); }); });
+  trCopyPairs(pairs, `Zkopírován ${monthName(src)}`); };
+/* zrušit plány na datum v zobrazeném měsíci (od dneška) – dny se vrátí na šablonu týdne */
+A.trResetMonth = () => { const t = todayISO(); const dny = monthDays(App.trMonth).filter(d => d >= t && trainingOverride(d));
+  if (!dny.length) { UI.toast('V tomhle měsíci nejsou od dneška žádné dny s vlastním plánem.'); return; }
+  UI.confirm(`Zrušit plán na ${dny.length} ${sklon(dny.length, 'den', 'dny', 'dní')} a vrátit je na šablonu týdne?`, () => { Undo.run('Měsíc vrácen na šablonu', () => dny.forEach(d => Store.remove('training', oid('to', d))), `${dny.length} ${sklon(dny.length, 'den', 'dny', 'dní')} zase podle šablony.`); render(); }, 'Vrátit'); };
 
 /* ---- den tréninku v listu: rozpracovaná úprava, uložení s volbou platnosti ---- */
 App.trDraft = null;
@@ -177,7 +256,7 @@ function trDaySheetHtml() {
     `<div class="grid g2"><div class="field"><label class="f">Chůze (minut)</label><input type="text" inputmode="decimal" id="trw" value="${D.walk_min}" onchange="A.trDraftField('walk_min',this.value)"></div>
       <div class="field"><label class="f">Tempo</label><select onchange="A.trDraftField('walk_kmh',this.value)">${SEED.met.map(([k]) => `<option value="${k}" ${Number(D.walk_kmh) === k ? 'selected' : ''}>${fmt1(k)} km/h</option>`).join('')}</select></div></div>
     <div>${items || '<p class="small muted">Bez cviků – jen chůze.</p>'}</div>
-    <div class="row"><button class="btn sec sm" onclick="A.trPickEx()">+ přidat cvik</button><button class="btn ghost sm" onclick="A.trInsertWorkout()">📂 vložit uložený</button>${D.items.length ? `<button class="btn ghost sm" onclick="A.twEdit(null,{name:'${DAY_NAMES[dayIndex(D.date)]} – trénink',items:JSON.parse(JSON.stringify(App.trDraft.items))})">💾 uložit jako trénink</button><button class="btn ghost sm" onclick="A.trClear()">🧹 vyprázdnit</button>` : ''}</div>
+    <div class="row"><button class="btn sec sm" onclick="A.trPickEx()">+ přidat cvik</button><button class="btn ghost sm" onclick="A.trInsertWorkout()">📂 vložit uložený</button>${D.items.length ? `<button class="btn ghost sm" onclick="A.twEdit(null,{name:'${DAY_NAMES[dayIndex(D.date)]} – trénink',items:JSON.parse(JSON.stringify(App.trDraft.items))})">💾 uložit jako trénink</button><button class="btn ghost sm" onclick="A.trClear()">🧹 vyprázdnit</button>` : ''}${D.dirty ? '' : `<button class="btn ghost sm" onclick="A.trCopyDaySheet('${D.date}')">📑 zkopírovat na další dny</button>`}</div>
     ${pozn.map(x => `<div class="alert a2"><div>${esc(x)}</div></div>`).join('')}
     ${D.wasOverride ? `<button class="btn ghost sm" style="align-self:flex-start" onclick="A.trDropOverride()">↺ zrušit výjimku a vrátit šablonu</button>` : ''}`,
     `<div class="seg" style="flex:1 1 100%"><button class="${D.scope === 'every' ? 'on' : ''}" onclick="A.trScope('every')">Každé ${den}</button><button class="${D.scope === 'day' ? 'on' : ''}" onclick="A.trScope('day')">Jen ${czDateShort(D.date)}</button></div>

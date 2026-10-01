@@ -150,7 +150,7 @@ with sync_playwright() as p:
     # mismatch after training change
     pg.evaluate("localLogin('coach')"); pg.evaluate("App.coachTab='trenink';go('nastaveni');A.trDaySheet(todayISO());A.trAdd('Běh pomalý');A.trItem(App.trDraft.items.length-1,'min',60);A.trSave()"); pg.wait_for_timeout(100)
     print('pace:', pg.evaluate("(()=>{const p=paceOverview();return JSON.stringify({target:+p.target.toFixed(2),proj:+p.projThis.toFixed(2),floor:p.floorThis.length,actual:p.actual})})()"))
-    print('týden tréninku:', pg.evaluate("document.querySelectorAll('#main .list .li').length"), 'dní ·', pg.evaluate("document.querySelector('#main .pill').textContent"))
+    print('měsíc tréninku:', pg.evaluate("document.querySelectorAll('#main .tmd').length"), 'dní ·', pg.evaluate("document.querySelector('#main .pill').textContent"))
     pg.evaluate("localLogin('client')"); print('mismatch today:', pg.evaluate("JSON.stringify(dayMismatch(todayISO()))"))
     pg.evaluate("A.fitDay(todayISO())"); print('after fit:', pg.evaluate("JSON.stringify(dayMismatch(todayISO()))"), pg.evaluate("(()=>{const w=currentWeight();const r=calcPlanDay(S(),Foods(),Recipes(),getWeek(App.week).plan[dayIndex(todayISO())],w,planActFor(todayISO(),w));return r.kcal.toFixed(0)+'/'+r.planLimit.toFixed(0)})()"))
     pg.evaluate("localLogin('coach')")
