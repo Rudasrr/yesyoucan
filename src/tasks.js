@@ -27,7 +27,7 @@ function dayTasks(date) {
   T.push({ id: 'walk', em: '🚶', tx: `Chůze ${wt} minut`, sub: (day.walk_min || 0) ? `zapsáno ${day.walk_min} min` : 'zapiš ušlé minuty', done: (day.walk_min || 0) >= wt, view: 'dnes', at: '17:00' });
   /* Kroky se zapisuji vecer – jsou to bezna chuze mimo planovanou hodinu. */
   { const cil = stepsTarget(s), real = daySteps(day);
-    T.push({ id: 'steps', em: '\ud83d\udc63', tx: `Zapi\u0161 kroky \u2013 c\u00edl ${fmt0(cil)}`,
+    T.push({ id: 'steps', em: '\ud83d\udc63', tx: 'Zapiš kroky za celý den',
       sub: real == null ? 've\u010der podle hodinek nebo telefonu' : (real >= cil ? `${fmt0(real)} \u2013 c\u00edl spln\u011bn` : `${fmt0(real)} \u2013 chyb\u00ed ${fmt0(cil - real)}`),
       done: real != null, view: 'dnes', at: '20:00' }); }
   if (day.act && day.act.planItems) T.push({ id: 'training', em: '🏋️', tx: `Trénink · ${day.act.planItems} ${day.act.planItems === 1 ? 'položka' : (day.act.planItems < 5 ? 'položky' : 'položek')}`, sub: day.act.doneAll ? `hotovo · ${fmt0(day.act.doneKcal)} kcal` : `~${fmt0(day.act.planKcal)} kcal · odškrtni po dokončení`, done: !!day.act.doneAll, view: 'dnes', at: '17:30' });
@@ -38,29 +38,41 @@ function dayTasks(date) {
     else T.push({ id: 'plan', em: '🗓️', tx: 'Naplánuj příští týden', sub: `${n}/35 jídel vybráno`, done: n >= 35, view: 'tyden', week: nextMon, at: PLAN_TIME });
     if (n >= 35) { const sd = shoppingDone(nextMon); T.push({ id: 'shop', em: '🛒', tx: 'Dojdi na nákup', sub: `mám ${sd.done} z ${sd.total}`, done: sd.total > 0 && sd.done >= sd.total, view: 'nakup', week: nextMon }); }
   }
-  /* Uzavření dne: večer se Robert podívá na kontrolu dne a odklikne ji.
-     Bez toho by den jen tiho uplynul a on by se nedozvedel, jak dopadl. */
-  { const ev = day.reviewed || day.closed;
-    T.push({ id: 'close', em: '\u2705', tx: 'Projdi a uzav\u0159i den',
-      sub: ev ? (evaluateDay(date).ok ? 'den sed\u011bl' : 'den nesed\u011bl \u2013 v\u00ed\u0161 pro\u010d') : 'mrkni na kontrolu dne a odklikni',
-      done: !!ev, view: 'dnes', at: CLOSE_TIME, close: 1 }); }
+  /* Potvrzení dne: Robert jedním ťuknutím potvrdí, že jedl podle plánu (výjimky
+     opraví u jídla). Bez potvrzení appka neví, co opravdu snědl. */
+  { const ev = !!day.reviewed;
+    T.push({ id: 'close', em: '\u2705', tx: 'Potvrdit den',
+      sub: ev ? (evaluateDay(date).ok ? 'den sed\u011bl' : 'den nesed\u011bl') : 'jedl jsem podle plánu? výjimky oprav',
+      done: ev, view: 'dnes', at: CLOSE_TIME, close: 1 }); }
   T.forEach(t => { t.due = t.at ? timeToMin(t.at) <= now : true; t.now = !t.done && t.at && Math.abs(timeToMin(t.at) - now) <= 45 && isToday; });
   return T;
 }
 
-/* Hodnocení dne (pro uzavření i pro trenéra) */
+/* Hodnocení dne (pro uzavření i pro trenéra).
+   Příjem dne se počítá z plánu – appka nerozliší naplánované od snědeného, dokud to
+   Robert nepotvrdí. Proto se den hodnotí (v pořádku / přes limit) jen když je
+   POTVRZENÝ: uzavřel ho, nebo odškrtl všechna jídla. Nepotvrzený minulý den je
+   „nezapsaný“ – dřív se o půlnoci uzavřel podle plánu a trenér viděl vymyšlené
+   „14 dnů přes limit“. */
+function dayConfirmed(day) {
+  if (day.reviewed) return true;
+  const meals = S().courses.map(c => day.meals[c.key] || {}).filter(m => m.sel && m.sel !== VYNECHAT);
+  return meals.length > 0 && meals.every(m => m.eaten);
+}
 function evaluateDay(date) {
   const s = S(), day = effectiveDay(date), d = calcDay(s, Foods(), Recipes(), day, weightAt(s, date));
   const eaten = s.courses.filter(c => (day.meals[c.key] || {}).eaten).length;
-  const cheats = { beers: day.beers || 0, fried: day.fried_g || 0, over: d.tot.kcal > 0 && d.intake > d.base.maxIntake + dayTol(d.base.maxIntake) ? Math.round(d.intake - d.base.maxIntake) : 0, edits: d.courses.reduce((a, c) => a + c.edited, 0), situace: d.courses.filter(c => c.situace).length, skipped: d.courses.filter(c => c.skipped).length };
-  return { d, day, eaten, cheats, ok: d.ok, logged: d.tot.kcal > 0 || (day.walk_min || 0) > 0 };
+  const confirmed = dayConfirmed(day);
+  const cheats = { beers: day.beers || 0, fried: day.fried_g || 0, over: confirmed && d.tot.kcal > 0 && d.intake > d.base.maxIntake + dayTol(d.base.maxIntake) ? Math.round(d.intake - d.base.maxIntake) : 0, edits: d.courses.reduce((a, c) => a + c.edited, 0), situace: d.courses.filter(c => c.situace).length, skipped: d.courses.filter(c => c.skipped).length };
+  const stav = date >= todayISO() && !confirmed ? 'dnes' : (!confirmed ? 'nezapsany' : (d.ok ? 'ok' : 'bad'));
+  return { d, day, eaten, cheats, confirmed, stav, ok: confirmed && d.ok, logged: confirmed || eaten > 0 || (day.walk_min || 0) > 0 || day.steps != null };
 }
 
 /* Série uzavřených dnů v pořádku (končí včera nebo dnes) */
 function streakOk() {
   let n = 0; let dt = addDays(todayISO(), -1); const uid = Store.ownerId();
   const recs = Object.fromEntries(Store.rows('days', uid).map(r => [r.data.date, r.data]));
-  while (recs[dt] && n < 60) { const ok = recs[dt].closed ? recs[dt].closedOk : evaluateDay(dt).ok; if (!ok) break; n++; dt = addDays(dt, -1); }
+  while (recs[dt] && n < 60) { if (!evaluateDay(dt).ok) break; n++; dt = addDays(dt, -1); }
   return n;
 }
 function weighStreak() { let n = 0, dt = todayISO(); const by = Object.fromEntries(Meas().map(m => [m.date, m])); if (!by[dt]) dt = addDays(dt, -1); while (by[dt] && by[dt].weight != null) { n++; dt = addDays(dt, -1); } return n; }
@@ -92,7 +104,8 @@ function praise(date) {
 /* automatické uzavření včerejška o půlnoci / při otevření */
 function autoClosePast() {
   if (realCoach()) return; const uid = Store.ownerId(); const today = todayISO();
-  Store.rows('days', uid).forEach(r => { const d = r.data; if (d.date < today && !d.closed) { const ev = evaluateDay(d.date); d.closed = true; d.closedAuto = true; d.closedOk = ev.ok; d.closedSummary = ev.d.summary; saveDay(d); } });
+  /* jen značka „den skončil“; o hodnocení rozhoduje potvrzení (evaluateDay), ne plán */
+  Store.rows('days', uid).forEach(r => { const d = r.data; if (d.date < today && !d.closed) { d.closed = true; d.closedAuto = true; saveDay(d); } });
 }
 
 /* Připomínky v appce + systémová notifikace, když je stránka otevřená */

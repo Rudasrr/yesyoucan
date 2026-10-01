@@ -155,7 +155,7 @@ VIEWS._vareni = function () {
   if (!list.length) return chips + zbytkyHtml + `<div class="card empty"><span class="em">🍳</span>${zbytky.length ? 'Na vybrané dny máš všechno uvařené.' : 'Na vybrané dny nemáš naplánovaná jídla.'}</div>`;
   return chips + zbytkyHtml + `<div class="row between small muted" style="padding:0 4px"><span>${list.length} ${sklon(list.length, 'jídlo', 'jídla', 'jídel')} k uvaření · přepočítáno na ${fmt1(w)} kg</span></div>
   <div class="card flush"><div class="list">${list.map((a, idx) => { const n = a.covers.length; const sd = shelfDays(a.items, foods); const rozsah = daysBetween(a.covers[0].d, a.covers[n - 1].d) + 1;
-    return `<div class="li" onclick="A.cookSheet(${idx})"><span class="em">${COURSE_EMOJI[a.key]}</span><div class="tx"><b>${esc(a.name)}</b><span>${n}× · ${a.covers.map(x => DAY_SHORT[dayIndex(x.d)]).join(' ')} · ${fmt0(a.kcal / n)} kcal/porce${rozsah > sd ? ' · ❄️ část zamrazit' : ''}</span></div><button class="btn sec sm write" onclick="event.stopPropagation();A.cookDone(${JSON.stringify(a.name).replace(/"/g, '&quot;')},${n},${JSON.stringify(a.covers).replace(/"/g, '&quot;')},${Math.round(a.gc)})">🍱 uvařeno</button></div>`; }).join('')}</div></div>`;
+    return `<div class="li" onclick="A.cookSheet(${idx})"><span class="em">${COURSE_EMOJI[a.key]}</span><div class="tx"><b>${esc(a.name)}</b><span>${n}× · ${a.covers.map(x => DAY_SHORT[dayIndex(x.d)]).join(' ')} · ${fmt0(a.kcal / n)} kcal/porce${rozsah > sd ? ' · ❄️ část zamrazit' : ''}</span></div><button class="btn sec sm write" onclick="event.stopPropagation();A.cookDoneIdx(${idx})">🍱 uvařeno</button></div>`; }).join('')}</div></div>`;
 };
 /* rozpis jednoho jídla: kolik čeho do hrnce */
 A.cookSheet = idx => { const a = (App._vlist || [])[idx]; if (!a) return; const foods = Foods(); const n = a.covers.length; const sd = shelfDays(a.items, foods); const rozsah = daysBetween(a.covers[0].d, a.covers[n - 1].d) + 1;
@@ -165,4 +165,7 @@ A.cookSheet = idx => { const a = (App._vlist || [])[idx]; if (!a) return; const 
     <tr class="sum"><td>hotová dávka (odhad)</td><td class="n">${fmt0(a.gc / n)} g</td><td class="n">${fmt0(a.gc)} g</td></tr></table>
     <p class="hint">Gramy jsou v nákupním stavu – rýže a luštěniny suché, maso syrové. Hotovou dávku zvaž a rozděl na ${n} stejných porcí.</p>
     ${rozsah > sd ? `<div class="alert a2"><div>Vaříš na ${rozsah} ${DEN(rozsah)}, ale v lednici to vydrží zhruba ${sd} ${DEN(sd)}. Co je nad to, dej hned do mrazáku.</div></div>` : ''}`,
-    `<button class="btn write" onclick="UI.closeModal();A.cookDone(${JSON.stringify(a.name).replace(/"/g, '&quot;')},${n},${JSON.stringify(a.covers).replace(/"/g, '&quot;')},${Math.round(a.gc)})">🍱 Uvařeno ${n}×</button>`); };
+    `<button class="btn write" onclick="UI.closeModal();A.cookDoneIdx(${idx})">🍱 Uvařeno ${n}×</button>`); };
+/* uvařeno: porce se od teď počítá podle krabičky (gramy na porci), ne podle limitu dne */
+A.cookDoneIdx = idx => { const a = (App._vlist || [])[idx]; if (!a) return; const n = a.covers.length;
+  A.cookDone(a.name, n, a.covers, Math.round(a.gc), Object.fromEntries(Object.entries(a.items).map(([f, g]) => [f, Math.round(g / n)]))); };

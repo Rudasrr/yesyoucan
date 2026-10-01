@@ -142,6 +142,9 @@ function calcCourse(s, foods, recipes, course, sel, edits, budget) {
     let g = it.scale ? roundPortion(it.g * out.factor, true, f) : it.g;
     let manual = false;
     if (grams[i] !== undefined && grams[i] !== null && grams[i] !== '') { g = Number(grams[i]); manual = true; }
+    /* porce z uvařené dávky: krabička má jednu velikost, ne škálu podle limitu dne
+       (dopočítává effectiveDay ze záznamu vaření; není to ruční úprava) */
+    else { const cg = (edits && edits.cookGrams) || {}; if (cg[i] != null) g = Number(cg[i]); }
     if (swaps[i]) out.edited++;
     if (manual) out.edited++;
     const row = { idx: i, food: foodName, origFood: it.food, g, origG: it.g, scale: it.scale, manual, swapped: !!swaps[i],
@@ -179,9 +182,17 @@ function cheatPopis(day) {
    Cena kroku: MET nejpomalejsi chuze pri kadenci 110 kroku/min. */
 function stepsTarget(s) { const n = Number(s && s.steps_goal); return Number.isFinite(n) && n > 0 ? n : 5000; }
 function kcalPerStep(weight) { return (2.8 * 3.5 * weight / 200) / 110; }
+/* Kroky (30. 9. 2026): Robert zapisuje kroky ZA CELÝ DEN z telefonu – telefon jinak
+   neumí. Cíl trenéra je ale běžná chůze MIMO plánovanou procházku, takže se zapsaná
+   chůze odečte (délka kroku 0,75 m → při 5 km/h asi 111 kroků za minutu). Dřív se
+   porovnávalo celé číslo z telefonu s cílem běžné chůze a hodinová procházka ho
+   nafoukla o šest tisíc kroků. */
+function stepsPerMin(kmh) { return (Number(kmh) || 5) * 1000 / 60 / 0.75; }
+function walkSteps(day, kmhDefault) { return Math.round((Number(day && day.walk_min) || 0) * stepsPerMin((day && day.walk_kmh) || kmhDefault)); }
+function bezneKroky(day, kmhDefault) { if (!day || day.steps == null) return null; return Math.max(0, Math.round(Number(day.steps) - walkSteps(day, kmhDefault))); }
 function stepsMiss(s, day, weight) {
   const cil = stepsTarget(s);
-  const real = day && day.steps != null ? Number(day.steps) : null;
+  const real = bezneKroky(day, s && s.walk_kmh);
   if (real == null || real >= cil) return null;
   const kcal = (cil - real) * kcalPerStep(weight);
   return { cil, real, chybi: cil - real, kcal, kgTyden: kcal * 7 / KG_KCAL };
@@ -199,7 +210,9 @@ function cheatItemsKcal(day, foods) {
    v kuse nikdo neudrží – hlad roste, výdej klesá a váha se zasekne. Udržovací týden
    po šesti až deseti týdnech to resetuje a prognózu posune jen o pár týdnů. */
 function isMaintWeek(s, date) { return !!(s.maint_weeks || []).includes(mondayOf(date)); }
-function effSettings(s, date) { return isMaintWeek(s, date) ? { ...s, rate_pct: 0 } : s; }
+/* Udržování (30. 9. 2026): u cílové váhy trenér zapne udržování natrvalo – deficit
+   nula jako v udržovacím týdnu. Dřív plán u cíle jen zastavil křivku a deficit běžel dál. */
+function effSettings(s, date) { return isMaintWeek(s, date) || s.maintain ? { ...s, rate_pct: 0 } : s; }
 function calcDay(s0, foods, recipes, day, weight) {
   const s = effSettings(s0, day.date);
   const base = calcBase(s, weight, day.walk_min, day.exercise_min, day.walk_kmh, day.beers, day.fried_g, day.act, cheatItemsKcal(day, foods), cheatPopis(day));

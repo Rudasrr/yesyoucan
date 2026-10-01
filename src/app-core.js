@@ -42,7 +42,7 @@ function getDay(date) {
   const r = Store.rows('days', Store.ownerId()).find(x => x.data.date === date);
   return r ? JSON.parse(JSON.stringify(r.data)) : { date, meals: {}, walk_min: null, walk_kmh: null, exercise_min: 0, beers: 0, fried_g: 0, fromPlan: true };
 }
-function saveDay(day) { Store.put('days', oid('d', day.date), day); }
+function saveDay(day) { const d = JSON.parse(JSON.stringify(day)); Object.values(d.meals || {}).forEach(m => { delete m.cookGrams; delete m.fromCook; }); delete d.act; Store.put('days', oid('d', day.date), d); }
 function getWeek(monday) {
   const r = Store.rows('week_plans', Store.ownerId()).find(x => x.data.week === monday);
   return r ? JSON.parse(JSON.stringify(r.data)) : { week: monday, plan: [[null, null, null, null, null], [null, null, null, null, null], [null, null, null, null, null], [null, null, null, null, null], [null, null, null, null, null], [null, null, null, null, null], [null, null, null, null, null]] };
@@ -55,7 +55,10 @@ function effectiveDay(date) {
   const day = getDay(date);
   const wk = getWeek(mondayOf(date)); const sels = wk.plan[dayIndex(date)];
   const s = S();
-  s.courses.forEach((c, i) => { if (!day.meals[c.key]) day.meals[c.key] = {}; if (day.meals[c.key].sel === undefined) day.meals[c.key].sel = sels[i] || null; day.meals[c.key].planned = sels[i] || null; });
+  s.courses.forEach((c, i) => { if (!day.meals[c.key]) day.meals[c.key] = {}; if (day.meals[c.key].sel === undefined) day.meals[c.key].sel = sels[i] || null; day.meals[c.key].planned = sels[i] || null;
+    // uvařená dávka: gramy porce podle krabičky
+    const ck = typeof cookFor === 'function' ? cookFor(date, c.key) : null; const m = day.meals[c.key];
+    if (ck && ck.porce && ck.recipe === m.sel) { const r = Recipes().find(x => x.name === m.sel && !x.deleted); if (r) { m.cookGrams = {}; r.items.forEach((it, idx) => { const g = ck.porce[(m.swaps && m.swaps[idx]) || it.food]; if (g != null) m.cookGrams[idx] = Math.round(g); }); m.fromCook = true; } } });
   if (day.walk_kmh == null) day.walk_kmh = s.walk_kmh;
   try { day.act = dayAct(date, day, currentWeight()); if (day.act.walk_kmh && getDay(date).walk_kmh == null) day.walk_kmh = day.act.walk_kmh; } catch (e) { }
   return day;
