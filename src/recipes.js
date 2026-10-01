@@ -41,11 +41,13 @@ function recipeTotals(r, fmap) { const t = { kcal: 0, p: 0, c: 0, f: 0, g: 0, gc
 
 /* ===== Editor receptu =====
    mode: 'own' (Robertův vlastní) | 'override' (Robertova verze globálního) | 'global' (trenér) */
-function openRecipeEditor(id, mode) {
-  const s = S(); const src = id ? Recipes().find(r => r.id === id) : null;
-  if (!mode) mode = isCoach() ? 'global' : (src && !src.own ? 'override' : 'own');
-  const draft = src ? JSON.parse(JSON.stringify({ name: src.name, course: src.course, items: src.items, num: src.num })) : { name: '', course: 'Snídaně', items: [] };
-  const saveId = mode === 'override' ? (src.ovId || oid('rov', src.id)) : (mode === 'own' ? (src ? src.id : oid('own', Date.now())) : (src ? src.id : 'r:' + Date.now()));
+function openRecipeEditor(id, mode, copy) {
+  const s = S(); let src = id ? Recipes().find(r => r.id === id) : null;
+  if (!mode) mode = isCoach() ? 'global' : 'own';
+  /* kopie výchozího receptu do vlastních – výchozí se nepřepisuje (dřív „moje verze“) */
+  const draft = src ? JSON.parse(JSON.stringify({ name: src.name + (copy ? ' (moje)' : ''), course: src.course, items: src.items, num: copy ? null : src.num })) : { name: '', course: 'Snídaně', items: [] };
+  if (copy) { src = null; id = null; }
+  const saveId = mode === 'own' ? (src ? src.id : oid('own', Date.now())) : (src ? src.id : 'r:' + Date.now());
   const owner = mode === 'global' ? null : Store.ownerId();
   const targets = Object.fromEntries(SEED.settings.courses.map(c => [c.name, c]));
   const m = UI.modal('', { guardEdits: true });
@@ -59,9 +61,9 @@ function openRecipeEditor(id, mode) {
     else if (diff > 60) { st = 1; verdict = `O ${fmt0(diff)} kcal víc než cíl – zmenši přílohu nebo tuk.`; }
     else { st = 3; verdict = `Ještě ${fmt0(-diff)} kcal volných – přidej přílohu nebo zeleninu.`; }
     const hasScale = draft.items.some(it => it.scale);
-    m.querySelector('.box').innerHTML = `<div class="sh"><h2>${mode === 'override' ? 'Moje verze receptu' : (id ? 'Upravit recept' : 'Nový recept')}${help('1) Pojmenuj a vyber chod – hned vidíš cíl kalorií a bílkovin. 2) Přidávej suroviny a gramy v tom stavu, v jakém je kupuješ – rýže a luštěniny suché, maso syrové, pečivo upečené. U rýže, těstovin a luštěnin ti appka pod polem ukáže, kolik z toho bude na talíři. 3) U přílohy (rýže, brambory, pečivo, ovoce) zapni „přizpůsobit váze“ – ta se pak s klesající váhou automaticky zmenšuje, bílkovina a zelenina drží. 4) Když je stav zelený, ulož.')}</h2><button class="xbtn" onclick="UI.closeModal()">×</button></div>
-      ${mode === 'override' ? `<div class="notice">Úprava vytvoří tvoji verzi „${esc(src.name)}“ – platí jen pro tebe, trenérova databáze zůstává. Název se nemění.</div>` : ''}
-      <div class="grid" style="grid-template-columns:2fr 1fr"><div class="in"><label class="f">Název</label><input type="text" id="re-n" value="${esc(draft.name)}" ${mode === 'override' ? 'disabled' : ''} placeholder="např. Kuře s rýží a zeleninou"></div><div class="in"><label class="f">Chod</label><select id="re-c">${s.courses.map(c => `<option ${c.name === draft.course ? 'selected' : ''}>${c.name}</option>`).join('')}</select></div></div>
+    m.querySelector('.box').innerHTML = `<div class="sh"><h2>${id ? 'Upravit recept' : (draft.name.endsWith(' (moje)') ? 'Můj recept podle výchozího' : 'Nový recept')}${help('1) Pojmenuj a vyber chod – hned vidíš cíl kalorií a bílkovin. 2) Přidávej suroviny a gramy v tom stavu, v jakém je kupuješ – rýže a luštěniny suché, maso syrové, pečivo upečené. U rýže, těstovin a luštěnin ti appka pod polem ukáže, kolik z toho bude na talíři. 3) U přílohy (rýže, brambory, pečivo, ovoce) zapni „přizpůsobit váze“ – ta se pak s klesající váhou automaticky zmenšuje, bílkovina a zelenina drží. 4) Když je stav zelený, ulož.')}</h2><button class="xbtn" onclick="UI.closeModal()">×</button></div>
+
+      <div class="grid" style="grid-template-columns:2fr 1fr"><div class="in"><label class="f">Název</label><input type="text" id="re-n" value="${esc(draft.name)}" placeholder="např. Kuře s rýží a zeleninou"></div><div class="in"><label class="f">Chod</label><select id="re-c">${s.courses.map(c => `<option ${c.name === draft.course ? 'selected' : ''}>${c.name}</option>`).join('')}</select></div></div>
       <div class="stats"><div><b class="${st === 2 ? 'ok' : st === 1 ? 'bad' : ''}">${fmt0(t.kcal)} <small>/ ${course.kcal}</small></b><span>kcal · cíl pro ${draft.course.toLowerCase()}</span></div><div><b class="${t.p >= pmin && t.kcal ? 'ok' : (t.kcal ? 'bad' : '')}">${fmt0(t.p)} <small>/ ${pmin} g</small></b><span>bílkoviny · minimum</span></div><div><b>${fmt0(t.c)} <small>S</small> · ${fmt0(t.f)} <small>T</small></b><span>sacharidy · tuky (g)</span></div><div><b>${fmt0(t.gc)} <small>g</small></b><span>porce na talíři${Math.abs(t.gc - t.g) > 5 ? ` · ${fmt0(t.g)} g nákup` : ''}</span></div></div>
       <div class="status st${st}">${esc(verdict)}</div>
       <table class="items"><tr><th>Surovina</th><th class="n">g</th><th class="n m-kcal">kcal</th><th class="n m-prot">B</th><th title="příloha se přepočítává podle Robertovy váhy">přizpůsobit váze${help('Zapni u přílohy (rýže, brambory, těstoviny, pečivo, ovoce, vločky). Když Robert zhubne, klesne jeho limit – a tyhle suroviny se zmenší automaticky (faktor 0,3–1,6). Maso, vejce, tvaroh a zelenina nechej vypnuté: bílkovina se nikdy nekrátí.')}</th><th></th></tr>
@@ -89,7 +91,7 @@ function openRecipeEditor(id, mode) {
   draw();
 }
 A.editOwn = id => openRecipeEditor(id, isCoach() ? 'global' : 'own');
-A.editRecipe = id => openRecipeEditor(id, isCoach() ? 'global' : (id && !(Recipes().find(r => r.id === id) || {}).own ? 'override' : 'own'));
+A.editRecipe = id => { const r = id ? Recipes().find(x => x.id === id) : null; if (isCoach()) return openRecipeEditor(id, 'global'); if (r && !r.own) return openRecipeEditor(id, 'own', true); return openRecipeEditor(id, 'own'); };
 
 /* ===== Seznam receptů (všechny) – řádkově, rozbalitelně ===== */
 App.rq = ''; App.rsort = 'course'; App.rfil = {}; App.rOpen = {};
@@ -111,7 +113,7 @@ A.recipeSheet = id => {
     `<div class="stats3"><div><b class="m-kcal">${fmt0(t.kcal)}</b><span>kcal</span></div><div><b class="m-prot">${fmt0(t.p)} g</b><span>bílkoviny</span></div><div><b>${fmt0(t.gc)} g</b><span>porce na talíři</span></div></div>
     <table class="small"><tr><th>Surovina</th><th class="n">g</th><th class="n m-kcal">kcal</th><th class="n m-prot">B</th></tr>${r.items.map(it => { const f = fmap[it.food] || { kcal: 0, p: 0 }; return `<tr><td>${modeBadge(it.food)} ${esc(it.food)}${it.scale ? ' <span class="tiny muted">· příloha</span>' : ''}</td><td class="n">${it.g}</td><td class="n">${fmt0(f.kcal * it.g / 100)}</td><td class="n">${fmt1(f.p * it.g / 100)}</td></tr>`; }).join('')}<tr class="sum"><td>celkem</td><td></td><td class="n">${fmt0(t.kcal)}</td><td class="n">${fmt1(t.p)}</td></tr></table>
     <p class="hint">Gramy jsou v nákupním stavu (rýže suchá, maso syrové). Přílohu appka škáluje podle tvého limitu.</p>`,
-    `<button class="btn sec write" onclick="UI.closeModal();A.editRecipe('${r.id}')">${r.own || isCoach() ? 'Upravit' : (r.overridden ? 'Upravit moji verzi' : 'Upravit (moje verze)')}</button>`);
+    `<button class="btn sec write" onclick="UI.closeModal();A.editRecipe('${r.id}')">${r.own || isCoach() ? 'Upravit' : 'Zkopírovat jako můj recept'}</button>`);
 };
 function recipeFilterBar(recipes) { const s = S(); const prefs = Prefs();
   return filterBar('rl', { q: App.rq, onQ: 'window._rq', placeholder: 'název jídla nebo surovina…', sorts: [['course', 'chod'], ['name', 'A–Z'], ['kcal', 'kcal ↑'], ['p', 'bílkoviny ↓']], sort: App.rsort, onSort: 'window._rs', filters: [['fav', '⭐ oblíbené', !!App.rfil.fav], ['own', '📖 moje', !!App.rfil.own]].concat(s.courses.map(c => ['c:' + c.key, c.name, !!App.rfil['c:' + c.key]])), onFilter: 'window._rf' }); }

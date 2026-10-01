@@ -207,10 +207,11 @@ function recipeBrowser(recipes) {
     ${recipes.some(r => r.own || r.overridden) ? `<div class="navrow" onclick="window._rf('own')"><span class="ico">📌</span><div class="tx"><b>Moje recepty a verze</b><span>${recipes.filter(r => r.own || r.overridden).length}</span></div><span class="chev">›</span></div>` : ''}</div>`;
 }
 
-A.editFood = (id, mode, after) => {
+/* fromId: Robert si z výchozí suroviny dělá kopii (moje surovina), výchozí nepřepisuje */
+A.editFood = (id, mode, after, fromId) => {
   const own = mode === 'own', over = mode === 'override'; const owner = (own || over) ? Store.ownerId() : null;
-  const src = id ? Foods().find(x => x.id === id) : null;
-  const f = src ? { ...src } : { id: own ? oid('food', Date.now()) : 'f:' + Date.now(), cat: 'Ostatní', name: '', kcal: '', p: '', c: '', f: '' };
+  const src = id ? Foods().find(x => x.id === id) : null; const from = fromId ? Foods().find(x => x.id === fromId) : null;
+  const f = src ? { ...src } : from ? { id: oid('food', Date.now()), cat: from.cat, name: from.name + ' (moje)', kcal: from.kcal, p: from.p, c: from.c, f: from.f } : { id: own ? oid('food', Date.now()) : 'f:' + Date.now(), cat: 'Ostatní', name: '', kcal: '', p: '', c: '', f: '' };
   if (over) { f.saveId = src.ovId || oid('ov', src.id); f.overrides = src.id; }
   const cats = [...new Set(Foods().map(x => x.cat))];
   const m = UI.modal(`${UI.sheetHtml(over ? 'Moje verze suroviny' : (id ? 'Upravit surovinu' : (own ? 'Moje surovina' : 'Nová surovina')), 'hodnoty na 100 g (nebo 100 ml) z obalu', '')}<p class="small muted">${own ? 'Uvidíš ji jen ty a půjde použít v tvých receptech i při přidávání surovin.' : ''}${over ? 'Změna platí jen pro tebe – trenérova databáze zůstává. Název se nemění.' : ''}${!own && !over ? 'Úprava platí pro všechny.' : ''}</p>

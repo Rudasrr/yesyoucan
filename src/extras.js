@@ -80,18 +80,6 @@ A.setHunger = (date, v) => Undo.run('Hlad', () => { const day = getDay(date); da
 function hungerRow(date, day) {
   return `<div class="field"><label class="f">Jak ti dnes bylo s jídlem?</label><div class="chips">${HLAD.map(([k, l]) => `<button class="chip ${day.hunger === k ? 'on' : ''} write" onclick="A.setHunger('${date}','${k}')">${l}</button>`).join('')}</div><div class="hint">Pro trenéra cennější než většina čísel – pět dní hladu v řadě znamená zpomalit.</div></div>`;
 }
-/* ===== „Co jsem snědl“ – text → suroviny ===== */
-function parseAteText(text) {
-  const foods = Foods(); const t = ' ' + text.toLowerCase().replace(/[,.;]/g, ' ') + ' '; const found = [];
-  const norm = s => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-  const tn = norm(t);
-  foods.forEach(f => { const words = norm(f.name).split(/[\s(/]+/).filter(w => w.length > 3); if (!words.length) return; const stem = words[0].slice(0, Math.max(4, words[0].length - 2)); if (tn.includes(stem)) found.push(f); });
-  // odstranit duplicity se stejným kmenem – vzít nejkratší název
-  const by = {}; found.forEach(f => { const k = norm(f.name).split(/[\s(/]+/)[0].slice(0, 4); if (!by[k] || f.name.length < by[k].name.length) by[k] = f; });
-  return Object.values(by).slice(0, 8);
-}
-A.ateText = (key, text) => { const day = effectiveDay(App.date); const m = day.meals[key]; m.ate_text = text; const found = parseAteText(text);
-  Undo.run(found.length ? `Rozpoznáno ${found.length} surovin – uprav gramy` : 'Zapsáno. Suroviny jsem nerozpoznal – přidej je ručně.', () => { m.extra = found.map(f => { const ms = measureOf(f.name); return { food: f.name, g: ms.g && ms.m !== 'vaz' ? ms.g : 100 }; }); saveDay(day); }); render(); };
 
 /* ===== Generátor: rutina (stejná snídaně a svačina) ===== */
 function routineOn() { const p = Prefs(); return p.routine !== false; }
@@ -275,17 +263,12 @@ A.fitDay = date => { const s = S(), foods = Foods(), recipes = Recipes(), w = cu
    Stav se odvozuje sám: odškrtnutím na lístku se položka překlopí na „mám“ a appka
    z týdenní spotřeby odhadne, na kolik týdnů balení vyjde. Až doba uplyne, sama se
    přepne na „dochází“ a objeví se na dalším lístku. Ty to jen opravíš, když se to rozejde. */
-const PANTRY_ST = { mam: ['mám', 'ok'], dochazi: ['dochází', 'warn'], nemam: ['nemám', 'bad'] };
+const PANTRY_ST = { mam: ['mám doma', 'ok'], nemam: ['došlo', 'bad'] };
 function pantryRaw() { const p = Prefs(); return p.pantry || {}; }
-function pantryState(food, weeklyNeed) {
-  const r = pantryRaw()[food];
-  if (!r) return 'nemam';
-  if (r.st !== 'mam') return r.st;
-  if (!r.at || !(weeklyNeed > 0) || !r.g) return 'mam';
-  const tydnu = r.g / weeklyNeed;
-  const uplynulo = daysBetween(r.at, todayISO()) / 7;
-  return uplynulo >= tydnu ? 'dochazi' : 'mam';
-}
+/* Dva stavy (30. 9. 2026): „mám doma“ platí, dokud Robert neťukne „došlo“. Dřív appka
+   sama odhadovala ze spotřeby, kdy balení dojde – chytré, ale neprůhledné: položka se
+   na lístku objevila bez zjevného důvodu. */
+function pantryState(food) { const r = pantryRaw()[food]; return r && r.st === 'mam' ? 'mam' : 'nemam'; }
 function setPantry(food, st, g) {
   const p = Prefs(); p.pantry = p.pantry || {};
   if (st === 'mam') p.pantry[food] = { st, at: todayISO(), g: g || (p.pantry[food] || {}).g || 0 };

@@ -48,8 +48,8 @@ with sync_playwright() as p:
     pg.evaluate("A.eaten('snidane',true)"); print('eaten:', pg.evaluate("getDay(todayISO()).meals.snidane.eaten"))
     pg.evaluate("A.suggestOne('obed')"); print('suggestOne:', pg.evaluate("getDay(todayISO()).meals.obed.sel"), 'toast:', pg.evaluate("document.querySelector('#toast span').textContent"))
     pg.evaluate("Undo.undo()"); print('after undo:', pg.evaluate("getDay(todayISO()).meals.obed.sel"))
-    pg.evaluate("A.editFood('f1','override')"); pg.fill('#fk','999'); pg.click('#fsave'); pg.wait_for_timeout(100); print('override:', pg.evaluate("JSON.stringify(Foods().filter(f=>f.id==='f1').map(f=>[f.name,f.kcal,!!f.overridden]))"))
-    pg.evaluate("A.editFood('f1','override')"); pg.click('#fdel'); pg.wait_for_timeout(100); pg.click('.modal #cy'); pg.wait_for_timeout(100); print('override removed:', pg.evaluate("Foods().find(f=>f.id==='f1').kcal"))
+    pg.evaluate("A.editFood(null,'own',null,'f1')"); pg.fill('#fk','999'); pg.click('#fsave'); pg.wait_for_timeout(100); print('kopie suroviny:', pg.evaluate("JSON.stringify(Foods().filter(f=>f.name.startsWith('Hovězí přední')).map(f=>[f.name,f.kcal,!!f.own]))"))
+    pg.evaluate("A.editRecipe('r1')"); pg.wait_for_timeout(150); pg.click('#re-save'); pg.wait_for_timeout(150); print('kopie receptu:', pg.evaluate("JSON.stringify(Recipes().filter(r=>r.name.startsWith(Recipes().find(x=>x.id==='r1').name)).map(r=>[r.name,!!r.own]))"))
     pg.evaluate("A.addWalk(30)"); print('walk toast:', pg.evaluate("document.querySelector('#toast span').textContent"))
     print('praise:', pg.evaluate("praise(todayISO()).map(p=>p.text)"))
     print('ics len:', pg.evaluate("(()=>{let n=0;const o=downloadBlob;window.downloadBlob=(b)=>{n=b.size};A.exportIcs();window.downloadBlob=o;return n})()"))
@@ -146,7 +146,6 @@ with sync_playwright() as p:
     print('zápis tréninku:', pg.evaluate("JSON.stringify({rpe:getDay(App.date).training.rpe,feel:getDay(App.date).training.feel,serii:(getDay(App.date).training.log[0]||{sets:[]}).sets.length})"))
     print('bmr floor test:', pg.evaluate("(()=>{const s=S();const b=calcBase(s,132.8,0,0,5,0,0,{planWalk:0,planKcal:0,doneKcal:0});return JSON.stringify({raw:Math.round(b.totalOut-b.deficit),maxIntake:Math.round(b.maxIntake),bmr:Math.round(b.bmr),belowBmr:b.belowBmr,walkToBmr:b.walkToBmr})})()"))
     print('measure:', pg.evaluate("[measureText('Rýže vařená',150), measureText('Chléb konzumní (Šumava)',100), measureText('Vejce',120), measureText('Zelenina míchaná',150), measureText('Kuřecí prsa',150)]"))
-    print('parse:', pg.evaluate("parseAteText('2 rohlíky se šunkou a sýrem eidam, jablko a jogurt').map(f=>f.name)"))
     pg.evaluate("generateWeek(App.week,'all')"); print('routine:', pg.evaluate("(()=>{const wk=getWeek(App.week);return new Set(wk.plan.map(d=>d[0])).size+' snídaní, '+new Set(wk.plan.map(d=>d[2])).size+' svačin'})()"))
     # mismatch after training change
     pg.evaluate("localLogin('coach')"); pg.evaluate("App.coachTab='trenink';go('nastaveni');A.trDaySheet(todayISO());A.trAdd('Běh pomalý');A.trItem(App.trDraft.items.length-1,'min',60);A.trSave()"); pg.wait_for_timeout(100)

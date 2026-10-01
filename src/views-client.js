@@ -235,14 +235,14 @@ VIEWS._nakup = function () {
       <div class="plist2" style="column-count:${sloupcu}">${aisles.map(a => `<div class="pgrp"><h3>${esc(a)}</h3>${koupit.filter(x => x.aisle === a).map(x => `<div class="pln"><span class="box"></span><span class="nm">${esc(x.food)}</span><b>${x.buy}</b></div>`).join('')}</div>`).join('')}</div></div>`;
   }
   const radek = x => `<tr class="${shop.checked[x.food] ? 'done' : ''}"><td style="width:34px"><input type="checkbox" class="write" ${shop.checked[x.food] ? 'checked' : ''} onchange="A.shopCheck('${esc(x.food)}',this.checked,${x.g})" aria-label="${esc(x.food)}"></td>
-    <td class="nm">${esc(x.food)}${x.pstate === 'dochazi' ? ' <span class="pill warn">dochází</span>' : ''}${x.uses > 1 && (['Ořechy a semínka', 'Uzeniny'].includes(x.cat) || /Sýr|Eidam|Gouda|Feta|Šunka/.test(x.food)) ? `<div class="tiny muted">rozděl na ${x.uses} ${sklon(x.uses, 'porci', 'porce', 'porcí')} po ${fmt0(x.g / x.uses)} g</div>` : ''}${x.pantry && !shop.checked[x.food] ? `<div><button class="btn ghost sm write" style="padding:0;min-height:24px;font-size:12.5px;font-weight:600;color:var(--ink3)" onclick="A.pantry('${esc(x.food)}','mam')">mám doma ›</button></div>` : ''}</td>
+    <td class="nm">${esc(x.food)}${x.uses > 1 && (['Ořechy a semínka', 'Uzeniny'].includes(x.cat) || /Sýr|Eidam|Gouda|Feta|Šunka/.test(x.food)) ? `<div class="tiny muted">rozděl na ${x.uses} ${sklon(x.uses, 'porci', 'porce', 'porcí')} po ${fmt0(x.g / x.uses)} g</div>` : ''}${x.pantry && !shop.checked[x.food] ? `<div><button class="btn ghost sm write" style="padding:0;min-height:24px;font-size:12.5px;font-weight:600;color:var(--ink3)" onclick="A.pantry('${esc(x.food)}','mam')">mám doma ›</button></div>` : ''}</td>
     <td class="q">${x.buy}${x.packs ? `<div class="tiny muted" style="font-weight:500">potřeba ${fmt0(x.g)} g</div>` : ''}</td></tr>`;
   return dayp + `${dokup.length ? `<div class="alert a2"><div>Po nákupu se změnil plán. Dokup: ${dokup.map(x => `<b>${esc(x.food)} ${fmt0(x.chybi)} g</b>`).join(', ')}.</div></div>` : ''}
   <div class="row between small muted" style="padding:0 4px"><span>${koupit.length} ${sklon(koupit.length, 'položka', 'položky', 'položek')} · odškrtnuto ${done}</span>${doma.length ? `<span>${doma.length} máš doma</span>` : ''}</div>
   <div class="masonry">${aisles.map(a => `<div class="card"><h3>${esc(a)}</h3><table class="shop">${koupit.filter(x => x.aisle === a).map(radek).join('')}</table></div>`).join('')}</div>
   <div class="card flush">
-    ${doma.length ? `<div class="lh">Máš doma – na lístku nejsou</div>${doma.map(x => `<div class="navrow" style="cursor:default"><div class="tx"><b>${esc(x.food)}</b><span>potřeba ${x.buy}</span></div><button class="btn sec sm write" onclick="A.pantry('${esc(x.food)}','dochazi')">došlo</button></div>`).join('')}` : ''}
-    <div class="navrow" onclick="A.pantrySheet()"><span class="ico">🫙</span><div class="tx"><b>Celá spíž</b><span>trvanlivé suroviny · mám / dochází / nemám</span></div><span class="chev">›</span></div></div>`;
+    ${doma.length ? `<div class="lh">Máš doma – na lístku nejsou</div>${doma.map(x => `<div class="navrow" style="cursor:default"><div class="tx"><b>${esc(x.food)}</b><span>potřeba ${x.buy}</span></div><button class="btn sec sm write" onclick="A.pantry('${esc(x.food)}','nemam')">došlo</button></div>`).join('')}` : ''}
+    <div class="navrow" onclick="A.pantrySheet()"><span class="ico">🫙</span><div class="tx"><b>Celá spíž</b><span>trvanlivé suroviny · mám doma / došlo</span></div><span class="chev">›</span></div></div>`;
 };
 A.shopMenu = () => UI.menu('Nákup', [
   ['🖨️ Na tisk', "App.shopMode='tisk';render()", 'jedna A4, dva nebo tři sloupce'],
@@ -260,8 +260,8 @@ A.pantrySheet = () => openSheet(() => {
   const znam = f => !!pantryRaw()[f.name];
   const btn = (f, k) => `<button class="pst ${znam(f) && st(f) === k ? 'on ' + PANTRY_ST[k][1] : ''} write" onclick="A.pantry('${esc(f.name)}','${k}')">${PANTRY_ST[k][0]}</button>`;
   return UI.sheetHtml('🫙 Spíž', `${foods.length} trvanlivých surovin · co máš, nebude na lístku`,
-    `<p class="small muted">Tohle není inventura. Odškrtnutím v Nákupu se položka přepne na „mám“ sama a podle spotřeby se po čase přepne na „dochází“.</p>
-    ${Object.entries(gr).map(([a, fs]) => `<div><div class="lh" style="padding-left:0">${esc(a)}</div>${fs.map(f => `<div class="prow"><div class="pn">${esc(f.name)}${f.pack ? `<span class="tiny muted"> · ${f.pack >= 1000 ? fmt1(f.pack / 1000) + ' kg' : f.pack + ' g'}${need[f.name] ? ` · týdně ${fmt0(need[f.name])} g` : ''}</span>` : ''}</div><div class="pb">${['mam', 'dochazi', 'nemam'].map(k => btn(f, k)).join('')}</div></div>`).join('')}</div>`).join('')}`);
+    `<p class="small muted">Tohle není inventura. Odškrtnutím v Nákupu se trvanlivá položka přepne na „mám doma“ a zůstane tak, dokud neťukneš „došlo“.</p>
+    ${Object.entries(gr).map(([a, fs]) => `<div><div class="lh" style="padding-left:0">${esc(a)}</div>${fs.map(f => `<div class="prow"><div class="pn">${esc(f.name)}${f.pack ? `<span class="tiny muted"> · ${f.pack >= 1000 ? fmt1(f.pack / 1000) + ' kg' : f.pack + ' g'}${need[f.name] ? ` · týdně ${fmt0(need[f.name])} g` : ''}</span>` : ''}</div><div class="pb">${['mam', 'nemam'].map(k => btn(f, k)).join('')}</div></div>`).join('')}</div>`).join('')}`);
 });
 VIEWS.jidlo = () => VIEWS.plan();
 VIEWS.mereni = () => VIEWS.pokrok();
@@ -296,7 +296,7 @@ VIEWS._suroviny = function () {
   const foods = Foods(); const q = App.fq.toLowerCase().trim(); const coach = isCoach();
   const list = foods.filter(f => !q || f.name.toLowerCase().includes(q) || f.cat.toLowerCase().includes(q)).sort((a, b) => App.fsort === 'kcal' ? a.kcal - b.kcal : App.fsort === 'p' ? b.p - a.p : a.name.localeCompare(b.name, 'cs'));
   const cats = [...new Set(foods.map(f => f.cat))].sort((a, b) => a.localeCompare(b, 'cs'));
-  const edit = f => coach ? `A.editFood('${f.id}')` : (f.own ? `A.editFood('${f.id}','own')` : `A.editFood('${f.id}','override')`);
+  const edit = f => coach ? `A.editFood('${f.id}')` : (f.own ? `A.editFood('${f.id}','own')` : `A.editFood(null,'own',null,'${f.id}')`);
   const row = f => `<tr onclick="${edit(f)}"><td class="b">${f.own ? '📌 ' : (f.overridden ? '✏️ ' : '')}${esc(f.name)}</td><td class="n b m-kcal">${vShow(f.kcal)}</td><td class="n m-prot">${vShow(f.p)}</td><td class="n hm">${vShow(f.c)}</td><td class="n hm">${vShow(f.f)}</td></tr>`;
   const grouped = !q && !App.fsort;
   return `<div class="search"><input type="text" id="fq" placeholder="surovina nebo kategorie…" value="${esc(App.fq)}" oninput="App.fq=this.value;render()"></div>

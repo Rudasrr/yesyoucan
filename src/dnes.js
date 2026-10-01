@@ -213,7 +213,7 @@ function mealSheetHtml(key) {
   const sub = !cur ? 'nevybráno' : cur === VYNECHAT ? 'vynecháno' : cur === SITUACE ? 'vyřeším podle situace' : esc(cur);
   const side = eaten ? '<span class="pill ok">snědeno</span>' : (m.auto ? '<span class="pill info">návrh</span>' : '');
   const pick = `<button class="pickbtn ${cur ? '' : 'empty'} write" onclick="A.pickMeal('${key}')"><span>${cur ? (cur === SITUACE ? '🎲 vyřeším podle situace' : cur === VYNECHAT ? '— vynechat' : esc(cur)) : '+ vyber jídlo'}</span><em>${cur ? 'vyměnit ›' : ''}</em></button>`;
-  const tools = `<div class="row">${cur && cur !== SITUACE && cur !== VYNECHAT ? `<button class="btn sec sm write" onclick="A.suggestOne('${key}')">💡 Jiný návrh</button>` : ''}<button class="btn sec sm write" onclick="A.outMeal('${key}')">🍽️ Mimo dům</button>${cur && cur !== SITUACE && cur !== VYNECHAT ? `<button class="btn ghost sm" onclick="A.favSheet(${JSON.stringify(cur).replace(/"/g, '&quot;')})">${isFav(cur) ? '★ v oblíbených' : '☆ do oblíbených'}</button>` : ''}</div>`;
+  const tools = `<div class="row">${cur && cur !== SITUACE && cur !== VYNECHAT ? `<button class="btn sec sm write" onclick="A.suggestOne('${key}')">💡 Jiný návrh</button>` : ''}<button class="btn sec sm write" onclick="A.outMeal('${key}')">🍽️ Jedl jsem něco jiného</button>${cur && cur !== SITUACE && cur !== VYNECHAT ? `<button class="btn ghost sm" onclick="A.favSheet(${JSON.stringify(cur).replace(/"/g, '&quot;')})">${isFav(cur) ? '★ v oblíbených' : '☆ do oblíbených'}</button>` : ''}</div>`;
   let body = '';
   const grams = (onch, g) => `<span class="gstep"><button class="gb write" onclick="A.gnudge(this,-10)">−</button><input class="g" type="number" min="0" step="5" value="${gShow(g)}" onchange="${onch}"><button class="gb write" onclick="A.gnudge(this,10)">+</button><span class="gu">g</span></span>`;
   if (c.active) {
@@ -232,8 +232,7 @@ function mealSheetHtml(key) {
       <div class="row"><button class="btn ghost sm write" onclick="A.extraAdd('${key}')">+ přidat surovinu</button>${c.edited ? `<button class="btn ghost sm write" onclick="A.resetCourse('${key}')">↺ recept beze změn</button>` : ''}</div>`;
   } else if (c.situace) {
     const ex = m.extra || [];
-    body = `${pick}${tools}<p class="small muted">${c.zapsano ? `Zapsáno ${fmt0(c.kcal)} kcal · cíl byl ${fmt0(cs.kcal)} kcal. Do součtu dne jde tvůj zápis, ne cíl.` : `Cíl jídla ${fmt0(cs.kcal)} kcal, aspoň ${SEED.settings.courses[ci].prot_min} g bílkovin. Dokud nic nenapíšeš, počítá se cíl.`}</p>
-      <div class="row nowrap"><input type="text" id="ate-${key}" value="${esc(m.ate_text || '')}" placeholder="např. 2 rohlíky se šunkou, jablko"><button class="btn sec sm write" onclick="A.ateText('${key}',document.getElementById('ate-${key}').value)">Rozpoznat</button></div>
+    body = `${pick}${tools}<p class="small muted">${c.zapsano ? `Zapsáno ${fmt0(c.kcal)} kcal · cíl byl ${fmt0(cs.kcal)} kcal. Do součtu dne jde tvůj zápis, ne cíl.` : `Cíl jídla ${fmt0(cs.kcal)} kcal, aspoň ${SEED.settings.courses[ci].prot_min} g bílkovin. Dokud nic nezapíšeš, počítá se cíl. Vyber, co to bylo (Jedl jsem něco jiného), nebo přidej suroviny.`}</p>
       ${ex.length ? `<div class="items-l">${ex.map((e2, j) => { const f = foods.find(x => x.name === e2.food); return `<div class="irow"><div class="inm">${modeBadge(e2.food)}<button class="pickbtn sm edit write" onclick="openFoodPicker(n=>A.extraFood('${key}',${j},n),${JSON.stringify(e2.food).replace(/"/g, '&quot;')})"><span>${esc(e2.food)}</span></button><button class="xbtn sm write" onclick="A.extraDel('${key}',${j})">×</button></div>
         <div class="imeta">${measureText(e2.food, e2.g) ? `<span class="meas">${measureText(e2.food, e2.g)}</span>` : ''}${grams(`A.extraG('${key}',${j},this.value)`, e2.g)}<span class="m-kcal">${f ? fmt0(f.kcal * e2.g / 100) : ''} kcal</span></div></div>`; }).join('')}</div>` : ''}
       <button class="btn ghost sm write" style="align-self:flex-start" onclick="A.extraAdd('${key}')">+ přidat surovinu</button>`;
@@ -342,10 +341,14 @@ A.eatenAll = () => Undo.run('Den podle plánu', () => {
 A.outMeal = key => {
   const lib = Foods().filter(f => f.cat === 'Mimo dům');
   const s = S(), c = s.courses.find(x => x.key === key);
-  UI.sheet('🍽️ Jedl jsem mimo dům', `${esc(c.name)} · cíl ${fmt0(c.kcal)} kcal`,
-    `<p class="small muted">Vyber, co se tomu nejvíc podobá. Gramáž pak dolaď – porce v restauraci bývá 350 až 500 g. Odhad je lepší než prázdný den.</p>
+  UI.sheet('🍽️ Jedl jsem něco jiného', `${esc(c.name)} · cíl ${fmt0(c.kcal)} kcal`,
+    `<div class="row"><button class="btn sec sm write" onclick="UI.closeModal();A.pickMeal('${key}')">📖 Jiné jídlo z receptů</button><button class="btn sec sm write" onclick="UI.closeModal();A.ownFoods('${key}')">➕ Poskládám ze surovin</button></div>
+    <div class="lh" style="padding-left:0">Mimo dům – vyber nejbližší, gramy pak dolaď</div>
     <div class="plist">${lib.map(f => `<div class="pitem" onclick="A.outPick('${key}',${JSON.stringify(f.name).replace(/"/g, '&quot;')},${f.port || 400})"><div class="sp"><div class="pn">${esc(f.name)}</div><div class="pi">${f.port || 400} g · ${fmt0(f.p * (f.port || 400) / 100)} g bílkovin</div></div><div class="pk">${fmt0(f.kcal * (f.port || 400) / 100)} <span>kcal</span></div></div>`).join('')}</div>`);
 };
+/* „poskládám ze surovin“: chod se přepne na zápis skutečnosti a otevře se výběr suroviny */
+A.ownFoods = key => { Undo.run('Jídlo ze surovin', () => { const day = effectiveDay(App.date); const m = day.meals[key]; m.sel = SITUACE; m.extra = m.extra || []; m.eaten = true; delete m.swaps; delete m.grams; delete m.removed; saveDay(day); render(); }, 'Přidej suroviny a gramy.');
+  openFoodPicker(n => { const day = effectiveDay(App.date); const m = day.meals[key]; m.extra = (m.extra || []).concat([{ food: n, g: 100 }]); saveDay(day); render(); A.mealSheet(key); }); };
 A.outPick = (key, food, g) => { UI.closeModal(); Undo.run('Jídlo mimo dům', () => {
   const day = effectiveDay(App.date), m = day.meals[key];
   m.sel = SITUACE; m.extra = [{ food, g }]; m.eaten = true; delete m.swaps; delete m.grams; delete m.removed;
