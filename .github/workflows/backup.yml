@@ -20,10 +20,11 @@ jobs:
         env:
           BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
         run: |
-          gpg --batch --yes --pinentry-mode loopback --passphrase "$BACKUP_PASSPHRASE" --symmetric --cipher-algo AES256 -o zaloha.json.gpg zaloha.json
+          # openssl, ne gpg – rozšifruje se na Macu bez instalace čehokoli (viz NAVOD.md A6)
+          openssl enc -aes-256-cbc -pbkdf2 -salt -pass env:BACKUP_PASSPHRASE -in zaloha.json -out zaloha.json.enc
           rm zaloha.json
       - uses: actions/upload-artifact@v4
         with:
           name: zaloha-${{ github.run_number }}
-          path: zaloha.json.gpg
+          path: zaloha.json.enc
           retention-days: 90

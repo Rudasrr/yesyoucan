@@ -116,7 +116,7 @@ Referenční čísla, na kterých `check.js` stojí, jsou v `CLAUDE.md`. Když s
 
 ## A6. Data a zálohy
 
-- **Automatická záloha:** každou neděli ve 3:00 (UTC) uloží GitHub Action celou databázi jako zašifrovaný soubor (Actions → Záloha databáze → artefakt `zaloha-N`, drží 90 dní). Ručně: Actions → Záloha databáze → Run workflow. Rozšifrování: `gpg --decrypt zaloha.json.gpg > zaloha.json` s heslem `BACKUP_PASSPHRASE` z `~/.yesyoucan.env`. Obnova je ruční (soubor obsahuje všechny řádky všech tabulek).
+- **Automatická záloha:** každou neděli ve 3:00 (UTC) uloží GitHub Action celou databázi jako zašifrovaný soubor (Actions → Záloha databáze → artefakt `zaloha-N`, drží 90 dní). Ručně: Actions → Záloha databáze → Run workflow. Rozšifrování (artefakt stáhneš `gh run download <id> -n zaloha-N`): `set -a; . ~/.yesyoucan.env; set +a; openssl enc -d -aes-256-cbc -pbkdf2 -pass env:BACKUP_PASSPHRASE -in zaloha.json.enc -out zaloha.json`. Obnova je ruční (soubor obsahuje všechny řádky všech tabulek).
 - Robert i ty máte v **Více → Nastavení** export do Excelu a zálohu (JSON) – to je nejrychlejší záchrana.
 - **V databázi se maže jen měkce** (`deleted = true`, `updated_at` = teď). Tvrdé `delete` se do prohlížečů nepropíše a smazané řádky by v appce zůstaly.
 - Databázi zálohuješ `npx --yes supabase@latest db dump --linked --project-ref reizexthhcyemkpplvmt -f zaloha.sql`.
