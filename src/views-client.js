@@ -25,7 +25,7 @@ VIEWS.pokrok = function () {
     ${ov.weekBack ? `<div class="status st${ov.weekBack.state}">${esc(ov.weekBack.text)}</div>` : ''}
   </div>
   <div class="card"><div class="ch"><h2>Váha proti plánu</h2>${ov.avgWeekLoss != null ? `<span class="pill ${ov.avgWeekLoss >= planW * 0.9 ? 'ok' : 'warn'}">−${fmt2(ov.avgWeekLoss)} kg/týden</span>` : ''}</div>
-    ${lineChart({ series: [{ name: 'plán', color: '#9aa3b8', dash: true, pts: planPts }, { name: 'ranní váha', color: '#a8c6e4', pts: rawPts, thin: true }, { name: 'průměr 7 dní', color: '#1478d4', pts: realPts, dots: true }], xLabel: 'dní od startu', yUnit: 'kg', marks: (s.log || []).map(l => ({ x: daysBetween(s.start_date, l.at), label: l.pop.split(' ')[0] + ' ' + l.to })) })}
+    ${lineChart({ series: [{ name: 'plán', color: '#9aa3b8', dash: true, pts: planPts }, { name: 'ranní váha', color: '#a8c6e4', pts: rawPts, thin: true }, { name: 'průměr 7 dní', color: '#1478d4', pts: realPts, dots: true }], xLabel: 'dní od startu', yUnit: 'kg', tips: weightTips(ov), marks: (s.log || []).map(l => ({ x: daysBetween(s.start_date, l.at), label: l.pop.split(' ')[0] + ' ' + l.to })) })}
     <p class="hint">Plán −${fmt2(planW)} kg za týden. Rozhoduje čára, ne jedna tečka.${(s.log || []).length ? ' Svislé čáry jsou změny od trenéra.' : ''}</p></div>
   <div class="card"><div class="rings">
     ${ring(clamp(ov.count / Math.max(1, (ov.daysSinceStart || 1)) * 100, 0, 100), ov.count + '×', `vážení za ${ov.daysSinceStart ?? '–'} ${sklon(ov.daysSinceStart || 0, 'den', 'dny', 'dní')}`, 'var(--carb)', 84)}
@@ -437,7 +437,7 @@ function weightAt(s, date) { const rows = calcMeasurements(s, Meas()).filter(r =
 function downloadBlob(blob, name) { const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500); }
 
 /* ---------- SVG graf ---------- */
-function lineChart({ series, xLabel, yUnit, hLine, marks, h = 260 }) {
+function lineChart({ series, xLabel, yUnit, hLine, marks, tips, h = 260 }) {
   const W = 720, H = h, L = 44, R = 12, T = 12, B = 34;
   const all = series.flatMap(sr => sr.pts);
   if (!all.length) return '<p class="muted small">Zatím žádná data.</p>';
@@ -460,9 +460,38 @@ function lineChart({ series, xLabel, yUnit, hLine, marks, h = 260 }) {
   (marks || []).forEach(m => { if (m.x < x0 || m.x > x1) return;
     g += `<line x1="${X(m.x)}" x2="${X(m.x)}" y1="${T}" y2="${H - B}" stroke="#8a5a9e" stroke-width="1.2" stroke-dasharray="2 3"/>`
       + `<text x="${X(m.x) + 3}" y="${T + 11}" font-size="10" fill="#8a5a9e">${esc(m.label)}</text>`; });
+  /* popisek po najetí: body se uloží do registru, svg nese jen id (HTML v atributu by se rozbilo) */
+  let tipId = '';
+  if (tips && tips.length) { tipId = 'ct' + (++lineChart.n); lineChart.reg[tipId] = tips.filter(t => t.x >= x0 && t.x <= x1).map(t => ({ sx: X(t.x), sy: Y(t.y), html: t.html }));
+    const ks = Object.keys(lineChart.reg); if (ks.length > 40) ks.slice(0, ks.length - 40).forEach(k => delete lineChart.reg[k]);
+    g += `<g class="tipg" style="display:none"><line y1="${T}" y2="${H - B}" stroke="#1478d4" stroke-width="1" stroke-dasharray="2 3"/><circle r="5.5" fill="#fff" stroke="#1478d4" stroke-width="2.5"/></g>`; }
   g += '</svg>';
+  if (tipId) g = `<div class="chartw" data-tip="${tipId}">${g}<div class="ctip" hidden></div></div>`;
   return g + `<div class="legend">${series.filter(sr => sr.pts.length).map(sr => `<span><i style="background:${sr.color}"></i>${sr.name}</span>`).join('')}${yUnit ? `<span class="muted">osa: ${yUnit}</span>` : ''}</div>`;
 }
+lineChart.n = 0; lineChart.reg = {};
+/* nejbližší bod podle osy x; myš i ťuknutí na mobilu */
+let chartTipOn = null;
+function chartTip(e) {
+  const w = e.target && e.target.closest ? e.target.closest('.chartw[data-tip]') : null;
+  const hide = el => { if (!el) return; const t = el.querySelector('.ctip'), g = el.querySelector('.tipg'); if (t) t.hidden = true; if (g) g.style.display = 'none'; };
+  if (chartTipOn && chartTipOn !== w) { hide(chartTipOn); chartTipOn = null; }
+  if (!w) return;
+  const pts = lineChart.reg[w.dataset.tip], svg = w.querySelector('svg'); if (!pts || !pts.length || !svg) return;
+  const m = svg.getScreenCTM(); if (!m) return;
+  const pt = svg.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY; const sp = pt.matrixTransform(m.inverse());
+  let best = pts[0]; pts.forEach(p => { if (Math.abs(p.sx - sp.x) < Math.abs(best.sx - sp.x)) best = p; });
+  if (Math.abs(best.sx - sp.x) > 45) { hide(w); chartTipOn = null; return; }
+  chartTipOn = w;
+  const g = svg.querySelector('.tipg'); g.style.display = ''; const ln = g.querySelector('line'), c = g.querySelector('circle');
+  ln.setAttribute('x1', best.sx); ln.setAttribute('x2', best.sx); c.setAttribute('cx', best.sx); c.setAttribute('cy', best.sy);
+  const sc = svg.createSVGPoint(); sc.x = best.sx; sc.y = best.sy; const scr = sc.matrixTransform(m); const wr = w.getBoundingClientRect();
+  const tip = w.querySelector('.ctip'); tip.innerHTML = best.html; tip.hidden = false;
+  const px = scr.x - wr.left, py = Math.max(44, Math.min(wr.height - 44, scr.y - wr.top));
+  const tw = tip.offsetWidth; let left = px + 14; if (left + tw > wr.width) left = px - 14 - tw; if (left < 0) left = Math.max(0, wr.width - tw);
+  tip.style.left = left + 'px'; tip.style.top = py + 'px';
+}
+document.addEventListener('pointermove', chartTip); document.addEventListener('pointerdown', chartTip);
 function niceStep(raw) { const p = Math.pow(10, Math.floor(Math.log10(raw))); const n = raw / p; return (n < 1.5 ? 1 : n < 3 ? 2 : n < 7 ? 5 : 10) * p; }
 function fmtTick(v) { return Number.isInteger(v) ? String(v) : String(Math.round(v * 10) / 10).replace('.', ','); }
 

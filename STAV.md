@@ -106,6 +106,7 @@ Na základě prověrky všech funkcí (schváleno vlastníkem bez výjimek):
 - **Jak šel den:** při potvrzení dne Robert ťukne na hotové odpovědi (nálada, hlad, chutě, pohyb, spánek, stres) a může dopsat text. Trenér vidí v listu dne, v kartě týdne (emoji nálady) a vzorce jako signály. Jednosměrný záznam – na přání vlastníka výjimka z pravidla „žádná komunikace“.
 - **Týdenní shrnutí** pro Roberta: neděle odpoledne a pondělí–úterý na Dnes, kdykoli v Pokroku; pochvala, tip a výzva k vážení a obvodům.
 - Týdenní zpráva ke zkopírování odstraněna (byla to komunikace).
+- **Graf váhy a rozbor (1. 10.):** popisek u každého vážení (datum, ranní váha, průměr, plán, odchylka, den předtím) u Roberta i trenéra; trenér pod grafem karta „Proč hubne pomaleji/rychleji než plán“ s příčinami v kg/týden a tlačítkem nápravy (`weightWhy`).
 - **Trenér neplánuje jídlo:** odebrána záložka Databáze, přehled „Co Robert mění“ a „Plánovat za Roberta“ v náhledu. Pohled Roberta je jen ke čtení.
 
 ## Otevřené věci / NEXT

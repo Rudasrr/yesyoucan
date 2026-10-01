@@ -430,6 +430,12 @@ body.has-modal .toast{bottom:auto;top:calc(12px + env(safe-area-inset-top))}
 svg.chart{width:100%;height:auto;display:block;max-height:320px}
 .legend{display:flex;gap:14px;font-size:12px;color:var(--ink2);flex-wrap:wrap;margin-top:4px}.legend i{display:inline-block;width:14px;height:3px;vertical-align:middle;margin-right:5px;border-radius:2px}
 .spark{display:block}
+.chartw{position:relative;touch-action:pan-y}
+.ctip{position:absolute;z-index:6;transform:translateY(-50%);pointer-events:none;width:max-content;max-width:min(250px,70vw);
+  background:rgba(255,255,255,.94);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);border:1px solid var(--glassb);box-shadow:var(--sh2);border-radius:12px;padding:8px 11px;font-size:12.5px;line-height:1.45;color:var(--ink2)}
+.lh .pill{text-transform:none;letter-spacing:0}.lsub{padding:0 14px 6px}
+.ctip b{color:var(--ink);font-size:13.5px}.ctip .w{font-size:17px;font-weight:800;color:var(--ink);letter-spacing:-.02em}
+.ctip .d{display:block;margin-top:3px;padding-top:4px;border-top:1px solid var(--line2)}
 
 /* ---------- trénink ---------- */
 /* kalendář měsíce: 7 sloupců, den jako malé tlačítko */
