@@ -90,6 +90,18 @@ Robert edituje výchozí suroviny/recepty jako vlastní verzi · hvězdičky + O
 - **Zaseknutá fronta synchronizace** a **klient přepisující globální recepty** – viz Synchronizace.
 - **Opraveno při přestavbě (29. 9.):** na počítači chybělo Více (Recepty, Suroviny, Návod nešly otevřít) · Nastavení bylo ve Více dvakrát · úkol a připomínka „Dojdi na nákup“ vedly na neexistující obrazovku · „Odškrtnout vše zpět“ volalo neexistující `A.shopReset` · Databáze › Suroviny otevírala Nákup · pole kroků v Robertově Nastavení nic neukládalo · „Nastavit“ z doporučení a přepnutí fáze se nelogovaly (chyběly značky v grafu) · graf váhy u trenéra neměl značky zásahů · kalendář (.ics) neměl kroky · dvě různá razítka „poslední návštěva trenéra“, a novinky mizely po prvním překreslení · Nádoby dvakrát · Návod tvrdil „večer nic neukládáš“, zatímco úkol chtěl uzavřít den · trenér mohl z Více otevřít Robertovy obrazovky mimo náhled a psát mu do dat · mrtvý kód (staré menu, `A.cheatAdd`, `parseCheat`, `popEl`, `quietHeader`, `VIEWS.zprava`, `catchUpAlert`, `noteCard`).
 
+## Prověrka a opravy 30. 9. – 1. 10. 2026
+Na základě prověrky všech funkcí (schváleno vlastníkem bez výjimek):
+- **Potvrzení dne:** den se hodnotí jen potvrzený; večer jedno ťuknutí „jedl jsem podle plánu“, výjimky se opraví. Nepotvrzený minulý den je „nezapsaný“. Dřív se o půlnoci hodnotil podle plánu – odtud „14 dnů přes limit“.
+- **Kroky celkem z telefonu**, appka odečte chůzi (dřív procházka nafoukla číslo o 6–7 tisíc a trenér by ladil faktor podle nesmyslu).
+- **Porce z vaření** podle krabičky, ne podle limitu dne.
+- **Udržování po cíli** (`settings.maintain`) – dřív deficit u cíle běžel dál.
+- **Recepty a suroviny jako kopie „(moje)“** místo „moje verze“; textový rozpoznávač snědeného pryč („Jedl jsem něco jiného“: recept, mimo dům, suroviny); Spíž jen mám doma / došlo.
+- **Trenér:** signály jen z potvrzených dnů (nový signál „nepotvrzené dny“), přehled „Jak Robert cvičí“ (série, zátěž, náročnost), „Co Robert mění“ (vyměňované a upravované recepty).
+- **Chyba s dopadem – opraveno:** úklid `cloudtest.py` mazal natvrdo i Robertovo nastavení (`settings:<uid>`); po každém testu appka jela na výchozích hodnotách – cíl chůze 60 místo nastavených 70 min (od 30. 9. odpoledne do 1. 10. ráno). Nastavení obnoveno ze zálohy, cloudtest teď nastavení vrací a maže jen měkce.
+- **Zálohy:** týdenní šifrovaná záloha GitHub Action (`backup.yml`, heslo `BACKUP_PASSPHRASE` v `~/.yesyoucan.env`).
+- **Push připomínky:** kód hotový (`supabase/functions/remind`, `supabase-push.sql`, Nastavení → Připomínky). Nasazení funkce a plánovače potřebuje jednorázové `npx supabase login` – viz NAVOD A9.
+
 ## Otevřené věci / NEXT
 - **29. 9. odpoledne:** z appky odstraněna veškerá komunikace (vzkazy, odpovědi, poznámky ke dni a k tréninku) – rozhodnutí vlastníka. Opraveno: trenér přidal trénink, Robert ho neviděl – „Plán 1“ neměl „Platí od“. Trénink přestavěn na **Robertův týden** (konkrétní dny, uložení „každé X od dneška“ / „jen tento den“, verze na pozadí – úprava už nepřepisuje minulé dny). **Ostrá data Roberta smazána** na přání vlastníka (vážení, dny, plány jídel, nákup, předvolby, trénink, jeho verze receptu, historie změn nastavení; nastavení a cíle zůstaly) – záloha `~/yesyoucan-zalohy/robert-pred-smazanim-2026-09-29.json`. Historická data dodá vlastník v Excelu (import zatím není).
 - **Přestavba nasazená 29. 9.** Robertovi říct, že appka vypadá jinak: tři obrazovky dole, drž se karty Teď.
@@ -97,5 +109,6 @@ Robert edituje výchozí suroviny/recepty jako vlastní verzi · hvězdičky + O
 - **Rozhodnutí vlastníka:** zaokrouhlení přílohy 10 g vs. 5 g · poměrné kalorie za nedokončený cvik · přejmenování cviku se nepropisuje do uložených tréninků.
 - **Přesunout repozitář mimo Google Drive** (git se tam rozbil).
 - **Sdílený Supabase projekt:** appka sedí v `GPT-Codex-app-lab` spolu s druhou appkou; až bude místo, přestěhovat podle NAVOD A3.
+- **Import historie z Excelu** – čeká na soubor od vlastníka (doporučení: jen vážení a obvody).
 - **NEXT: týden reálných dat od Roberta v novém rozhraní**, pak kontrola měr, parseru a stupnice cheatu – a zeptat se ho, jestli se v appce vyzná.
-- Později: web push · widget · fáze chůze auto-přepínání · více klientů (netestováno).
+- Později: widget · fáze chůze auto-přepínání · více klientů (netestováno).

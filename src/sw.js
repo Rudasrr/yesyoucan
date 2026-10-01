@@ -45,3 +45,16 @@ self.addEventListener('fetch', e => {
     return res;
   }).catch(() => caches.match(req)));
 });
+
+/* ===== Push připomínky (30. 9. 2026) – posílá je serverová funkce remind ===== */
+self.addEventListener('push', e => {
+  let d = {}; try { d = e.data ? e.data.json() : {}; } catch (err) { d = { title: 'YesYouCan', body: e.data ? e.data.text() : '' }; }
+  e.waitUntil(self.registration.showNotification(d.title || 'YesYouCan', { body: d.body || '', icon: './icon-192.png', badge: './icon-192.png', data: { url: d.url || './' }, tag: d.title || 'yyc' }));
+});
+self.addEventListener('notificationclick', e => {
+  e.notification.close();
+  e.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(ws => {
+    for (const w of ws) if ('focus' in w) return w.focus();
+    return self.clients.openWindow(e.notification.data && e.notification.data.url || './');
+  }));
+});

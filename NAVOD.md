@@ -116,7 +116,9 @@ Referenční čísla, na kterých `check.js` stojí, jsou v `CLAUDE.md`. Když s
 
 ## A6. Data a zálohy
 
+- **Automatická záloha:** každou neděli ve 3:00 (UTC) uloží GitHub Action celou databázi jako zašifrovaný soubor (Actions → Záloha databáze → artefakt `zaloha-N`, drží 90 dní). Ručně: Actions → Záloha databáze → Run workflow. Rozšifrování: `gpg --decrypt zaloha.json.gpg > zaloha.json` s heslem `BACKUP_PASSPHRASE` z `~/.yesyoucan.env`. Obnova je ruční (soubor obsahuje všechny řádky všech tabulek).
 - Robert i ty máte v **Více → Nastavení** export do Excelu a zálohu (JSON) – to je nejrychlejší záchrana.
+- **V databázi se maže jen měkce** (`deleted = true`, `updated_at` = teď). Tvrdé `delete` se do prohlížečů nepropíše a smazané řádky by v appce zůstaly.
 - Databázi zálohuješ `npx --yes supabase@latest db dump --linked --project-ref reizexthhcyemkpplvmt -f zaloha.sql`.
 - Appka funguje offline: data se drží v prohlížeči a odešlou se, jakmile je signál. Stav poznáš podle tečky vpravo nahoře; když svítí červeně, ťukni na ni a appka řekne, co vázne.
 - Výchozí suroviny a recepty jsou „globální“ (společné). Když si je Robert upraví, vznikne jeho vlastní verze a tvoje původní zůstane. Ty měníš globální verzi v záložce **Databáze**.
@@ -129,14 +131,29 @@ Tři věty a dva údaje:
 > Přihlásíš se e-mailem **r.pesek24@gmail.com** a heslem, které ti posílám zvlášť – hned si ho změň přes „Zapomenuté heslo“.
 > Nic nevymýšlej: otevři **Dnes** a drž se karty **Teď** – vždycky ti řekne jeden další krok. Pod ní je celý den v jednom seznamu, stačí odškrtávat. Psát si budeme jako doteď, appka na zprávy není.
 
+## A9. Push připomínky – nasazení (jednorázově)
+
+Kód je v repu, server potřebuje: tabulku `push_subs`, funkci `remind` a plánovač. Jednou se přihlas (`npx --yes supabase@latest login`, otevře prohlížeč) a pak:
+
+```bash
+set -a; . ~/.yesyoucan.env; set +a
+npx --yes supabase@latest secrets set --project-ref $SUPABASE_REF VAPID_PUBLIC=$VAPID_PUBLIC VAPID_PRIVATE=$VAPID_PRIVATE CRON_SECRET=$CRON_SECRET
+npx --yes supabase@latest functions deploy remind --project-ref $SUPABASE_REF --no-verify-jwt
+sed "s/__REF__/$SUPABASE_REF/; s/__CRON_SECRET__/$CRON_SECRET/" supabase-push.sql > /tmp/push.sql
+npx --yes supabase@latest db query --linked --project-ref $SUPABASE_REF -f /tmp/push.sql && rm /tmp/push.sql
+```
+
+Zkouška bez čekání na čas: `curl -s -H "x-cron-secret: $CRON_SECRET" "$SUPABASE_URL/functions/v1/remind?test=1"` – každému přihlášenému zařízení přijde „Připomínky fungují ✓“. Robert si připomínky zapne v **Více → Nastavení → Připomínky** (na iPhonu musí mít appku přidanou na plochu a otevřít ji odtamtud).
+
 ## A8. Jak appku používáš ty (trenér)
 
 Tři záložky dole (na počítači nahoře), zbytek pod kolečkem **T** vpravo nahoře.
 
 - **Robert** – barva a jedna věta řeknou, jestli zasáhnout. Pod tím jen signály, které vyžadují akci – u většiny je tlačítko (nastavit, přiřadit, otevřít). Týden jako sedm políček, **Zkopírovat týdenní zprávu** dá do schránky hotový text, který mu pošleš, kudy chceš. Ťuknutím na den vidíš, co snědl, chůzi, kroky a hlad. Appka na komunikaci není – vzkazy ani poznámky v ní nejsou.
-- **Plán → Cíle** – tempo hubnutí, cíl chůze, cíl kroků, tempo chůze a udržovací týden. **Ukládá se hned** a každá změna jde vrátit tlačítkem Zpět v hlášce. Věci na roky (výška, věk, start, cílové hodnoty, bílkoviny, cíle chodů) jsou v **Profil a výchozí hodnoty**. **Historie změn** ukazuje všechny zásahy; v grafu váhy jsou jako svislé čáry.
+- **Plán → Cíle** – tempo hubnutí, cíl chůze, cíl kroků (běžná chůze mimo procházku – Robert zapisuje kroky celkem, appka procházku odečte), tempo chůze a udržovací týden. U cíle zapni **Udržování** (appka to připomene). **Ukládá se hned** a každá změna jde vrátit tlačítkem Zpět v hlášce. Věci na roky (výška, věk, start, cílové hodnoty, bílkoviny, cíle chodů) jsou v **Profil a výchozí hodnoty**. **Historie změn** ukazuje všechny zásahy; v grafu váhy jsou jako svislé čáry.
 - **Plán → Trénink** – Robertův týden jako sedm konkrétních dní (tento a příští týden). Ťukni na den, nastav chůzi a cviky a při uložení vyber **Každé úterý** (platí od dneška dál, minulé dny zůstanou) nebo **Jen 29. 9.** (jednorázová výjimka). Kalorie řešit nemusíš – appka se ozve jen, když se Robertovi nevejdou jídla nebo je v týdnu málo pohybu.
-- **Databáze** – globální recepty a suroviny. Bez hledání se ukážou chody, ťuknutím se otevře jeden.
+- **Databáze** – globální recepty a suroviny. Bez hledání se ukážou chody, ťuknutím se otevře jeden. **Co Robert mění** ukáže recepty, které vyměňuje nebo upravuje – kandidáti na opravu.
+- **Dny bez potvrzení** jsou šedé s otazníkem: appka neví, co Robert jedl, proto je nehodnotí. Když jich přibývá, appka to hlásí.
 - **Více → Pohled Roberta** – appka přesně tak, jak ji vidí on. Jen náhled, nic se neuloží; když za něj opravdu potřebuješ něco naplánovat, zapni tam „Plánovat za Roberta“.
 
 Denní kontrola: otevři **Robert**. Když je zeleno, nic nedělej.
@@ -170,20 +187,22 @@ Nahoře velké číslo: **kolik ještě můžeš sníst**. Pod ním karta **Teď
 2. **Po jídle ťukni na kolečko** u jídla. Když ťukneš na řádek, otevře se jídlo celé: suroviny, gramy, domácí míry, výměna, 💡 jiný návrh, 🍽️ mimo dům.
 3. **Chůze** – u řádku je tlačítko +15 minut. Ťuknutím na řádek zapíšeš přesně.
 4. **Trénink** (když ho máš v plánu) – ťukni na řádek a dej „Začít cvičit“, nebo jen odškrtni, co jsi udělal.
-5. **Večer zapiš kroky** z hodinek nebo telefonu.
-6. **Uzavři den** – uvidíš, jak dopadl, a ťukneš, jak ti bylo s jídlem. Když na to zapomeneš, den se uzavře sám.
+5. **Večer zapiš kroky** – celé číslo z telefonu nebo hodinek. Procházku si appka odečte sama.
+6. **Potvrď den** – „Jedl jsi podle plánu?“ Co bylo jinak, oprav ťuknutím na jídlo, zbytek potvrdíš jedním tlačítkem. Bez potvrzení appka neví, co jsi opravdu snědl, a den nehodnotí.
 
 ## B4. Když se den nepovede
 
 - **Pivo, řízek, dort** – zapiš to ráno do řádku **Cheat** (jantarový, za posledním jídlem). Vybereš ze seznamu, u každé položky vidíš, kolik to stojí minut chůze. Appka ti zvedne cíl chůze, ať tě to nestojí tempo.
 - **Nestihl jsi jídlo** → otevři ho a vyber „— vynechat“.
-- **Jedl jsi venku** → otevři jídlo a dej 🍽️ Mimo dům.
+- **Jedl jsi něco jiného** → otevři jídlo a dej 🍽️ Jedl jsem něco jiného: jiný recept, jídlo mimo dům, nebo poskládáš ze surovin.
+- **Chceš recept nebo surovinu jinak** → v Receptech / Surovinách si udělej kopii „(moje)“ a uprav ji.
+- **Připomínky** → Více → Nastavení → Zapnout připomínky (na iPhonu nejdřív přidej appku na plochu).
 - **Nemáš váhu na jídlo** → u surovin vidíš domácí míry (⚖️ zvaž · 🥄 odměř · ✋ od oka). Velikost svých nádob nastavíš v Nastavení.
 - **Chceš trenérovi něco říct** → napiš mu jako doteď, appka na zprávy není.
 
 ## B5. Neděle
 
-V **Plánu**: nech si navrhnout týden (⋯ → Naplánuj mi celý týden), dolaď, co nechceš, pak **Nákup** – seznam podle regálů. Co máš doma z trvanlivých, označ „mám doma“ a na lístku nebude. Ve **Vaření** vybereš dny, na které vaříš, a appka řekne, kolik čeho dát do hrnce.
+V **Plánu**: nech si navrhnout týden (⋯ → Naplánuj mi celý týden), dolaď, co nechceš, pak **Nákup** – seznam podle regálů. Co máš doma z trvanlivých, označ „mám doma“ a na lístku nebude, dokud neťukneš „došlo“. Ve **Vaření** vybereš dny, na které vaříš, appka řekne, kolik čeho dát do hrnce, a po „uvařeno“ počítá porce podle krabičky.
 
 ---
 

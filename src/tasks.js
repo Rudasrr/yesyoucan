@@ -133,6 +133,45 @@ const Remind = {
 };
 setInterval(() => Remind.tick(), 60000);
 
+/* ===== Push připomínky (30. 9. 2026) =====
+   Dřív appka připomínala jen, když byla otevřená, a kalendář (.ics) měl pevné časy.
+   Teď posílá připomínky server (funkce remind, každých 15 min) i do zavřené appky.
+   iPhone: funguje jen u appky přidané na plochu (iOS 16.4+). Veřejný klíč VAPID
+   tajemstvím není – soukromý je jen na serveru. */
+const VAPID_PUBLIC = 'BIFhPFv75NKHsP18kgxFl1SDWyA-gEFiyg3_K31k3ufTGxsvkIpC-SnuXZIz2sSVKlTgnNNKxyOHagKyaKAYMFo';
+const Push = {
+  podpora() { return 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window && location.protocol !== 'file:'; },
+  naPlose() { return (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true; },
+  iphone() { return /iPhone|iPad|iPod/.test(navigator.userAgent); },
+  async stav() { if (!this.podpora()) return 'neumí'; if (Notification.permission === 'denied') return 'zakázané';
+    try { const reg = await navigator.serviceWorker.ready; const sub = await reg.pushManager.getSubscription(); return sub ? 'zapnuté' : 'vypnuté'; } catch (e) { return 'vypnuté'; } },
+  idFor(sub) { let h = 0; for (const ch of sub.endpoint) h = (h * 31 + ch.charCodeAt(0)) | 0; return 'push:' + Store.uid() + ':' + (h >>> 0).toString(36); },
+  key() { const b = atob(VAPID_PUBLIC.replace(/-/g, '+').replace(/_/g, '/') + '='.repeat((4 - VAPID_PUBLIC.length % 4) % 4)); return Uint8Array.from(b, c => c.charCodeAt(0)); }
+};
+A.pushOn = async () => {
+  if (!Push.podpora()) { UI.toast('Tenhle prohlížeč připomínky neumí.'); return; }
+  if (Push.iphone() && !Push.naPlose()) { UI.toast('Na iPhonu nejdřív přidej appku na plochu (Sdílet → Přidat na plochu) a otevři ji odtamtud.'); return; }
+  if (Store.localMode()) { UI.toast('Připomínky fungují jen v nasazené appce s přihlášením.'); return; }
+  try {
+    const perm = await Notification.requestPermission(); if (perm !== 'granted') { UI.toast('Upozornění nejsou povolená – povol je v nastavení telefonu.'); render(); return; }
+    const reg = await navigator.serviceWorker.ready;
+    const sub = (await reg.pushManager.getSubscription()) || await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: Push.key() });
+    const { error } = await Store.sb.from('push_subs').upsert({ id: Push.idFor(sub), user_id: Store.uid(), data: sub.toJSON(), updated_at: new Date().toISOString(), deleted: false });
+    if (error) throw error;
+    UI.toast('Připomínky zapnuté – přijdou i do zavřené appky.'); render();
+  } catch (e) { console.warn(e); UI.toast('Připomínky se nepodařilo zapnout: ' + (e.message || e)); }
+};
+A.pushOff = async () => {
+  try { const reg = await navigator.serviceWorker.ready; const sub = await reg.pushManager.getSubscription();
+    if (sub) { await Store.sb.from('push_subs').update({ deleted: true, updated_at: new Date().toISOString() }).eq('id', Push.idFor(sub)); await sub.unsubscribe(); }
+    UI.toast('Připomínky vypnuté.'); render(); } catch (e) { UI.toast('Nepodařilo se: ' + (e.message || e)); }
+};
+/* stav se zjišťuje asynchronně – karta v Nastavení si ho doplní po vykreslení */
+async function pushStavDoplnit() { const el = document.getElementById('pushstav'); if (!el) return; const st = await Push.stav();
+  el.innerHTML = st === 'zapnuté' ? `<span class="pill ok">zapnuté</span><button class="btn ghost sm" onclick="A.pushOff()">vypnout</button>`
+    : st === 'zakázané' ? `<span class="pill bad">zakázané v telefonu</span>` : st === 'neumí' ? `<span class="pill">tady nefungují</span>`
+    : `<button class="btn sm" onclick="A.pushOn()">🔔 Zapnout připomínky</button>`; }
+
 /* Export připomínek do kalendáře (.ics) – spolehlivé i při zavřené appce */
 A.exportIcs = () => {
   const s = S(); const url = location.href.split('#')[0];

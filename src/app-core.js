@@ -219,6 +219,7 @@ function render() {
   if (Math.abs(window.scrollY - sy) > 2) window.scrollTo(0, sy);
   if (typeof window._sheetRedraw === 'function') window._sheetRedraw();
   maybeIntro();
+  if (App.view === 'ucet' && typeof pushStavDoplnit === 'function') pushStavDoplnit();
 }
 
 /* ---- přihlášení ---- */
