@@ -1,0 +1,29 @@
+name: Záloha databáze
+# Každou neděli ve 3:00 UTC + ručně (Actions → Záloha databáze → Run workflow).
+# Data jsou zašifrovaná heslem BACKUP_PASSPHRASE (repozitář je veřejný – artefakty
+# veřejného repa si může stáhnout kdokoli přihlášený). Rozšifrování: viz NAVOD.md A6.
+on:
+  schedule:
+    - cron: '0 3 * * 0'
+  workflow_dispatch:
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Export
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: python3 tools/backup.py zaloha.json
+      - name: Šifrování
+        env:
+          BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+        run: |
+          gpg --batch --yes --pinentry-mode loopback --passphrase "$BACKUP_PASSPHRASE" --symmetric --cipher-algo AES256 -o zaloha.json.gpg zaloha.json
+          rm zaloha.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: zaloha-${{ github.run_number }}
+          path: zaloha.json.gpg
+          retention-days: 90
