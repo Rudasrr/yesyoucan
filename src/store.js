@@ -37,7 +37,7 @@ const Store = {
      třeba „poslední vážení 18. 9.“ po smazání všech vážení. Při změně DATA_EPOCH se
      zahodí lokální kopie a stáhne se všechno znovu; neodeslané změny zůstanou ve frontě. */
   refreshEpoch() {
-    const DATA_EPOCH = '2026-09-30';
+    const DATA_EPOCH = '2026-10-01';   // 1. 10.: historie vážení z Excelu
     if (this.localMode() || !navigator.onLine || LS.get('dataEpoch', null) === DATA_EPOCH) return false;   // bez signálu by zůstala prázdná appka
     TABLES.forEach(t => { this.db[t] = []; this.save(t); });
     this.lastSync = null; LS.set('lastSync', null); LS.set('dataEpoch', DATA_EPOCH);
