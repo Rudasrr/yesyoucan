@@ -144,7 +144,8 @@ VIEWS.trenink = function () {
     return `<div class="li ${x.dt === t ? 'cur' : ''} ${past ? 'done' : ''}" onclick="A.trDaySheet('${x.dt}')"><span class="tm">${DAY_SHORT[dayIndex(x.dt)]}<br>${parseISO(x.dt).getDate()}. ${parseISO(x.dt).getMonth() + 1}.</span><span class="em">${(x.ap.items || []).length ? '🏋️' : '🚶'}</span><div class="tx"><b>${(x.ap.items || []).length ? (x.ap.items || []).map(it => esc(it.ex)).join(', ') : 'Jen chůze'}</b><span>${x.act.planWalk} min chůze${(x.ap.items || []).length ? ` · ~${fmt0(x.act.planKcal)} kcal cviky` : ''}${vyj ? ' · jen tento den' : ''}${x.dt === t ? ' · dnes' : ''}</span></div>${vyj ? '<span class="pill info">výjimka</span>' : ''}<span class="chev">›</span></div>`; }).join('')}</div></div>
   <div class="card stack s8"><div class="row between"><h2>Týden</h2><span class="pill ${weekDef / KG_KCAL >= cil * 0.97 ? 'ok' : 'warn'}">−${fmt2(weekDef / KG_KCAL)} kg/týden</span></div>
     ${warns.map(x => `<div class="alert a2"><div>${esc(x)}</div></div>`).join('') || '<div class="small muted">V pořádku: tempo drží cíl, jídla se vejdou, navýšení aktivity do 20 %.</div>'}</div>
-  <div class="card flush"><div class="navrow" onclick="A.twLibrary()"><span class="ico">💾</span><div class="tx"><b>Uložené tréninky</b><span>${Workouts().length} · vložíš je do kteréhokoli dne</span></div><span class="chev">›</span></div>
+  <div class="card flush"><div class="navrow" onclick="A.trInsight()"><span class="ico">📈</span><div class="tx"><b>Jak Robert cvičí</b><span>odcvičené tréninky, náročnost, zátěž u cviků</span></div><span class="chev">›</span></div>
+    <div class="navrow" onclick="A.twLibrary()"><span class="ico">💾</span><div class="tx"><b>Uložené tréninky</b><span>${Workouts().length} · vložíš je do kteréhokoli dne</span></div><span class="chev">›</span></div>
     <div class="navrow" onclick="A.exLibrary()"><span class="ico">🏋️</span><div class="tx"><b>Knihovna cviků</b><span>${Exercises().length} cviků · upravit nebo přidat</span></div><span class="chev">›</span></div></div>`;
 };
 
@@ -205,6 +206,23 @@ A.trSave = () => { const D = App.trDraft; if (!D) return; const idx = dayIndex(D
   }, D.scope === 'every' ? `Robert to uvidí každé ${den} od dneška. Limit i recepty se přepočítaly.` : `Platí jen ${czDateShort(D.date)}.`);
   D.dirty = false; App.trDraft = null; UI.closeModal(); render(); };
 A.trDropOverride = () => { const D = App.trDraft; Undo.run('Výjimka zrušena', () => Store.remove('training', oid('to', D.date)), 'Den se vrátil na šablonu týdne.'); D.dirty = false; App.trDraft = null; UI.closeModal(); render(); };
+/* Co Robert opravdu odcvičil: série, zátěž, náročnost a pocit zapisuje při běhu tréninku.
+   Trenér to dřív neviděl – jen „trénink 2 ze 3“. */
+A.trInsight = () => {
+  const t = todayISO(); const sessions = []; const perEx = {};
+  for (let k = 0; k < 42; k++) { const dt = addDays(t, -k); const items = dayActivityPlan(dt).items || []; if (!items.length) continue;
+    const day = getDay(dt); const tr = day.training || {}; const done = tr.done || {}; const log = tr.log || {};
+    if (dt < t || Object.keys(done).length) sessions.push({ dt, n: items.length, done: items.filter((_, i) => done[i]).length, rpe: tr.rpe, feel: tr.feel });
+    items.forEach((it, i) => { const sets = ((log[i] || {}).sets || []).filter(Boolean); if (!sets.length) return;
+      (perEx[it.ex] = perEx[it.ex] || []).push({ dt, sets, max: Math.max(...sets.map(x => x.kg || 0)), vol: sets.reduce((a, x) => a + (x.reps || 0) * (x.kg || 0), 0) }); }); }
+  const ex = Object.entries(perEx).map(([n, L]) => { L.sort((a, b) => a.dt.localeCompare(b.dt)); const first = L[0], last = L[L.length - 1];
+    return `<div class="li static"><div class="tx"><b>${esc(n)}</b><span>${L.length}× · naposledy ${czDateShort(last.dt)}: ${last.sets.map(x => `${x.reps}×${x.kg || 0}`).join(', ')}</span></div><span class="val ${last.vol > first.vol ? 'ok' : ''}">${L.length > 1 ? (last.vol > first.vol ? '↗' : last.vol < first.vol ? '↘' : '→') : ''} ${fmt0(last.max)} kg</span></div>`; }).join('');
+  UI.sheet('📈 Jak Robert cvičí', 'posledních 6 týdnů',
+    sessions.length ? `<div class="list">${sessions.map(x => { const f = FEELS.find(y => y[0] === x.feel); const r = RPES.find(y => y[0] === x.rpe);
+      return `<div class="li static"><span class="tm">${czDateShort(x.dt)}</span><div class="tx"><b>${x.done} z ${x.n} cviků</b><span>${r ? `náročnost ${r[0]}/5 (${r[1]})` : 'bez hodnocení'}${f ? ` · ${f[1]} ${f[2]}` : ''}</span></div><span class="pill ${x.done >= x.n ? 'ok' : x.done ? 'warn' : 'bad'}">${x.done >= x.n ? 'celý' : x.done ? 'část' : 'ne'}</span></div>`; }).join('')}</div>
+    <div class="lh" style="padding-left:0">Zátěž u cviků · ↗ roste objem</div>${ex ? `<div class="list">${ex}</div>` : '<p class="small muted">Zatím žádné zapsané série – zapisují se, když Robert cvičí přes „Začít cvičit“.</p>'}`
+    : '<div class="empty"><span class="em">🏋️</span>Za posledních 6 týdnů žádný tréninkový den.</div>');
+};
 /* zpětná kompatibilita: jednorázová změna z listu dne u Roberta */
 A.tpOverride = date => A.trDaySheet(date, 'day');
 
