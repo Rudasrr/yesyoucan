@@ -1,63 +1,223 @@
-/* ===== Obrazovky trenéra: Robert · Plán · Databáze ===== */
-
-/* ---------- ROBERT: mám zasáhnout? ----------
-   Dřív Dashboard (dvě verze nad sebou) a Týdenní přehled vedle sebe: stejné metriky, stejný
-   den po dni. Teď jedna obrazovka: verdikt, co vyžaduje zásah, týden a graf.
-   Komunikace s Robertem se v appce nevede (rozhodnutí 29. 9. 2026). */
+/* ===== Obrazovky trenéra: Robert · Plán ===== */
+/* Komunikace s Robertem se v appce nevede (rozhodnutí 29. 9. 2026). */
+/* ---------- ROBERT: co se děje, kde to vzniklo, co s tím (1. 10. 2026) ----------
+   Celá obrazovka se vejde na notebook 1366×768 bez rolování: pruh s verdiktem a čísly,
+   graf (váha / obvody) vedle problémů a dole mapa 14 dní. Podrobnosti jsou v listech.
+   Problémy mají jeden zdroj – diagnoza() (rozbor váhy + signály bez duplicit). */
+App.cg = App.cg || 'w'; App.cgR = App.cgR || 56; App.cgO = App.cgO || 'waist';
 VIEWS.klient = function () {
   const s = S(), ov = calcOverview(s, Meas()); const uid = Store.ownerId();
-  const sig = signaly();
-  const lvl = sig.some(x => x.lv === 1) ? 1 : sig.some(x => x.lv === 2) ? 2 : 3;
-  const state = { 1: ['bad', '🔴 Zasáhnout', 'tint-b'], 2: ['warn', '🟡 Pohlídat', 'tint-o'], 3: ['ok', '🟢 V pořádku', 'tint-ok'] }[lvl];
-  const wb = ov.weekBack;
-  const line = wb && wb.lostW != null ? (wb.lostW >= wb.planW * 0.9 ? `Váha −${fmt2(wb.lostW)} kg za týden, drží tempo.` : wb.lostW > 0 ? `Váha −${fmt2(wb.lostW)} kg za týden, pomaleji než plán (${fmt2(wb.planW)}).` : 'Váha za týden nešla dolů.') : 'Zatím málo vážení na týdenní trend.';
-  const p = paceOverview();
+  const dg = diagnoza(); const r = perRange(); const pd = diagnoza(r.from, r.to); App._diag = pd.list;
+  const state = { 1: ['bad', '🔴 Zasáhnout', 'tint-b'], 2: ['warn', '🟡 Pohlídat', 'tint-o'], 3: ['ok', '🟢 V pořádku', 'tint-ok'] }[dg.lvl];
   const name = (Store.clients.find(x => x.id === uid) || {}).display_name || 'Robert';
   const ch = sinceLast();
-  return `<div class="ph"><div class="pt"><h1>${esc(name)}</h1><span class="sub">${czDate(todayISO())}</span></div></div>
-  ${Store.db.foods.some(r => r.user_id == null) || !Store.clients.length || Store.localMode() ? '' : `<div class="notice warn">Recepty a suroviny běží z výchozích dat. V Nastavení je „Naplnit výchozí data“.</div>`}
-  <div class="card ${state[2]} stack">
-    <div class="row"><span class="pill ${state[0]}">${state[1]}</span>${ch.items.length ? `<button class="btn ghost sm" style="margin-left:auto" onclick="A.sinceSheet()">🔔 ${ch.items.length} ${sklon(ch.items.length, 'novinka', 'novinky', 'novinek')}</button>` : ''}</div>
-    <div style="font-size:19px;font-weight:750;line-height:1.3">${esc(lvl === 3 ? line : (sig[0] ? sig[0].head || line : line))}</div>
-    <div class="mini"><div><b>−${fmt2(p.target)}</b><span>cíl kg/týden</span></div><div><b class="${p.ok ? 'ok' : 'bad'}">−${fmt2(p.projThis)}</b><span>plán týdne</span></div><div><b class="${p.actual == null ? '' : p.actual >= p.target * 0.9 ? 'ok' : 'bad'}">${p.actual == null ? '–' : (p.actual >= 0 ? '−' : '+') + fmt2(Math.abs(p.actual))}</b><span>realita</span></div></div>
+  const W = weightWhy(), p0 = dg.list[0];
+  const head = W.state === 'pomalu' ? `Hubne pomaleji než plán${p0 ? ' – hlavně: ' + p0.title : ''}` : W.state === 'rychle' ? `Hubne rychleji než plán${p0 ? ' – ' + p0.title : ''}` : p0 && dg.lvl < 3 ? p0.title : (ov.weekBack && ov.weekBack.lostW != null ? `Drží plán: −${fmt2(ov.weekBack.lostW)} kg za týden.` : 'Zatím málo dat.');
+  return `<div class="card ${state[2]} kstrip">
+    <div class="kv"><div class="row nowrap"><span class="pill ${state[0]}">${state[1]}</span><b class="kn">${esc(name)}</b><span class="small muted">${czDateShort(todayISO())}</span></div><div class="kh">${esc(head)}</div></div>
+    <div class="kpis">${kpis(s, ov)}</div>
+    <div class="kact">${ch.items.length ? `<button class="btn ghost sm" onclick="A.sinceSheet()" title="Od poslední návštěvy">🔔 ${ch.items.length}</button>` : ''}<button class="btn ghost sm" onclick="A.numbersSheet()" title="Čísla za 6 týdnů a 28 dní">📊</button></div>
   </div>
-  ${sig.length ? `<div class="card flush"><div class="lh">${lvl === 3 ? 'Na vědomí' : 'Co vyžaduje akci'}</div>${sig.map((x, i) => `<div class="sig"><span class="sv l${x.lv}"></span><div class="sx">${esc(x.text)}</div>${x.apply ? `<button class="btn sm" onclick="${x.apply}">${esc(x.label)}</button>` : x.go ? `<button class="btn sec sm" onclick="${x.go}">${esc(x.label || 'Otevřít')}</button>` : ''}</div>`).join('')}</div>` : ''}
-  ${weekCard()}
-  <div class="card"><div class="ch"><h2>Váha proti plánu</h2>${ov.avgWeekLoss != null ? `<span class="pill ${ov.avgWeekLoss >= ov.cur * s.rate_pct / 100 * 0.9 ? 'ok' : 'warn'}">−${fmt2(ov.avgWeekLoss)} kg/týden</span>` : ''}</div>
-    ${lineChart({ series: [{ name: 'plán', color: '#9aa3b8', dash: true, pts: Array.from({ length: Math.max(84, (ov.last ? ov.last.idx : 0) + 14) + 1 }, (_, i) => [i, planWeightAt(s, i)]) }, { name: 'ranní váha', color: '#a8c6e4', pts: ov.rows.map(r => [r.idx, r.weight]), thin: true }, { name: 'průměr 7 dní', color: '#1478d4', pts: ov.rows.map(r => [r.idx, r.avg]), dots: true }], xLabel: 'dní od startu', yUnit: 'kg', h: 230, tips: weightTips(ov), marks: (s.log || []).map(l => ({ x: daysBetween(s.start_date, l.at), label: l.pop.split(' ')[0] + ' ' + l.to })) })}
-    <p class="hint">Průměr 7 dní ${fmt1(ov.cur)} kg · od startu −${fmt1(ov.lost)} kg · prognóza ${ov.forecast || '–'}. Svislé čáry jsou tvoje zásahy.</p></div>
-  ${whyCard()}
-  <div class="card flush"><div class="navrow" onclick="A.numbersSheet()"><span class="ico">📊</span><div class="tx"><b>Čísla za 6 týdnů a 28 dní</b><span>týdny, dny, příjem proti limitu, chůze, kroky</span></div><span class="chev">›</span></div>
-    <div class="navrow" onclick="go('__preview')"><span class="ico">👁️</span><div class="tx"><b>Pohled Roberta</b><span>appka přesně tak, jak ji vidí on</span></div><span class="chev">›</span></div></div>`;
+  <div class="cock">
+    <div class="card kprob">${probList(pd, r)}</div>
+    <div class="card kchart">${chartCard(s, ov)}</div>
+    <div class="card kmap">${periodCard()}</div>
+  </div>`;
 };
+/* pět čísel: týdenní průměr, trend, prognóza, pas, potvrzené dny */
+function kpis(s, ov) {
+  const wa = weekAvgs(), t = todayISO(), thisMon = mondayOf(t);
+  let cur = wa[wa.length - 1]; if (cur && cur.mon === thisMon && cur.n < 2 && wa.length > 1) cur = wa[wa.length - 2];
+  const prev = cur ? wa.find(x => x.mon === addDays(cur.mon, -7)) : null;
+  const tr = trend21(); const planW = ov.cur * effSettings(s, t).rate_pct / 100;
+  const prog = tr && tr.perWeek > 0.02 && ov.cur > s.goal_weight ? czDate(addDays(t, Math.round((ov.cur - s.goal_weight) / tr.perWeek * 7))) : tr ? 'nepůjde' : '–';
+  const wm = Meas().filter(m => m.waist != null).sort((a, b) => a.date.localeCompare(b.date)); const wl = wm[wm.length - 1];
+  const w4 = wl ? ([...wm].reverse().find(m => m.date <= addDays(wl.date, -28)) || wm[0]) : null;
+  let conf = 0; for (let k = 1; k <= 7; k++) if (evaluateDay(addDays(t, -k)).confirmed) conf++;
+  const k = (val, lab, cls, title) => `<div class="kpi" ${title ? `title="${esc(title)}"` : ''}><b class="${cls || ''}">${val}</b><span>${lab}</span></div>`;
+  return k(cur ? fmt1(cur.avg) + (prev ? ` <small class="${cur.avg <= prev.avg ? 'ok' : 'bad'}">${signed1(cur.avg - prev.avg)}</small>` : '') : '–', cur ? `Ø týden od ${czDateShort(cur.mon)}` : 'Ø týden')
+    + k(tr ? kgTyd(tr.perWeek) : '–', `trend 3 t · plán −${fmt2(planW)}`, tr ? (tr.perWeek >= planW * 0.8 ? 'ok' : 'bad') : '', 'sklon přímky přes vážení za 21 dní, kg za týden')
+    + k(prog, `cíl ${s.goal_weight} kg tímto tempem`, '')
+    + k(wl ? fmt1(wl.waist) + (w4 && w4 !== wl ? ` <small class="${wl.waist <= w4.waist ? 'ok' : 'bad'}">${signed1(wl.waist - w4.waist)}</small>` : '') : '–', wl ? `pas · ${czDateShort(wl.date)}` : 'pas – neměřil')
+    + k(`${conf}<small>/7</small>`, 'potvrzených dnů', conf >= 6 ? 'ok' : conf >= 4 ? '' : 'bad');
+}
+/* problémy: co · dopad · kde · náprava; nejvýš tři, zbytek v listu */
+const kdeTxt = (kde, max) => (kde || []).slice().sort().slice(-max).map(d => `${DAY_SHORT[dayIndex(d)]} ${parseISO(d).getDate()}.`).join(' · ') + ((kde || []).length > max ? ' …' : '');
+function probRow(p, i) {
+  return `<div class="sig prob" onclick="A.probSheet(${i})" onmouseenter="A.hiDays(${i})" onmouseleave="A.hiDays(-1)"><span class="sv l${p.lv}"></span>
+    <div class="sx"><b>${p.em || ''} ${esc(p.title)}</b>${p.kg ? ` <span class="pill ${p.lv === 1 ? 'bad' : 'warn'}">≈ ${fmt2(p.kg)} kg/týden</span>` : ''}<div class="small muted">${p.kde && p.kde.length ? 'kde: ' + kdeTxt(p.kde, 5) : esc(p.sub || '').slice(0, 90)}</div></div>
+    ${p.apply ? `<button class="btn sm" onclick="event.stopPropagation();${p.apply}">${esc(p.label)}</button>` : p.go ? `<button class="btn sec sm" onclick="event.stopPropagation();${p.go}">${esc(p.label || 'Otevřít')}</button>` : ''}</div>`;
+}
+function probList(pd, r) {
+  const W = pd.W, list = pd.list; const top = list.slice(0, 3);
+  return `<div class="ch"><h2>Problémy <small class="muted">· ${esc(r.lab)}</small></h2><div class="row nowrap">${W.state !== 'malo' ? `<span class="pill ${W.state === 'ok' ? 'ok' : 'warn'}" title="tempo za období: realita / plán">${kgTyd(W.realW)} / ${kgTyd(W.planW)} kg</span>` : ''}${list.length > 3 ? `<button class="btn ghost sm" onclick="A.probAll()">+ ${list.length - 3}</button>` : ''}</div></div>
+    ${top.length ? top.map(probRow).join('') : '<div class="sig"><span class="sv l3"></span><div class="sx">Nic nevázne – drží limit, pohyb i vážení.</div></div>'}`;
+}
+A.probAll = () => UI.sheet('Všechny problémy', `${App._diag.length} · seřazené podle důležitosti`, `<div class="card flush">${App._diag.map(probRow).join('')}</div>`);
+A.probSheet = i => { const p = App._diag[i]; if (!p) return;
+  UI.sheet(`${p.em || ''} ${p.title}`, p.kg ? `≈ ${fmt2(p.kg)} kg za týden` : ({ 1: 'zasáhnout', 2: 'pohlídat', 3: 'na vědomí' }[p.lv]),
+    `${p.sub ? `<p>${esc(p.sub)}</p>` : ''}${p.kde && p.kde.length ? `<h3>Kde</h3><div class="chips">${p.kde.slice().sort().map(d => `<button class="chip" onclick="A.coachDaySheet('${d}')">${DAY_SHORT[dayIndex(d)]} ${czDateShort(d)}</button>`).join('')}</div>` : ''}`,
+    p.apply ? `<button class="btn" onclick="UI.closeModal();${p.apply}">${esc(p.label)}</button>` : p.go ? `<button class="btn sec" onclick="UI.closeModal();${p.go}">${esc(p.label || 'Otevřít')}</button>` : ''); };
+/* najetí na problém zvýrazní jeho dny v mapě */
+const MAP_ROW = { nepotvrz: 'jidlo', jidlo: 'jidlo', preslimit: 'jidlo', podlimit: 'jidlo', spodni: 'jidlo', pohyb: 'chuze', chuze: 'chuze', kroky: 'kroky', krokyzap: 'kroky', trenink: 'trenink', vazeni: 'vaha', 'vazeni-malo': 'vaha', voda: 'vaha', psych: 'pocit', hlad: 'pocit', spanek: 'pocit', stres: 'pocit', chute: 'pocit', nalada: 'pocit', bolest: 'pocit' };
+A.hiDays = i => { document.querySelectorAll('.dmap .hi').forEach(e => e.classList.remove('hi')); const p = i >= 0 && App._diag ? App._diag[i] : null; if (!p || !p.kde) return;
+  const r = MAP_ROW[p.key]; p.kde.forEach(d => document.querySelectorAll(r ? `.dmap [data-dt="${d}"][data-r="${r}"], .dmap .dm-h[data-dt="${d}"]` : `.dmap [data-dt="${d}"]`).forEach(e => e.classList.add('hi'))); };
 
-/* týden: sedm políček a čtyři čísla */
-function weekCard() {
-  const today = todayISO(); const start = App.repWeek || mondayOf(today);
-  const R = weekReport(start);
-  const cells = R.days.map(dt => { const rec = Store.rows('days', Store.ownerId()).find(r => r.data.date === dt);
-    if (dt > today) return `<div class="d0" style="opacity:.45">${DAY_SHORT[dayIndex(dt)]}<small>·</small></div>`;
-    if (dt === today) return `<button class="d3" onclick="A.coachDaySheet('${dt}')">${DAY_SHORT[dayIndex(dt)]}<small>dnes</small></button>`;
-    if (!rec) return `<button class="d0" onclick="A.coachDaySheet('${dt}')">${DAY_SHORT[dayIndex(dt)]}<small>–</small></button>`;
-    const ev = evaluateDay(dt); if (!ev.confirmed) return `<button class="d0" onclick="A.coachDaySheet('${dt}')">${DAY_SHORT[dayIndex(dt)]}<small>?</small></button>`;
-    const fe = FEEL_EM[(ev.day.checkin || {}).feel] || '';
-    return `<button class="${ev.ok ? 'd2' : 'd1'}" onclick="A.coachDaySheet('${dt}')">${DAY_SHORT[dayIndex(dt)]}<small>${fe}${ev.cheats.beers ? '🍺' + ev.cheats.beers : fe ? '' : ev.ok ? '✓' : '✗'}</small></button>`; }).join('');
-  return `<div class="card stack"><div class="row between nowrap"><button class="iconbtn" onclick="App.repWeek=addDays('${start}',-7);render()" aria-label="týden zpět">‹</button><b>Týden ${czDateShort(start)}–${czDateShort(addDays(start, 6))}</b><button class="iconbtn" onclick="App.repWeek=addDays('${start}',7);render()" ${start >= mondayOf(today) ? 'disabled' : ''} aria-label="další týden">›</button></div>
-    <div class="dots7">${cells}</div>
-    <div class="stats"><div class="stat"><b>${R.weigh} <small>/ ${R.past}</small></b><span>vážení</span></div><div class="stat"><b>${R.okN} <small>/ ${R.potvrz.length}</small></b><span>potvrzených v pořádku</span></div><div class="stat"><b>${fmt0(R.walk)} <small>min</small></b><span>chůze</span></div><div class="stat"><b>${R.beers} 🍺 · ${R.over}</b><span>piv · dnů přes limit</span></div></div></div>`;
+/* graf: váha (týdenní průměry, trend, plán s pásmem) nebo obvody */
+function chartCard(s, ov) {
+  const seg = (v, lab) => `<button class="${App.cg === v ? 'on' : ''}" onclick="App.cg='${v}';render()">${lab}</button>`;
+  const sub = App.cg === 'w' ? [[56, '8 t'], [91, '3 m'], [0, 'vše']].map(([v, l]) => `<button class="chip ${App.cgR === v ? 'on' : ''}" onclick="App.cgR=${v};render()">${l}</button>`).join('')
+    : CIRC.map(([k, l]) => `<button class="chip ${App.cgO === k ? 'on' : ''}" onclick="App.cgO='${k}';render()">${l}</button>`).join('');
+  return `<div class="row between nowrap kch"><div class="seg sm">${seg('w', 'Váha')}${seg('o', 'Obvody')}</div><div class="chips">${sub}</div></div>
+    ${App.cg === 'w' ? coachWeightChart(s, ov) : circChart(s)}`;
+}
+const CIRC = [['waist', 'Pas'], ['hips', 'Boky'], ['chest', 'Hrudník'], ['thigh', 'Stehno'], ['arm', 'Paže']];
+function coachWeightChart(s, ov) {
+  const rows = ov.rows; if (!rows.length) return '<p class="muted small">Zatím žádné vážení.</p>';
+  const last = rows[rows.length - 1].idx; const range = App.cgR || (last + 1);
+  const x0 = Math.max(0, last - range + 1), ext = Math.max(7, Math.round(range * 0.2)), x1 = last + ext;
+  const narrow = window.innerWidth < 640;   // na telefonu užší plátno, ať text na osách není drobný
+  const W = narrow ? 420 : 760, H = narrow ? 230 : 186, L = 40, R = 10, T = 14, B = 22;
+  const vis = rows.filter(r => r.idx >= x0); const tr = trend21(); const wa = weekAvgs();
+  const ys = vis.map(r => r.weight).concat([planWeightAt(s, x0) + 0.5, planWeightAt(s, x1) - 0.5]); if (tr) ys.push(tr.y - tr.perWeek / 7 * ext);
+  let y0 = Math.min(...ys) - 0.4, y1 = Math.max(...ys) + 0.4;
+  const X = x => L + (x - x0) / (x1 - x0) * (W - L - R), Y = y => T + (y1 - y) / (y1 - y0) * (H - T - B);
+  let g = `<svg class="chart" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" role="img">`;
+  const st = niceStep((y1 - y0) / 4); for (let v = Math.ceil(y0 / st) * st; v <= y1; v += st) g += `<line x1="${L}" x2="${W - R}" y1="${Y(v)}" y2="${Y(v)}" stroke="#e6ebea"/><text x="${L - 6}" y="${Y(v) + 4}" font-size="11" fill="#7a878c" text-anchor="end">${fmtTick(v)}</text>`;
+  // osa: pondělky jako data
+  const step = range > 120 ? 28 : range > 60 ? 14 : 7;
+  for (let x = x0; x <= x1; x++) { const dt = addDays(s.start_date, x); if (dayIndex(dt) !== 0 || daysBetween(mondayOf(addDays(s.start_date, x0)), dt) % step) continue;
+    g += `<line x1="${X(x)}" x2="${X(x)}" y1="${T}" y2="${H - B}" stroke="#f0f2f5"/><text x="${X(x)}" y="${H - 7}" font-size="11" fill="#7a878c" text-anchor="middle">${czDateShort(dt)}</text>`; }
+  // plán s pásmem ±0,5 kg
+  const pp = []; for (let x = x0; x <= x1; x++) pp.push([X(x), planWeightAt(s, x)]);
+  g += `<path d="M${pp.map(p => `${p[0].toFixed(1)},${Y(p[1] + 0.5).toFixed(1)}`).join('L')}L${pp.slice().reverse().map(p => `${p[0].toFixed(1)},${Y(p[1] - 0.5).toFixed(1)}`).join('L')}Z" fill="rgba(154,163,184,.13)"/>`;
+  g += `<path d="M${pp.map(p => `${p[0].toFixed(1)},${Y(p[1]).toFixed(1)}`).join('L')}" fill="none" stroke="#9aa3b8" stroke-width="1.5" stroke-dasharray="6 5"/>`;
+  // vybrané období dole
+  { const pr = perRange(); const a = Math.max(x0, daysBetween(s.start_date, pr.from)), b = Math.min(x1, daysBetween(s.start_date, pr.to) + 1); if (b > a) g += `<rect x="${X(a)}" y="${T}" width="${X(b) - X(a)}" height="${H - B - T}" fill="rgba(20,120,212,.07)" rx="4"/>`; }
+  // ranní váhy
+  g += `<path d="M${vis.map(r => `${X(r.idx).toFixed(1)},${Y(r.weight).toFixed(1)}`).join('L')}" fill="none" stroke="#a8c6e4" stroke-width="1.2"/>`;
+  vis.forEach(r => { g += `<circle cx="${X(r.idx)}" cy="${Y(r.weight)}" r="2.6" fill="#a8c6e4"/>`; });
+  // týdenní průměry: schod přes Po–Ne s číslem
+  wa.forEach(w => { const a = daysBetween(s.start_date, w.mon), b = a + 6; if (b < x0) return; const xa = X(Math.max(a, x0)), xb = X(Math.min(b, last));
+    g += `<line x1="${xa}" x2="${xb}" y1="${Y(w.avg)}" y2="${Y(w.avg)}" stroke="#1478d4" stroke-width="3" stroke-linecap="round"/><text x="${(xa + xb) / 2}" y="${Y(w.avg) - 7}" font-size="11.5" font-weight="700" fill="#0f5fa8" text-anchor="middle">${fmt1(w.avg)}</text>`; });
+  // trend 21 dní a jeho pokračování
+  if (tr) { const ty = x => tr.y - tr.slope * 0 + tr.slope * (x - tr.at); const xa = Math.max(tr.from, x0);
+    g += `<line x1="${X(xa)}" x2="${X(last)}" y1="${Y(ty(xa))}" y2="${Y(ty(last))}" stroke="#d97706" stroke-width="2.2"/><line x1="${X(last)}" x2="${X(x1)}" y1="${Y(ty(last))}" y2="${Y(ty(x1))}" stroke="#d97706" stroke-width="2" stroke-dasharray="4 4"/>`; }
+  (s.log || []).forEach(l => { const x = daysBetween(s.start_date, l.at); if (x < x0 || x > x1) return; g += `<line x1="${X(x)}" x2="${X(x)}" y1="${T}" y2="${H - B}" stroke="#8a5a9e" stroke-width="1.2" stroke-dasharray="2 3"/><text x="${X(x) + 3}" y="${T + 9}" font-size="10" fill="#8a5a9e">${esc(l.pop.split(' ')[0] + ' ' + l.to)}</text>`; });
+  const id = 'ct' + (++lineChart.n); lineChart.reg[id] = weightTips(ov, true).filter(t => t.x >= x0).map(t => ({ sx: X(t.x), sy: Y(t.y), html: t.html }));
+  g += `<g class="tipg" style="display:none"><line y1="${T}" y2="${H - B}" stroke="#1478d4" stroke-width="1" stroke-dasharray="2 3"/><circle r="5.5" fill="#fff" stroke="#1478d4" stroke-width="2.5"/></g></svg>`;
+  return `<div class="chartw" data-tip="${id}">${g}<div class="ctip" hidden></div></div>
+    <div class="legend"><span><i style="background:#1478d4"></i>týdenní průměr</span><span><i style="background:#d97706"></i>trend 3 t${tr ? ' ' + kgTyd(tr.perWeek) + '/t' : ''}</span><span><i style="background:#9aa3b8"></i>plán ± 0,5 kg</span><span><i style="background:#a8c6e4"></i>ranní váha</span></div>`;
+}
+function circChart(s) {
+  const k = App.cgO, lab = (CIRC.find(c => c[0] === k) || [k, k])[1];
+  const ms = Meas().filter(m => m[k] != null).sort((a, b) => a.date.localeCompare(b.date));
+  if (!ms.length) return `<p class="muted small">${lab}: zatím žádné měření. Robert měří obvody v neděli.</p>`;
+  const f = ms[0]; const pts = ms.map(m => [daysBetween(s.start_date, m.date), m[k]]);
+  const tips = ms.map(m => ({ x: daysBetween(s.start_date, m.date), y: m[k], html: `<b>${DAY_SHORT[dayIndex(m.date)]} ${czDateShort(m.date)}</b><br><span class="w">${fmt1(m[k])} cm</span> ${lab.toLowerCase()}<br>${m === f ? 'první měření' : `${signed1(m[k] - f[k])} cm od ${czDateShort(f.date)}`}` }));
+  return lineChart({ series: [{ name: lab.toLowerCase() + ' (cm)', color: '#1478d4', pts, dots: true }], xLabel: '', yUnit: 'cm', h: 186, tips, xFmt: x => czDateShort(addDays(s.start_date, x)), hLine: k === 'waist' && s.goal_waist && Math.min(...ms.map(m => m[k])) - s.goal_waist <= 6 ? { y: s.goal_waist, label: 'cíl ' + s.goal_waist + ' cm', color: '#15803d' } : null })
+    + `<div class="small muted">${ms.length} ${sklon(ms.length, 'měření', 'měření', 'měření')}${k === 'waist' && s.goal_waist ? ` · cíl ${s.goal_waist} cm` : ''} · ${ms.length > 1 ? `${signed1(ms[ms.length - 1][k] - f[k])} cm od ${czDateShort(f.date)}` : 'zatím jedno'}</div>`;
+}
+/* mapa 14 dní: řádky = oblasti, sloupce = dny; červený řádek = příčina, červený sloupec = špatný den */
+function dayMap(dates) {
+  const s = S(), t = todayISO(), cil = stepsTarget(s);
+  const uid = Store.ownerId(), by = Object.fromEntries(Store.rows('days', uid).map(r => [r.data.date, r.data])); const mb = Object.fromEntries(Meas().map(m => [m.date, m]));
+  const E = Object.fromEntries(dates.map(d => [d, by[d] ? evaluateDay(d) : null]));
+  const rows = [
+    ['jidlo', '🍽️', 'Jídlo', d => { const e = E[d]; if (!e) return ['', d < t ? 'miss' : '']; if (!e.confirmed) return [d === t ? '·' : '?', d === t ? '' : 'miss']; return e.cheats.over ? ['+' + fmt0(e.cheats.over), 'bad'] : ['✓', 'ok']; }],
+    ['chuze', '🚶', 'Chůze', d => { const e = E[d]; if (!e) return ['', '']; const m = e.day.walk_min || 0, p = e.d.base.planWalk; if (d === t && m < p) return [m || '·', '']; return [m, m >= p - 5 ? 'ok' : m >= p * 0.5 ? 'warn' : 'bad']; }],
+    ['kroky', '👣', 'Kroky', d => { const e = E[d]; const bk = e ? daySteps(e.day) : null; if (bk == null) return [d < t ? '–' : '', d < t && e ? 'miss' : '']; return [fmt1(bk / 1000) + 'k', bk >= cil * 0.9 ? 'ok' : bk >= cil * 0.6 ? 'warn' : 'bad']; }],
+    ['trenink', '🏋️', 'Trénink', d => { const e = E[d]; const ap = dayActivityPlan(d); if (!(ap.items || []).length) return ['', '']; if (!e) return [d < t ? '✗' : '·', d < t ? 'bad' : '']; const B = e.d.base; return B.doneKcal >= B.planKcal * 0.5 ? ['✓', 'ok'] : [d < t ? '✗' : '·', d < t ? 'bad' : '']; }],
+    ['vaha', '⚖️', 'Váha', d => { const m = mb[d]; return m && m.weight != null ? [fmt1(m.weight), ''] : [d <= t ? '–' : '', d < t ? 'warn' : '']; }],
+    ['pocit', '🙂', 'Pocit', d => { const e = E[d]; if (!e) return ['', '']; const c = e.day.checkin || {}; const em = (FEEL_EM[c.feel] || '') + (e.day.hunger === 'vlk' ? '🐺' : '') + (c.sleep === 'spatne' ? '😴' : '') + (c.stress === 'hodne' ? '😣' : '') + (c.move === 'bolest' ? '🤕' : '');
+      return [em, c.feel === 'bad' || c.move === 'bolest' ? 'bad' : (c.sleep === 'spatne' || c.stress === 'hodne' || e.day.hunger === 'vlk') ? 'warn' : '']; }],
+  ];
+  const head = `<div class="dm-l dm-t" title="zelená sedí · červená ujela · šrafovaná chybí · ťukni na den"></div>${dates.map(d => `<button class="dm-h ${d === t ? 'dnes' : ''}" data-dt="${d}" onclick="A.coachDaySheet('${d}')" ${d > t ? 'disabled' : ''}>${DAY_SHORT[dayIndex(d)]} <b>${parseISO(d).getDate()}. ${parseISO(d).getMonth() + 1}.</b></button>`).join('')}<div class="dm-s"></div>`;
+  const body = rows.map(([rk, em, lab, f]) => { const cells = dates.map(d => [d, ...f(d)]); const done = cells.filter(c => c[2] === 'ok').length, bad = cells.filter(c => c[2] === 'bad' || c[2] === 'miss').length;
+    return `<div class="dm-l">${em} ${lab}</div>${cells.map(([d, v, c]) => `<button class="dm-c ${c} ${dayIndex(d) === 0 ? 'po' : ''}" data-dt="${d}" data-r="${rk}" onclick="A.coachDaySheet('${d}')" ${d > t ? 'disabled' : ''} title="${czDateShort(d)} · ${lab}"><span>${v}</span></button>`).join('')}<div class="dm-s">${done || bad ? `<b class="ok">${done}</b>/<b class="bad">${bad}</b>` : ''}</div>`; }).join('');
+  return `<div class="dmap d${dates.length}">${head}${body}</div>`;
 }
 
 /* den u Roberta v listu: co snědl, chůze, kroky a hlad */
+/* ---------- Období: měsíc → týden → den ----------
+   Trenér se dívá na cíle a jejich plnění: měsíc se rozpadne na týdny, týden na dny,
+   den se otevře v panelu vpravo (plán proti skutečnosti). Problémy vpravo nahoře se
+   počítají za vybrané období. Výchozí je tento týden. */
+function perRange() {
+  const p = App.per || (App.per = { lvl: 'w', start: mondayOf(todayISO()) });
+  if (p.lvl === 'm') { const days = monthDays(p.start); return { from: p.start, to: days[days.length - 1], lab: monthName(p.start) }; }
+  return { from: p.start, to: addDays(p.start, 6), lab: `${czDateShort(p.start)}–${czDateShort(addDays(p.start, 6))}` };
+}
+A.perLvl = lvl => { const t = todayISO(), p = App.per; App.per = lvl === 'm' ? { lvl, start: monthStart(p.start <= t && t <= addDays(p.start, 6) ? t : p.start) } : { lvl, start: p.lvl === 'm' && p.start.slice(0, 7) !== t.slice(0, 7) ? mondayOf(p.start) : mondayOf(t) }; render(); };
+A.perMove = dir => { const p = App.per; App.per = { lvl: p.lvl, start: p.lvl === 'm' ? addMonths(p.start, dir) : addDays(p.start, 7 * dir) }; render(); };
+A.perWeek = mon => { App.per = { lvl: 'w', start: mon }; render(); };
+function periodCard() {
+  const p = App.per, r = perRange(), t = todayISO(); const R = periodStats(r.from, r.to); const s = S();
+  const next = p.lvl === 'm' ? addMonths(p.start, 1) : addDays(p.start, 7);
+  const tile = (val, lab, cls) => `<div class="kpi"><b class="${cls || ''}">${val}</b><span>${lab}</span></div>`;
+  const ratio = (a, b) => b ? a / b : 1; const cl = (x, ok, mid) => x >= ok ? 'ok' : x >= mid ? '' : 'bad';
+  const tiles = R.empty ? '<span class="small muted">před startem plánu</span>' : ((R.wDelta != null ? tile(signed1(R.wDelta).replace('.', ','), `Ø ${fmt1(R.wAvg)} kg · plán −${fmt1(R.wPlan)}`, R.wDelta <= -R.wPlan * 0.8 ? 'ok' : 'bad') : tile(R.wAvg != null ? fmt1(R.wAvg) : '–', 'Ø váha'))
+    + tile(`${R.inLimit}<small>/${R.conf}</small>`, `v limitu${R.n - R.conf ? ` · ${R.n - R.conf} nepotvrz.` : ''}`, R.conf ? cl(ratio(R.inLimit, R.conf), 0.85, 0.6) : 'bad')
+    + tile(R.defAvg != null ? fmt0(R.defAvg) : '–', `Ø deficit · plán ${R.defPlanAvg != null ? fmt0(R.defPlanAvg) : '–'}`, R.defAvg != null ? cl(ratio(R.defAvg, R.defPlanAvg), 0.9, 0.6) : '')
+    + tile(R.walkPlan ? `${fmt0(R.walk)}<small>/${fmt0(R.walkPlan)}</small>` : '–', 'min chůze', R.walkPlan ? cl(ratio(R.walk, R.walkPlan), 0.9, 0.6) : '')
+    + tile(R.stepsAvg != null ? fmt1(R.stepsAvg / 1000) + 'k' : '–', `Ø kroky · cíl ${fmt0(stepsTarget(s) / 1000)}k`, R.stepsAvg != null ? cl(ratio(R.stepsAvg, stepsTarget(s)), 0.9, 0.6) : 'bad')
+    + tile(`${R.trDone}<small>/${R.trPlan}</small>`, 'tréninky', R.trPlan ? cl(ratio(R.trDone, R.trPlan), 0.9, 0.5) : '')
+    + tile(`${R.weigh}<small>/${R.wDays}</small>`, 'vážení', cl(ratio(R.weigh, R.wDays), 0.85, 0.5)));
+  const head = `<div class="kper"><div class="seg sm"><button class="${p.lvl === 'm' ? 'on' : ''}" onclick="A.perLvl('m')">Měsíc</button><button class="${p.lvl === 'w' ? 'on' : ''}" onclick="A.perLvl('w')">Týden</button></div>
+    <div class="row nowrap pnav"><button class="iconbtn sm" onclick="A.perMove(-1)" aria-label="předchozí">‹</button><b>${r.lab}</b><button class="iconbtn sm" onclick="A.perMove(1)" ${next > t ? 'disabled' : ''} aria-label="další">›</button></div>
+    <div class="kpis ptiles">${tiles}</div></div>`;
+  if (p.lvl === 'w') return head + dayMap(Array.from({ length: 7 }, (_, i) => addDays(r.from, i)));
+  // měsíc: řádky týdnů, klik otevře týden
+  const mons = []; for (let m = mondayOf(r.from); m <= r.to; m = addDays(m, 7)) mons.push(m);
+  const rows = mons.map(m => { const W = periodStats(m < r.from ? r.from : m, addDays(m, 6) > r.to ? r.to : addDays(m, 6)); const fut = m > t || W.empty;
+    const c = (v, cls) => `<div class="mw-c ${cls || ''}">${v}</div>`;
+    return `<button class="mw-r" onclick="A.perWeek('${m}')" ${fut ? 'disabled' : ''}><div class="mw-l">${czDateShort(m)}–${czDateShort(addDays(m, 6))}</div>`
+      + (fut ? `<div class="mw-c muted mw-all">${W.empty ? 'před startem' : 'ještě nebyl'}</div>` :
+      c(W.wAvg != null ? `${fmt1(W.wAvg)}${W.wDelta != null ? ` <small class="${W.wDelta <= -W.wPlan * 0.8 ? 'ok' : 'bad'}">${signed1(W.wDelta)}</small>` : ''}` : '–')
+      + c(`${W.inLimit}/${W.conf}`, W.conf ? (W.inLimit / W.conf >= 0.85 ? 'ok' : W.inLimit / W.conf < 0.6 ? 'bad' : '') : 'miss')
+      + c(W.defAvg != null ? fmt0(W.defAvg) : '–', W.defAvg != null ? (W.defAvg >= W.defPlanAvg * 0.9 ? 'ok' : W.defAvg < W.defPlanAvg * 0.6 ? 'bad' : '') : '')
+      + (W.walkPlan ? c(`${fmt0(W.walk)}/${fmt0(W.walkPlan)}`, W.walk >= W.walkPlan * 0.9 ? 'ok' : W.walk < W.walkPlan * 0.6 ? 'bad' : '') : c('–', 'miss'))
+      + c(W.stepsAvg != null ? fmt1(W.stepsAvg / 1000) + 'k' : '–', W.stepsAvg != null ? (W.stepsAvg >= stepsTarget(s) * 0.9 ? 'ok' : W.stepsAvg < stepsTarget(s) * 0.6 ? 'bad' : '') : 'miss')
+      + c(`${W.trDone}/${W.trPlan}`, W.trPlan ? (W.trDone >= W.trPlan ? 'ok' : 'bad') : '')
+      + c(`${W.weigh}/${W.wDays}`, W.weigh >= W.wDays * 0.85 ? 'ok' : W.weigh < W.wDays * 0.5 ? 'bad' : '')) + '</button>'; }).join('');
+  return head + `<div class="mweeks"><div class="mw-h"><div>týden</div><div>Ø váha</div><div>v limitu</div><div>Ø deficit</div><div>chůze</div><div>kroky</div><div>tréninky</div><div>vážení</div></div>${rows}</div>`;
+}
+/* ---------- Den: plán proti skutečnosti, co ho rozhodlo a co s tím ---------- */
+function dayVerdict(date) {
+  const s = S(), ev = evaluateDay(date), d = ev.d, B = d.base, day = ev.day; const out = []; let rec = '';
+  if (!ev.confirmed && date < todayISO()) out.push(['bad', 'Den nepotvrzený – jídla níž jsou plán, ne skutečnost.']);
+  const short = Math.max(0, B.planWalk - (day.walk_min || 0)), shortK = short * B.walkPerMin + Math.max(0, B.planKcal - B.doneKcal);
+  const over = ev.confirmed ? d.intake - B.maxIntake : 0;
+  if (ev.confirmed && over > dayTol(B.maxIntake)) { const mv = Math.min(over, shortK);
+    out.push(['bad', `Přes limit o ${fmt0(over)} kcal – ${mv >= over * 0.5 ? `hlavně proto, že chyběl pohyb (${fmt0(mv)} kcal)` : B.cheatKcal ? `cheat ${fmt0(B.cheatKcal)} kcal nepokrytý chůzí` : 'jídlo nad plán'}.`]);
+    rec = mv >= over * 0.5 ? `Ten den rozhodla chůze. Když mu ${DAY_NAMES[dayIndex(date)].toLowerCase()} opakovaně nevychází, dej v ten den kratší cíl nebo trénink.` : B.cheatKcal ? 'Cheat má jít do rezervy dne nebo se pokrýt chůzí navíc – appka mu to nabízí, nevyužil to.' : 'Snědl víc, než měl plán – podívej se, který chod ujel.'; }
+  else if (ev.confirmed && over < -300) { out.push(['warn', `Pod limit o ${fmt0(-over)} kcal.`]); rec = 'Jednou nevadí, opakovaně bere sval a končí hladem.'; }
+  else if (ev.confirmed) out.push(['ok', 'Jídlo v limitu.']);
+  if (short > 5) out.push([short > B.planWalk * 0.5 ? 'bad' : 'warn', `Chůze ${day.walk_min || 0} z ${B.planWalk} min (−${fmt0(short * B.walkPerMin)} kcal).`]); else if (B.planWalk) out.push(['ok', `Chůze splněná (${day.walk_min || 0} min).`]);
+  const cil = stepsTarget(s), bk = daySteps(day); if (bk == null) { if (date < todayISO()) out.push(['warn', 'Kroky nezapsané.']); } else if (bk < cil * 0.9) out.push(['warn', `Kroky ${fmt0(bk)} z ${fmt0(cil)}.`]);
+  if (B.planKcal > 0) out.push(B.doneKcal >= B.planKcal * 0.5 ? ['ok', 'Trénink odcvičený.'] : ['bad', 'Trénink vynechaný.']);
+  if (!rec && out.every(x => x[0] === 'ok')) rec = 'Den seděl.';
+  return { out, rec, ev };
+}
 A.coachDaySheet = date => openSheet(() => {
-  const ev = evaluateDay(date), d = ev.d, day = ev.day, s = S(); const m = Meas().find(x => x.date === date);
-  const steps = daySteps(getDay(date));
+  const s = S(), { out, rec, ev } = dayVerdict(date), d = ev.d, B = d.base, day = ev.day; const t = todayISO();
+  const m = Meas().find(x => x.date === date), mNext = Meas().find(x => x.date === addDays(date, 1));
+  const items = (day.act || {}).items || []; const tr = day.training || {}; const done = tr.done || {}; const log = tr.log || {};
+  const cil = stepsTarget(s), bk = daySteps(day);
+  const nav = `<div class="row between nowrap"><button class="btn ghost sm" onclick="UI.closeModal();A.coachDaySheet('${addDays(date, -1)}')">‹ ${czDateShort(addDays(date, -1))}</button>${date < t ? `<button class="btn ghost sm" onclick="UI.closeModal();A.coachDaySheet('${addDays(date, 1)}')">${czDateShort(addDays(date, 1))} ›</button>` : ''}</div>`;
+  const verdict = `<div class="card ${ev.stav === 'ok' ? 'tint-ok' : ev.stav === 'bad' ? 'tint-b' : 'tint-o'} stack s8">${out.map(([c, x]) => `<div class="small"><span class="${c}">${c === 'ok' ? '✓' : c === 'bad' ? '✗' : '!'}</span> ${esc(x)}</div>`).join('')}${rec ? `<div class="b">→ ${esc(rec)}</div>` : ''}</div>`;
+  const stats = `<div class="stats3"><div><b class="${ev.cheats.over ? 'bad' : ''}">${d.tot.kcal ? fmt0(d.intake) : '–'} <small>/ ${fmt0(B.maxIntake)}</small></b><span>snědeno / limit</span></div><div><b class="${ev.confirmed && B.totalOut - d.intake < B.deficit * 0.6 ? 'bad' : ''}">${ev.confirmed ? fmt0(B.totalOut - d.intake) : '–'} <small>/ ${fmt0(B.deficit)}</small></b><span>deficit / plán</span></div><div><b class="${d.tot.kcal && d.tot.p >= d.protTarget ? 'ok' : ''}">${d.tot.kcal ? fmt0(d.tot.p) : '–'} <small>/ ${fmt0(d.protTarget || S().protein_min)} g</small></b><span>bílkoviny</span></div></div>`;
+  const meals = `<div class="list">${d.courses.map((c, ci) => { const mm = day.meals[c.key] || {}; return `<div class="li static"><span class="ck ${mm.eaten ? 'on' : ''}">${mm.eaten ? '✓' : ''}</span><span class="em">${COURSE_EMOJI[c.key]}</span><div class="tx"><b>${esc(c.sel || 'nevybráno')}</b><span>${esc(s.courses[ci].name)} · cíl ${fmt0(c.target)} kcal${c.edited ? ' · upraveno' : ''}${c.skipped ? ' · vynechal' : ''}</span></div><span class="val k ${c.kcal > c.target * 1.15 ? 'bad' : ''}">${c.kcal ? fmt0(c.kcal) : ''}</span></div>`; }).join('')}
+    ${B.cheatKcal ? `<div class="li static cheat"><span class="ck na"></span><span class="em">🍻</span><div class="tx"><b>Cheat · ${esc(cheatPopis(day))}</b><span>${B.cheatCoverable ? `pokrýt ${B.cheatWalk} min chůze navíc` : 'větší, než jde uchodit'}</span></div><span class="val">${fmt0(B.cheatKcal)}</span></div>` : ''}</div>`;
+  const move = `<div class="list"><div class="li static"><span class="em">🚶</span><div class="tx"><b>Chůze ${day.walk_min || 0} z ${B.planWalk} min</b><span>${B.cheatWalk ? `z toho ${B.cheatWalk} min za cheat` : 'cíl dne'}</span></div><span class="val ${(day.walk_min || 0) >= B.planWalk - 5 ? 'ok' : 'bad'}">${(day.walk_min || 0) >= B.planWalk - 5 ? '✓' : '−' + (B.planWalk - (day.walk_min || 0))}</span></div>
+    <div class="li static"><span class="em">👣</span><div class="tx"><b>Kroky ${bk == null ? 'nezapsané' : fmt0(bk)}</b><span>běžná chůze · cíl ${fmt0(cil)}</span></div><span class="val ${bk != null && bk >= cil * 0.9 ? 'ok' : 'bad'}">${bk == null ? '–' : bk >= cil * 0.9 ? '✓' : Math.round(bk / cil * 100) + ' %'}</span></div>
+    ${items.map((it, i) => { const sets = ((log[i] || {}).sets || []).length; return `<div class="li static"><span class="em">🏋️</span><div class="tx"><b>${esc(itemLabel(it))}</b><span>${sets ? `odcvičeno ${sets} ${sklon(sets, 'série', 'série', 'sérií')}${it.sets ? ` z ${it.sets}` : ''}` : done[i] ? 'odškrtnuto' : 'neodcvičeno'}</span></div><span class="val ${done[i] || sets ? 'ok' : 'bad'}">${done[i] || sets ? '✓' : '✗'}</span></div>`; }).join('')}
+    ${tr.rpe ? `<div class="small muted">náročnost ${tr.rpe}/5${tr.feel ? ' · ' + esc(tr.feel) : ''}</div>` : ''}</div>`;
+  const rest = `<div class="small muted">Váha ráno ${m && m.weight != null ? fmt1(m.weight) + ' kg' : '–'} · druhý den ${mNext && mNext.weight != null ? fmt1(mNext.weight) + ' kg' : '–'}</div>
+    <div class="card stack s8"><b>Jak šel den</b>${checkinSummary(day) ? `<div>${esc(checkinSummary(day))}</div>` : '<div class="small muted">Nevyplnil.</div>'}${(day.checkin || {}).note ? `<div class="bubble" style="background:var(--p-bg)"><div>„${esc(day.checkin.note)}“</div></div>` : ''}</div>`;
   return UI.sheetHtml(`${DAY_NAMES[dayIndex(date)]} ${czDateShort(date)}`, ev.stav === 'ok' ? 'potvrzený · den seděl' : ev.stav === 'bad' ? 'potvrzený · den neseděl' : ev.stav === 'dnes' ? 'probíhá' : 'nepotvrzený – níž je jen plán',
-    `<div class="stats"><div class="stat"><b class="${ev.cheats.over ? 'bad' : ''}">${d.tot.kcal ? fmt0(d.intake) : '–'} <small>/ ${fmt0(d.base.maxIntake)}</small></b><span>kcal z limitu</span></div><div class="stat"><b class="${d.tot.p >= d.protTarget ? 'ok' : ''}">${fmt0(d.tot.p)} <small>g</small></b><span>bílkoviny</span></div><div class="stat"><b>${day.walk_min || 0} <small>min</small></b><span>chůze</span></div><div class="stat"><b>${steps == null ? '–' : fmt0(steps)}</b><span>kroků · cíl ${fmt0(stepsTarget(s))}</span></div></div>
-    <div class="list">${d.courses.map((c, ci) => `<div class="li static"><span class="ck ${(day.meals[c.key] || {}).eaten ? 'on' : ''}">${(day.meals[c.key] || {}).eaten ? '✓' : ''}</span><span class="em">${COURSE_EMOJI[c.key]}</span><div class="tx"><b>${esc(c.sel || 'nevybráno')}</b><span>${esc(s.courses[ci].name)}${c.edited ? ' · upraveno' : ''}</span></div><span class="val k">${c.kcal ? fmt0(c.kcal) : ''}</span></div>`).join('')}
-      ${d.base.cheatKcal ? `<div class="li static cheat"><span class="ck na"></span><span class="em">🍻</span><div class="tx"><b>Cheat · ${esc(cheatPopis(day))}</b></div><span class="val">${fmt0(d.base.cheatKcal)}</span></div>` : ''}</div>
-    <div class="small muted">${m && m.weight != null ? `Váha ${fmt1(m.weight)} kg` : 'Bez vážení'}${day.training && day.training.rpe ? ` · trénink náročnost ${day.training.rpe}/5` : ''}</div>
-    <div class="card stack s8"><b>Jak šel den</b>${checkinSummary(day) ? `<div>${esc(checkinSummary(day))}</div>` : '<div class="small muted">Nevyplnil.</div>'}${(day.checkin || {}).note ? `<div class="bubble" style="background:var(--p-bg)"><div>„${esc(day.checkin.note)}“</div></div>` : ''}</div>`,
-    `<button class="btn sec" onclick="A.trDaySheet('${date}')">🏋️ Trénink tohoto dne</button>`);
+    `${nav}${verdict}${stats}<h3>Jídla – plán a skutečnost</h3>${meals}<h3>Pohyb</h3>${move}${rest}`,
+    `<button class="btn sec" onclick="A.trDaySheet('${date}')">🏋️ Upravit trénink dne</button>`);
 });
 /* novinky od minulé návštěvy */
 A.sinceSheet = () => { const ch = sinceLast();
@@ -88,8 +248,7 @@ A.numbersSheet = () => {
 App.coachTab = 'cile';
 VIEWS.nastaveni = function () {
   const t = App.coachTab === 'trenink' ? 'trenink' : 'cile';
-  return `<div class="ph"><div class="pt"><h1>Plán</h1></div></div>
-  <div class="seg"><button class="${t === 'cile' ? 'on' : ''}" onclick="App.coachTab='cile';render()">Cíle</button><button class="${t === 'trenink' ? 'on' : ''}" onclick="App.coachTab='trenink';render()">Trénink</button></div>
+  return `<div class="ph"><div class="pt"><h1>Plán</h1></div><div class="seg pseg"><button class="${t === 'cile' ? 'on' : ''}" onclick="App.coachTab='cile';render()">Cíle</button><button class="${t === 'trenink' ? 'on' : ''}" onclick="App.coachTab='trenink';render()">Trénink</button></div></div>
   ${t === 'cile' ? cileHtml() : VIEWS.trenink()}`;
 };
 function cileHtml() {
@@ -99,32 +258,33 @@ function cileHtml() {
   const tydny = Array.from({ length: 10 }, (_, k) => addDays(thisMon, k * 7));
   const numf = (k, unit, step) => `<div class="numf"><input type="text" inputmode="decimal" id="st_${k}" value="${s[k] >= 1000 ? fmt0(s[k]) : String(s[k]).replace('.', ',')}" onchange="A.setSetting('${k}',this.value)"><span>${unit}</span></div>`;
   const odCile = calcOverview(s, Meas()).cur - s.goal_weight;
-  if (s.maintain) return `<div class="card tint-ok stack s8"><div class="row between"><h2>Udržování</h2><span class="pill ok">cíl dosažen</span></div><div class="small muted">Deficit je nula natrvalo, limit sedí na celkovém výdeji. Tempo ${String(s.rate_pct).replace('.', ',')} % se vrátí, když udržování vypneš.</div><button class="btn sec sm" style="align-self:flex-start" onclick="A.setMaintain(false)">Vypnout udržování</button></div>${cileRest(s)}`;
-  return `<div class="card stack s8"><div class="row between"><h2>Tempo hubnutí</h2><b style="font-size:20px" id="ratep">${String(s.rate_pct).replace('.', ',')} %</b></div>
+  const [chuze, udrz, profil] = cileRest(s);
+  const grid = first => `<div class="pgrid"><div class="pcol">${first}${udrz}</div><div class="pcol">${chuze}${profil}</div></div>`;
+  if (s.maintain) return grid(`<div class="card tint-ok stack s8"><div class="row between"><h2>Udržování</h2><span class="pill ok">cíl dosažen</span></div><div class="small muted">Deficit je nula natrvalo, limit sedí na celkovém výdeji. Tempo ${String(s.rate_pct).replace('.', ',')} % se vrátí, když udržování vypneš.</div><button class="btn sec sm" style="align-self:flex-start" onclick="A.setMaintain(false)">Vypnout udržování</button></div>`);
+  return grid(`<div class="card stack s8"><div class="row between"><h2>Tempo hubnutí</h2><b style="font-size:20px" id="ratep">${String(s.rate_pct).replace('.', ',')} %</b></div>
     <input type="range" id="st_rate_pct" min="0.3" max="1.2" step="0.05" value="${s.rate_pct}" oninput="const v=this.value,w=${cw};document.getElementById('ratep').textContent=String(v).replace('.',',')+' %';document.getElementById('ratev').textContent=(Math.round(w*v)/100).toString().replace('.',',')+' kg za týden · deficit '+Math.round(w*v/100*7700/7)+' kcal/den'" onchange="A.setSetting('rate_pct',this.value)">
     <div class="small muted"><span id="ratev">${fmt2(cw * s.rate_pct / 100)} kg za týden · deficit ${fmt0(cw * s.rate_pct / 100 * KG_KCAL / 7)} kcal/den</span> · 0,5–1 % je udržitelné</div>
     ${adviceBox('rate_pct')}
-    ${odCile <= 3 ? `<div class="alert ${odCile <= 0 ? 'a3' : 'a4'}"><div>${odCile <= 0 ? 'Robert je u cíle.' : `Robert je ${fmt1(odCile)} kg od cíle.`} Udržování nastaví deficit na nulu natrvalo.</div><button class="btn sm" onclick="A.setMaintain(true)">Zapnout udržování</button></div>` : ''}</div>
-  ${cileRest(s)}`;
+    ${odCile <= 3 ? `<div class="alert ${odCile <= 0 ? 'a3' : 'a4'}"><div>${odCile <= 0 ? 'Robert je u cíle.' : `Robert je ${fmt1(odCile)} kg od cíle.`} Udržování nastaví deficit na nulu natrvalo.</div><button class="btn sm" onclick="A.setMaintain(true)">Zapnout udržování</button></div>` : ''}</div>`);
 }
 function cileRest(s) {
   const ph = phaseSuggestion(); const mw = (s.maint_weeks || []).slice().sort(); const tday = todayISO(); const thisMon = mondayOf(tday);
   const odKdy = mw.length ? mw[mw.length - 1] : s.start_date; const tydnu = Math.floor(daysBetween(odKdy, tday) / 7);
   const tydny = Array.from({ length: 10 }, (_, k) => addDays(thisMon, k * 7));
   const numf = (k, unit) => `<div class="numf"><input type="text" inputmode="decimal" id="st_${k}" value="${s[k] >= 1000 ? fmt0(s[k]) : String(s[k]).replace('.', ',')}" onchange="A.setSetting('${k}',this.value)"><span>${unit}</span></div>`;
-  return `<div class="card flush">
+  return [`<div class="card flush">
     <div class="navrow" style="cursor:default"><div class="tx"><b>Cíl chůze</b><span>denně, když den nemá trénink</span></div>${numf('walk_min', 'min')}</div>
     <div class="navrow" style="cursor:default"><div class="tx"><b>Cíl kroků</b><span>běžná chůze · faktor ${String(s.activity).replace('.', ',')} se dopočítá</span></div>${numf('steps_goal', 'kroků')}</div>
     <div class="navrow" style="cursor:default"><div class="tx"><b>Tempo chůze</b><span>fáze ${esc(calcOverview(s, Meas()).phase.split(' – ')[0])}${ph ? ` · doporučeno ${fmt1(ph.rec)} km/h` : ''}</span></div><select style="width:128px" onchange="A.setSetting('walk_kmh',this.value)">${SEED.met.map(([k, m]) => `<option value="${k}" ${k === s.walk_kmh ? 'selected' : ''}>${fmt1(k)} km/h</option>`).join('')}</select></div>
     ${adviceBox('walk_min') || adviceBox('activity') ? `<div style="padding:0 14px 12px" class="stack s8">${adviceBox('walk_min')}${adviceBox('activity')}</div>` : ''}
     ${ph ? `<div style="padding:0 14px 12px"><div class="alert a2"><div>🚶 ${esc(ph.text)}</div><button class="btn sm" onclick="A.applyPhase(${ph.rec})">Přepnout</button></div></div>` : ''}
-  </div>
-  <div class="card stack s8"><div class="row between"><h2>Udržovací týden</h2>${tydnu >= 6 ? '<span class="pill warn">je čas</span>' : ''}</div>
+  </div>`,
+  `<div class="card stack s8"><div class="row between"><h2>Udržovací týden</h2>${tydnu >= 6 ? '<span class="pill warn">je čas</span>' : ''}</div>
     <div class="chips scroll">${tydny.map(m => `<button class="chip ${mw.includes(m) ? 'on' : ''}" onclick="A.maintWeek('${m}')">${czDateShort(m)}</button>`).join('')}</div>
-    <div class="small muted">${mw.length ? `Poslední ${czDateShort(odKdy)}, od té doby ${tydnu} ${sklon(tydnu, 'týden', 'týdny', 'týdnů')} v deficitu.` : `Zatím žádný · ${tydnu} ${sklon(tydnu, 'týden', 'týdny', 'týdnů')} od startu.`} Doporučení: jeden po šesti až deseti týdnech – deficit nula, limit na celkovém výdeji.</div></div>
-  <div class="card flush">
+    <div class="small muted">${mw.length ? `Poslední ${czDateShort(odKdy)}, od té doby ${tydnu} ${sklon(tydnu, 'týden', 'týdny', 'týdnů')} v deficitu.` : `Zatím žádný · ${tydnu} ${sklon(tydnu, 'týden', 'týdny', 'týdnů')} od startu.`} Doporučení: jeden po šesti až deseti týdnech – deficit nula, limit na celkovém výdeji.</div></div>`,
+  `<div class="card flush">
     <div class="navrow" onclick="A.profileSheet()"><span class="ico">👤</span><div class="tx"><b>Profil a výchozí hodnoty</b><span>výška ${s.height} · věk ${s.age} · start ${czDateShort(s.start_date)} · cíl ${s.goal_weight} kg · bílkoviny ${s.protein_min} g</span></div><span class="chev">›</span></div>
-    <div class="navrow" onclick="A.logSheet()"><span class="ico">🕓</span><div class="tx"><b>Historie změn</b><span>${(s.log || []).length} ${sklon((s.log || []).length, 'zásah', 'zásahy', 'zásahů')} · vidíš je i v grafu váhy</span></div><span class="chev">›</span></div></div>`;
+    <div class="navrow" onclick="A.logSheet()"><span class="ico">🕓</span><div class="tx"><b>Historie změn</b><span>${(s.log || []).length} ${sklon((s.log || []).length, 'zásah', 'zásahy', 'zásahů')} · vidíš je i v grafu váhy</span></div><span class="chev">›</span></div></div>`];
 }
 /* meze, aby překlep nerozbil výpočet */
 const SET_MEZ = { height: [120, 230], age: [15, 100], activity: [1.1, 2], start_weight: [40, 400], goal_weight: [40, 400],

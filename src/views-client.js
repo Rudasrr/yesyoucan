@@ -437,7 +437,7 @@ function weightAt(s, date) { const rows = calcMeasurements(s, Meas()).filter(r =
 function downloadBlob(blob, name) { const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500); }
 
 /* ---------- SVG graf ---------- */
-function lineChart({ series, xLabel, yUnit, hLine, marks, tips, h = 260 }) {
+function lineChart({ series, xLabel, yUnit, hLine, marks, tips, xFmt, h = 260 }) {
   const W = 720, H = h, L = 44, R = 12, T = 12, B = 34;
   const all = series.flatMap(sr => sr.pts);
   if (!all.length) return '<p class="muted small">Zatím žádná data.</p>';
@@ -450,7 +450,7 @@ function lineChart({ series, xLabel, yUnit, hLine, marks, tips, h = 260 }) {
   const xt = []; const stepX = niceStep((x1 - x0) / 8); for (let v = Math.ceil(x0 / stepX) * stepX; v <= x1; v += stepX) xt.push(v);
   let g = `<svg class="chart" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" role="img">`;
   yt.forEach(v => { g += `<line x1="${L}" x2="${W - R}" y1="${Y(v)}" y2="${Y(v)}" stroke="#e6ebea"/><text x="${L - 6}" y="${Y(v) + 4}" font-size="11" fill="#7a878c" text-anchor="end">${fmtTick(v)}</text>`; });
-  xt.forEach(v => { g += `<text x="${X(v)}" y="${H - B + 16}" font-size="11" fill="#7a878c" text-anchor="middle">${fmtTick(v)}</text>`; });
+  xt.forEach(v => { g += `<text x="${X(v)}" y="${H - B + 16}" font-size="11" fill="#7a878c" text-anchor="middle">${xFmt ? xFmt(v) : fmtTick(v)}</text>`; });
   g += `<text x="${(L + W - R) / 2}" y="${H - 4}" font-size="11" fill="#7a878c" text-anchor="middle">${xLabel}</text>`;
   if (hLine) g += `<line x1="${L}" x2="${W - R}" y1="${Y(hLine.y)}" y2="${Y(hLine.y)}" stroke="${hLine.color}" stroke-dasharray="3 4"/><text x="${W - R}" y="${Y(hLine.y) - 4}" font-size="11" fill="${hLine.color}" text-anchor="end">${hLine.label}</text>`;
   series.forEach(sr => { if (!sr.pts.length) return; const d = sr.pts.map((p, i) => `${i ? 'L' : 'M'}${X(p[0]).toFixed(1)},${Y(p[1]).toFixed(1)}`).join('');

@@ -97,6 +97,15 @@ holes=sum(r[13] for r in rows)
 print('díry v rozvržení:', holes or 'žádné')
 print('interaction clicks:',clicks,'errors:',errs[:5] or 'none')
 print('výška Dnes na 390 px:', DNES_H, 'px (cíl ≤ 1 800)', 'OK' if DNES_H<=1800 else 'PŘES')
+# trenér: každá obrazovka na notebook 1366×768 (okno prohlížeče ~1366×660) bez rolování
+with sync_playwright() as p2:
+    b2=p2.chromium.launch(); pg=b2.new_page(viewport={'width':1366,'height':660},locale='cs-CZ',timezone_id='Europe/Prague'); pg.goto(URL); pg.wait_for_timeout(200); pg.evaluate(SETUP); pg.evaluate("localLogin('coach');render()")
+    vys=[]
+    for v,tab in [('klient',None),('klient','mesic'),('nastaveni','cile'),('nastaveni','trenink')]:
+        pg.evaluate(f"go('{v}')"+(";A.perLvl('m')" if tab=='mesic' else f";App.coachTab='{tab}';render()" if tab else '')); pg.wait_for_timeout(150)
+        vys.append((v+('/'+tab if tab else ''), pg.evaluate('document.documentElement.scrollHeight')))
+    b2.close()
+print('trenér na 1366×660:', ' · '.join(f'{v} {h} px' for v,h in vys), 'OK' if all(h<=662 for _,h in vys) else 'PŘES')
 print('ⓘ na obrazovce (max):', MAX_I, 'OK' if MAX_I<=1 else 'PŘES', MAX_I_WHERE)
 import re,glob
 inl=sum(len(re.findall(r'style="',open(f).read())) for f in glob.glob(os.path.join(os.path.dirname(__file__),'..','src','*.js')))

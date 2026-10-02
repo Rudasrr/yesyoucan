@@ -157,7 +157,6 @@ VIEWS.trenink = function () {
   const fut = acts.filter(x => x.dt >= t);
   const warns = [];
   const nizko = fut.filter(x => x.b.planBelowBmr); if (nizko.length) warns.push(`${nizko.length} ${sklon(nizko.length, 'den', 'dny', 'dní')} s málo pohybem (${nizko.slice(0, 4).map(x => czDateShort(x.dt)).join(', ')}${nizko.length > 4 ? '…' : ''}) – limit drží spodní hranice a deficit je menší. Přidej chůzi.`);
-  fut.forEach(x => { const mm = dayMismatch(x.dt); if (mm) warns.push(`${czDateShort(x.dt)}: Robertova jídla se ${mm.diff > 0 ? `nedojí do limitu (chybí ${fmt0(mm.diff)} kcal)` : `nevejdou (o ${fmt0(-mm.diff)} kcal víc)`} – uvidí „Dorovnat“.`); });
   if (ov.cur > 124 && fut.some(x => (x.ap.items || []).some(it => /Běh|Švihadlo|Angličák/.test(it.ex)))) warns.push('Nad 124 kg sešit nedoporučuje běh ani skoky. Nahraď chůzí do kopce nebo kolem.');
   const def = fut.reduce((a, x) => a + (x.b.minOut - x.b.planLimit), 0); const kgT = fut.length ? def / fut.length * 7 / KG_KCAL : null; const cil = w * s.rate_pct / 100;
   if (kgT != null && kgT < cil * 0.97) warns.push(`Zbytek měsíce dá −${fmt2(kgT)} kg/týden místo −${fmt2(cil)} – brzdí ho dny s málo pohybem.`);
@@ -165,15 +164,15 @@ VIEWS.trenink = function () {
   const cell = dt => { const inM = dt.slice(0, 7) === m.slice(0, 7); if (!inM) return '<div class="tm0"></div>';
     const ap = dayActivityPlan(dt); const n = (ap.items || []).length; const vyj = ap.source === 'override';
     return `<button class="tmd ${dt === t ? 'dnes' : ''} ${dt < t ? 'past' : ''} ${n ? 'tr' : ''}" onclick="A.trDaySheet('${dt}')" aria-label="${czDate(dt)}"><b>${parseISO(dt).getDate()}</b><span>${n ? '🏋️' + n : '🚶' + (ap.walk_min ?? s.walk_min)}</span>${vyj ? '<i></i>' : ''}</button>`; };
-  return `<div class="row between nowrap"><button class="iconbtn" onclick="App.trMonth=addMonths(App.trMonth,-1);render()" aria-label="předchozí měsíc">‹</button><b style="font-size:17px">${monthName(m)}</b><button class="iconbtn" onclick="App.trMonth=addMonths(App.trMonth,1);render()" aria-label="další měsíc">›</button></div>
-  <div class="card stack s8"><div class="tmgrid">${DAY_SHORT.map(d => `<div class="tmh">${d}</div>`).join('')}${grid.map(cell).join('')}</div>
+  return `<div class="pgrid tgrid"><div class="pcol"><div class="card stack s8"><div class="row between nowrap"><button class="iconbtn" onclick="App.trMonth=addMonths(App.trMonth,-1);render()" aria-label="předchozí měsíc">‹</button><b style="font-size:17px">${monthName(m)}</b><button class="iconbtn" onclick="App.trMonth=addMonths(App.trMonth,1);render()" aria-label="další měsíc">›</button></div>
+    <div class="tmgrid">${DAY_SHORT.map(d => `<div class="tmh">${d}</div>`).join('')}${grid.map(cell).join('')}</div>
     <div class="row between small muted"><span>${trenDni} ${sklon(trenDni, 'tréninkový den', 'tréninkové dny', 'tréninkových dní')} · tečka = naplánováno na datum</span></div>
-    <div class="row"><button class="btn sec sm" onclick="A.trCopyWeekSheet()">📑 Kopírovat týden</button><button class="btn sec sm" onclick="A.trCopyMonthSheet()">📑 Kopírovat měsíc</button><button class="btn ghost sm" onclick="A.trResetMonth()">↺ vrátit měsíc na šablonu</button></div></div>
-  <div class="card stack s8"><div class="row between"><h2>Měsíc</h2>${kgT != null ? `<span class="pill ${kgT >= cil * 0.97 ? 'ok' : 'warn'}">−${fmt2(kgT)} kg/týden</span>` : ''}</div>
-    ${warns.slice(0, 6).map(x => `<div class="alert a2"><div>${esc(x)}</div></div>`).join('') || '<div class="small muted">V pořádku: tempo drží cíl, jídla se vejdou.</div>'}${warns.length > 6 ? `<div class="small muted">a dalších ${warns.length - 6}…</div>` : ''}</div>
+    <div class="row"><button class="btn sec sm" onclick="A.trCopyWeekSheet()">📑 Kopírovat týden</button><button class="btn sec sm" onclick="A.trCopyMonthSheet()">📑 Kopírovat měsíc</button><button class="btn ghost sm" onclick="A.trResetMonth()">↺ vrátit měsíc na šablonu</button></div></div></div>
+  <div class="pcol"><div class="card stack s8"><div class="row between"><h2>Měsíc</h2>${kgT != null ? `<span class="pill ${kgT >= cil * 0.97 ? 'ok' : 'warn'}">−${fmt2(kgT)} kg/týden</span>` : ''}</div>
+    ${warns.slice(0, 6).map(x => `<div class="alert a2"><div>${esc(x)}</div></div>`).join('') || '<div class="small muted">V pořádku: pohyb drží tempo.</div>'}${warns.length > 6 ? `<div class="small muted">a dalších ${warns.length - 6}…</div>` : ''}</div>
   <div class="card flush"><div class="navrow" onclick="A.trInsight()"><span class="ico">📈</span><div class="tx"><b>Jak Robert cvičí</b><span>odcvičené tréninky, náročnost, zátěž u cviků</span></div><span class="chev">›</span></div>
     <div class="navrow" onclick="A.twLibrary()"><span class="ico">💾</span><div class="tx"><b>Uložené tréninky</b><span>${Workouts().length} · vložíš je do kteréhokoli dne</span></div><span class="chev">›</span></div>
-    <div class="navrow" onclick="A.exLibrary()"><span class="ico">🏋️</span><div class="tx"><b>Knihovna cviků</b><span>${Exercises().length} cviků · upravit nebo přidat</span></div><span class="chev">›</span></div></div>`;
+    <div class="navrow" onclick="A.exLibrary()"><span class="ico">🏋️</span><div class="tx"><b>Knihovna cviků</b><span>${Exercises().length} cviků · upravit nebo přidat</span></div><span class="chev">›</span></div></div></div></div>`;
 };
 
 /* ---- kopírovat den: vybrat cílové dny v kalendáři příštích 8 týdnů ---- */
