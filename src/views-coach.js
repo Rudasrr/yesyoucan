@@ -264,8 +264,16 @@ function cileHtml() {
   return grid(`<div class="card stack s8"><div class="row between"><h2>Tempo hubnutí</h2><b style="font-size:20px" id="ratep">${String(s.rate_pct).replace('.', ',')} %</b></div>
     <input type="range" id="st_rate_pct" min="0.3" max="1.2" step="0.05" value="${s.rate_pct}" oninput="const v=this.value,w=${cw};document.getElementById('ratep').textContent=String(v).replace('.',',')+' %';document.getElementById('ratev').textContent=(Math.round(w*v)/100).toString().replace('.',',')+' kg za týden · deficit '+Math.round(w*v/100*7700/7)+' kcal/den'" onchange="A.setSetting('rate_pct',this.value)">
     <div class="small muted"><span id="ratev">${fmt2(cw * s.rate_pct / 100)} kg za týden · deficit ${fmt0(cw * s.rate_pct / 100 * KG_KCAL / 7)} kcal/den</span> · 0,5–1 % je udržitelné</div>
+    ${tempoReal(s)}
     ${adviceBox('rate_pct')}
     ${odCile <= 3 ? `<div class="alert ${odCile <= 0 ? 'a3' : 'a4'}"><div>${odCile <= 0 ? 'Robert je u cíle.' : `Robert je ${fmt1(odCile)} kg od cíle.`} Udržování nastaví deficit na nulu natrvalo.</div><button class="btn sm" onclick="A.setMaintain(true)">Zapnout udržování</button></div>` : ''}</div>`);
+}
+/* Co z tempa opravdu vyjde: limit dne s cílem chůze a skutečný deficit. Když limit drží
+   spodní hranice (klidový výdej), vyšší tempo už nic nezmění – a trenér to musí vidět. */
+function tempoReal(s) {
+  const b = limitToday(s), real = b.minOut - b.planLimit, want = b.w * effSettings(s, todayISO()).rate_pct / 100;
+  if (b.planBelowBmr) return `<div class="alert a2"><div>Limit dne drží spodní hranice ${fmt0(b.bmr)} kcal (klidový výdej). Skutečný deficit ${fmt0(real)} kcal/den = −${fmt2(real * 7 / KG_KCAL)} kg/týden, ne −${fmt2(want)}. Vyšší tempo už nic nezmění – přidej chůzi nebo trénink.</div></div>`;
+  return `<div class="small muted">Limit dne <b>${fmt0(b.planLimit)} kcal</b> (s chůzí ${b.act.planWalk} min${b.planKcal ? ' a tréninkem' : ''}) · celkový výdej ${fmt0(b.minOut)} kcal</div>`;
 }
 function cileRest(s) {
   const ph = phaseSuggestion(); const mw = (s.maint_weeks || []).slice().sort(); const tday = todayISO(); const thisMon = mondayOf(tday);
@@ -274,7 +282,7 @@ function cileRest(s) {
   const numf = (k, unit) => `<div class="numf"><input type="text" inputmode="decimal" id="st_${k}" value="${s[k] >= 1000 ? fmt0(s[k]) : String(s[k]).replace('.', ',')}" onchange="A.setSetting('${k}',this.value)"><span>${unit}</span></div>`;
   return [`<div class="card flush">
     <div class="navrow" style="cursor:default"><div class="tx"><b>Cíl chůze</b><span>denně, když den nemá trénink</span></div>${numf('walk_min', 'min')}</div>
-    <div class="navrow" style="cursor:default"><div class="tx"><b>Cíl kroků</b><span>běžná chůze · faktor ${String(s.activity).replace('.', ',')} se dopočítá</span></div>${numf('steps_goal', 'kroků')}</div>
+    <div class="navrow" style="cursor:default"><div class="tx"><b>Cíl kroků</b><span>běžná chůze mimo procházku · je už ve faktoru ${String(s.activity).replace('.', ',')}, zapsané kroky limit nezvedají</span></div>${numf('steps_goal', 'kroků')}</div>
     <div class="navrow" style="cursor:default"><div class="tx"><b>Tempo chůze</b><span>fáze ${esc(calcOverview(s, Meas()).phase.split(' – ')[0])}${ph ? ` · doporučeno ${fmt1(ph.rec)} km/h` : ''}</span></div><select style="width:128px" onchange="A.setSetting('walk_kmh',this.value)">${SEED.met.map(([k, m]) => `<option value="${k}" ${k === s.walk_kmh ? 'selected' : ''}>${fmt1(k)} km/h</option>`).join('')}</select></div>
     ${adviceBox('walk_min') || adviceBox('activity') ? `<div style="padding:0 14px 12px" class="stack s8">${adviceBox('walk_min')}${adviceBox('activity')}</div>` : ''}
     ${ph ? `<div style="padding:0 14px 12px"><div class="alert a2"><div>🚶 ${esc(ph.text)}</div><button class="btn sm" onclick="A.applyPhase(${ph.rec})">Přepnout</button></div></div>` : ''}
@@ -314,7 +322,16 @@ A.setSetting = (k, v) => {
   commitSettings(d, (SET_POP[k] || k) + ' změněno', msg);
 };
 A.setMaintain = on => commitSettings({ ...S(), maintain: !!on }, on ? 'Udržování zapnuto' : 'Udržování vypnuto', on ? 'Deficit je nula – Robertův limit sedí na celkovém výdeji.' : `Zpátky na tempo ${String(S().rate_pct).replace('.', ',')} %.`);
-A.setCourseKcal = (i, v) => { const s = S(); const r = omez(v, 0, 2000); if (r.n == null) return; const courses = s.courses.map((c, j) => j === i ? { ...c, kcal: r.n } : c); commitSettings({ ...s, courses }, 'Cíl chodu změněn'); };
+/* Cíle chodů jsou PODÍL limitu dne, ne kalorie navíc: limit = celkový výdej − deficit a chody si ho dělí.
+   Dřív pole „kcal“ sváděla k myšlence, že 2 000 u snídaně přidá jídlo – jen to snídani dalo půl dne.
+   Trenér zadá procenta, ostatní chody se poměrně dorovnají do 100 % a uloží se váhy se součtem 2 450. */
+const COURSE_BASE = 2450;
+function coursePct(s) { const sum = courseTargetSum(s); return s.courses.map(c => sum ? c.kcal / sum * 100 : 0); }
+function limitToday(s) { const w = currentWeight(), t = todayISO(), act = planActFor(t, w); return { ...calcBase(effSettings(s, t), w, act.planWalk, 0, s.walk_kmh, 0, 0, act), act, w }; }
+A.setCoursePct = (i, v) => { const s = S(); const r = omez(v, 3, 60); if (r.n == null) return; if (r.mimo) UI.toast('Jeden chod může mít 3 až 60 % limitu dne.');
+  const pct = coursePct(s); const rest = pct.reduce((a, x, j) => a + (j === i ? 0 : x), 0) || 1;
+  const courses = s.courses.map((c, j) => ({ ...c, kcal: Math.round((j === i ? r.n : pct[j] * (100 - r.n) / rest) / 100 * COURSE_BASE) }));
+  commitSettings({ ...s, courses }, `${s.courses[i].name}: ${fmt0(r.n)} % limitu`); };
 A.profileSheet = () => openSheet(() => {
   const s = S();
   const f = (k, l, note) => `<div class="field"><label class="f">${l}</label><input type="text" inputmode="decimal" id="st_${k}" value="${String(s[k]).replace('.', ',')}" onchange="A.setSetting('${k}',this.value)">${note ? `<div class="hint">${note}</div>` : ''}</div>`;
@@ -325,9 +342,9 @@ A.profileSheet = () => openSheet(() => {
     <div class="grid g2">${f('goal_waist', 'Cílový pas (cm)', 'polovina výšky')}${f('protein_min', 'Bílkoviny min. (g)', `doporučeno ${Math.round(1.6 * s.goal_weight)}–${Math.round(2 * s.goal_weight)} g`)}</div>
     ${adviceBox('protein_min')}${adviceBox('goal_waist')}${adviceBox('goal_weight')}
     <div class="grid g2">${f('activity', 'Faktor běžného výdeje', 'sedavě + 5 000 kroků = 1,34')}${f('rest_sec', 'Pauza mezi sériemi (s)')}</div>
-    <h3>Cíle chodů (kcal)</h3>
-    <div class="grid g2">${s.courses.map((c, i) => `<div class="field"><label class="f">${esc(c.name)} · ${c.time}</label><input type="text" inputmode="decimal" id="st_c${i}" value="${c.kcal}" onchange="A.setCourseKcal(${i},this.value)"></div>`).join('')}</div>
-    <p class="hint">Součet ${courseTargetSum(s)} kcal. Poměr chodů určuje, jak se limit dělí mezi jídla; součet sám limit nemění.</p>${adviceBox('courses')}`);
+    <h3>Rozdělení limitu mezi chody</h3>
+    <div class="grid g2">${(() => { const pct = coursePct(s), L = limitToday(s).planLimit; return s.courses.map((c, i) => `<div class="field"><label class="f">${esc(c.name)} · ${c.time}</label><div class="numf"><input type="text" inputmode="decimal" id="st_c${i}" value="${fmt0(pct[i])}" onchange="A.setCoursePct(${i},this.value)"><span>%</span></div><div class="hint">dnes ≈ ${fmt0(L * pct[i] / 100)} kcal</div></div>`).join(''); })()}</div>
+    <p class="hint">Chody si dělí limit dne (dnes ${fmt0(limitToday(s).planLimit)} kcal). Kolik Robert sní celkem, řídí tempo a pohyb, ne tahle čísla. Ostatní chody se dorovnají do 100 %.</p>${adviceBox('courses')}`);
 });
 A.logSheet = () => { const s = S(); const log = (s.log || []).slice().reverse();
   UI.sheet('🕓 Historie změn', 'každá změna nastavení', log.length ? `<div class="list">${log.map(l => `<div class="li static"><span class="tm">${czDateShort(l.at)}</span><div class="tx"><b>${esc(l.pop)}</b><span>${esc(String(l.from).replace('.', ','))} → ${esc(String(l.to).replace('.', ','))}</span></div></div>`).join('')}</div>` : '<p class="muted">Zatím žádná změna.</p>'); };
