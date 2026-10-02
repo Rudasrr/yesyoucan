@@ -305,10 +305,10 @@ function weightWhy(from, to) {
   const lvK = k => state === 'pomalu' ? (k >= gap * 0.4 ? 1 : 2) : state === 'rychle' ? 3 : (k >= 0.1 ? 2 : 3);
   const C = []; const add = o => C.push(o);
   const nez = D.nez.length;
-  if (n && nez >= Math.min(3, n)) add({ key: 'nepotvrz', lv: nez / n >= 0.5 ? 1 : 2, em: '❓', data: true, kde: D.nez, title: `${nez} z ${n} ${DEN(n)} nepotvrzených`, sub: 'Appka nevidí, co opravdu jedl – rozbor stojí jen na potvrzených dnech. Ať večer potvrdí den.' });
+  if (n && nez >= Math.min(3, n)) add({ key: 'nepotvrz', lv: nez / n >= 0.5 ? 1 : 2, em: '❓', data: true, kde: D.nez, title: `${nez} z ${n} dnů nepotvrzených`, sub: 'Appka nevidí, co opravdu jedl – rozbor stojí jen na potvrzených dnech. Ať večer potvrdí den.' });
   const wDates = new Set(rows.map(r => r.date)); const bezVahy = []; for (let dt = from; dt <= (to < t ? to : t); dt = addDays(dt, 1)) if (!wDates.has(dt)) bezVahy.push(dt);
   const wN = span - bezVahy.length;
-  if (span >= 4 && wN < span * 0.6) add({ key: 'vazeni-malo', lv: 2, em: '⚖️', data: true, kde: bezVahy, title: `Jen ${wN} vážení za ${span} ${DEN(span)}`, sub: 'Průměr stojí na pár číslech, trend je nejistý. Vážit se každé ráno.' });
+  if (span >= 4 && wN < span * 0.6) add({ key: 'vazeni-malo', lv: 2, em: '⚖️', data: true, kde: bezVahy, title: `Jen ${wN} vážení za ${span} ${span < 5 ? 'dny' : 'dnů'}`, sub: 'Průměr stojí na pár číslech, trend je nejistý. Vážit se každé ráno.' });
   const kFood = perW(X.food, X.conf), kMove = perW(X.move, X.conf), kFloor = perW(X.floor, X.conf);
   if (D.over.length && kFood >= 0.03) add({ key: 'jidlo', lv: lvK(kFood), em: '🍽️', kg: kFood, kde: D.over, title: `Snědl víc, než měl: ${D.over.length}× přes limit`, sub: X.cheatDays ? `Z toho ${X.cheatDays}× cheat${X.beers ? ` (${X.beers} piv)` : ''}. Cheat patří do rezervy dne, ne navíc.` : 'Bez cheatu – porce nebo jídlo mimo plán. Otevři ty dny.' });
   if (D.move.length && kMove >= 0.03) { const avgW = Math.round(X.walk / X.conf), avgP = Math.round(X.walkPlan / X.conf);
@@ -350,7 +350,7 @@ function periodStats(from, to) {
   for (let dt = from; dt <= end; dt = addDays(dt, 1)) { R.n++;
     const ap = dayActivityPlan(dt); if ((ap.items || []).length) R.trPlan++;
     if (!by[dt]) continue;   // nezapsaný den: chůze se neví, ne „neušel“
-    const ev = evaluateDay(dt), B = ev.d.base; R.walkPlan += B.planWalk; R.walk += ev.day.walk_min || 0;
+    const ev = evaluateDay(dt), B = ev.d.base; if (ev.logged) { R.walkPlan += B.planWalk; R.walk += ev.day.walk_min || 0; }
     if (B.planKcal > 0 && B.doneKcal >= B.planKcal * 0.5) R.trDone++;
     const bk = daySteps(ev.day); if (bk != null) { R.stepsN++; R.steps += bk; }
     if (ev.confirmed) { R.conf++; if (ev.cheats.over) R.over++; else R.inLimit++; R.def += B.totalOut - ev.d.intake; R.defPlan += B.deficit; } }
@@ -385,7 +385,8 @@ const DIAG_SAME = { nepotvrz: ['nepotvrz'], kroky: ['kroky', 'advice:activity'],
 function diagnoza(from, to) {
   const W = weightWhy(from, to); const keys = new Set(W.causes.map(c => c.key));
   const skip = new Set(); keys.forEach(k => (DIAG_SAME[k] || []).forEach(x => skip.add(x)));
-  const sig = (!to || to >= addDays(todayISO(), -1) ? signaly() : []).filter(x => !skip.has(x.key))   // signály platí pro teď, ne pro minulé období.map(x => ({ key: x.key, lv: x.lv, em: x.em || { 1: '🔴', 2: '🟡', 3: '🟢' }[x.lv], title: x.head || x.text, sub: x.head ? x.text : '', kde: x.kde, apply: x.apply, go: x.go, label: x.label }));
+  // signály platí pro teď, ne pro minulé období
+  const sig = (!to || to >= addDays(todayISO(), -1) ? signaly() : []).filter(x => !skip.has(x.key)).map(x => ({ key: x.key, lv: x.lv, em: x.em || { 1: '🔴', 2: '🟡', 3: '🟢' }[x.lv], title: x.head || x.text, sub: x.head ? x.text : '', kde: x.kde, apply: x.apply, go: x.go, label: x.label }));
   const all = W.causes.concat(sig);
   all.sort((p, q) => (!!p.last - !!q.last) || (p.lv - q.lv) || ((q.kg || 0) - (p.kg || 0)));
   return { W, list: all, lvl: all.some(x => x.lv === 1) ? 1 : all.some(x => x.lv === 2) ? 2 : 3 };

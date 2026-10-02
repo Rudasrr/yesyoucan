@@ -125,7 +125,7 @@ function dayMap(dates) {
   const E = Object.fromEntries(dates.map(d => [d, by[d] ? evaluateDay(d) : null]));
   const rows = [
     ['jidlo', '🍽️', 'Jídlo', d => { const e = E[d]; if (!e) return ['', d < t ? 'miss' : '']; if (!e.confirmed) return [d === t ? '·' : '?', d === t ? '' : 'miss']; return e.cheats.over ? ['+' + fmt0(e.cheats.over), 'bad'] : ['✓', 'ok']; }],
-    ['chuze', '🚶', 'Chůze', d => { const e = E[d]; if (!e) return ['', '']; const m = e.day.walk_min || 0, p = e.d.base.planWalk; if (d === t && m < p) return [m || '·', '']; return [m, m >= p - 5 ? 'ok' : m >= p * 0.5 ? 'warn' : 'bad']; }],
+    ['chuze', '🚶', 'Chůze', d => { const e = E[d]; if (!e || !e.logged) return ['', '']; const m = e.day.walk_min || 0, p = e.d.base.planWalk; if (d === t && m < p) return [m || '·', '']; return [m, m >= p - 5 ? 'ok' : m >= p * 0.5 ? 'warn' : 'bad']; }],
     ['kroky', '👣', 'Kroky', d => { const e = E[d]; const bk = e ? daySteps(e.day) : null; if (bk == null) return [d < t ? '–' : '', d < t && e ? 'miss' : '']; return [fmt1(bk / 1000) + 'k', bk >= cil * 0.9 ? 'ok' : bk >= cil * 0.6 ? 'warn' : 'bad']; }],
     ['trenink', '🏋️', 'Trénink', d => { const e = E[d]; const ap = dayActivityPlan(d); if (!(ap.items || []).length) return ['', '']; if (!e) return [d < t ? '✗' : '·', d < t ? 'bad' : '']; const B = e.d.base; return B.doneKcal >= B.planKcal * 0.5 ? ['✓', 'ok'] : [d < t ? '✗' : '·', d < t ? 'bad' : '']; }],
     ['vaha', '⚖️', 'Váha', d => { const m = mb[d]; return m && m.weight != null ? [fmt1(m.weight), ''] : [d <= t ? '–' : '', d < t ? 'warn' : '']; }],

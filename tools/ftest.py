@@ -169,6 +169,9 @@ with sync_playwright() as p:
     print('seeded foods rows:', pg.evaluate("Store.db.foods.length"), 'f1 name after seed:', pg.evaluate("Foods().find(f=>f.id==='f1').name"))
     # ro mode
     pg.evaluate("go('__preview')"); print('ro class:', pg.evaluate("document.querySelector('#main').className"), 'view:', pg.evaluate("App.view")); pg.evaluate("A.togglePreview()")
+    _pr = pg.evaluate("(()=>{const r=perRange();const a=diagnoza().list, b=diagnoza(r.from,r.to).list;return [a.length+b.length, [...a,...b].every(x=>x.title && x.em)]})()")
+    print('problémy mají nadpis a ikonu:', _pr[1], '·', _pr[0])
+    if not _pr[1]: errs.append('problém bez nadpisu')
     print('trenér bez databáze a plánování jídel:', pg.evaluate("!NAV_COACH.some(x=>x[0]==='databaze') && typeof A.toggleCoachPlan==='undefined'"), '· go(databaze) →', pg.evaluate("(go('databaze'),App.view)"))
     # reload persistence
     pg.reload(); pg.wait_for_timeout(300); print('after reload profile:', pg.evaluate("Store.profile && Store.profile.role"), 'meas:', pg.evaluate("Store.db.measurements.length"))
