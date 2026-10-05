@@ -42,7 +42,7 @@ function getDay(date) {
   const r = Store.rows('days', Store.ownerId()).find(x => x.data.date === date);
   return r ? JSON.parse(JSON.stringify(r.data)) : { date, meals: {}, walk_min: null, walk_kmh: null, exercise_min: 0, beers: 0, fried_g: 0, fromPlan: true };
 }
-function saveDay(day) { const d = JSON.parse(JSON.stringify(day)); Object.values(d.meals || {}).forEach(m => { delete m.cookGrams; delete m.fromCook; }); delete d.act; Store.put('days', oid('d', day.date), d); }
+function saveDay(day) { App._sbc = null; App._sbd = null; App._stride = null; const d = JSON.parse(JSON.stringify(day)); Object.values(d.meals || {}).forEach(m => { delete m.cookGrams; delete m.fromCook; }); delete d.act; Store.put('days', oid('d', day.date), d); }
 function getWeek(monday) {
   const r = Store.rows('week_plans', Store.ownerId()).find(x => x.data.week === monday);
   return r ? JSON.parse(JSON.stringify(r.data)) : { week: monday, plan: [[null, null, null, null, null], [null, null, null, null, null], [null, null, null, null, null], [null, null, null, null, null], [null, null, null, null, null], [null, null, null, null, null], [null, null, null, null, null]] };
@@ -197,6 +197,7 @@ function renderShell() {
 /* obrazovky, které patří Robertovi – trenér je vidí jen v náhledu, ať neklikne omylem do jeho dat */
 const CLIENT_ONLY = ['dnes', 'plan', 'pokrok', 'recepty', 'suroviny'];
 function render() {
+  App._sbc = null; App._stride = null; STEPS.stride = strideM();   // průměr kroků a délka kroku se počítají znovu
   document.querySelectorAll('.popx').forEach(p => p.remove());   // nápověda nepřežije překreslení
   if (!Store.profile) { renderLogin(); return; }
   document.body.classList.remove('out'); $('#login').classList.remove('on'); $('#app').classList.add('on');

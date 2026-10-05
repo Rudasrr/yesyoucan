@@ -319,11 +319,13 @@ function weightWhy(from, to) {
   else if (D.tr.length) add({ key: 'trenink', lv: 2, em: '🏋️', kde: D.tr, title: `${D.tr.length}× vynechaný trénink`, sub: 'Plán tréninku a skutečnost se rozcházejí. Uprav dny, které mu nesedí.', go: "go('trenink')", label: 'Trénink' });
   if (kFloor >= 0.04) add({ key: 'spodni', lv: 2, em: '🧱', kg: kFloor, kde: D.floor, title: `${D.floor.length}× limit na spodní hranici jídla`, sub: 'Deficit ten den vyšel menší, než chce tempo. Přidej chůzi nebo sniž tempo.', go: "go('nastaveni')", label: 'Plán' });
   // kroky: skrytá chyba – limit je nevidí, faktor výdeje počítá s cílem
-  if (X.stepsN >= 3) { const avg = X.stepsSum / X.stepsN, k = perW(X.stepsGap, X.stepsN); const rec = factorForSteps(avg);
+  // v režimu z kroků limit skutečné kroky už započítal – nízké kroky nejsou skrytá chyba, jen menší limit
+  const autoK = stepsBaseFor(addDays(to, 1)) != null;
+  if (X.stepsN >= 3 && !autoK) { const avg = X.stepsSum / X.stepsN, k = perW(X.stepsGap, X.stepsN); const rec = factorForSteps(avg);
     const fix = Math.abs(rec - s.activity) >= 0.05 ? { apply: `A.applyAdvice(${JSON.stringify(JSON.stringify({ activity: rec })).replace(/"/g, '&quot;')})`, label: `Faktor ${String(rec).replace('.', ',')}` } : {};
     if (state !== 'rychle' && k >= 0.04) add({ key: 'kroky', lv: lvK(k), em: '👣', kg: k, kde: D.steps, title: `Kroky Ø ${fmt0(avg)} z ${fmt0(cil)}`, sub: `Výdej je o ~${fmt0(k * KG_KCAL / 7)} kcal/den nižší, než počítá limit – a limit to nevidí. Sniž faktor, nebo ať chodí víc.`, ...fix });
     if (state === 'rychle' && k <= -0.04) add({ key: 'kroky', lv: 2, em: '👣', kg: -k, title: `Chodí víc, než počítá faktor: Ø ${fmt0(avg)} kroků`, sub: 'Výdej je vyšší, než si appka myslí, deficit vychází větší. Zvedni faktor.', ...fix }); }
-  else if (n >= 5) add({ key: 'krokyzap', lv: 2, em: '👣', data: true, title: `Kroky zapsané jen ${X.stepsN}× z ${n}`, sub: 'Bez nich nejde ověřit odhad výdeje – největší skrytá chyba plánu.' });
+  else if (n >= 5 && X.stepsN < 3) add({ key: 'krokyzap', lv: 2, em: '👣', data: true, title: `Kroky zapsané jen ${X.stepsN}× z ${n}`, sub: 'Bez nich nejde ověřit odhad výdeje – největší skrytá chyba plánu.' });
   if (state === 'rychle') {
     const kU = perW(X.under, X.conf);
     if (kU >= 0.04) add({ key: 'podlimit', lv: 1, em: '🥗', kg: kU, kde: D.under, title: `Jí pod limit: ${D.under.length}× o víc než 300 kcal`, sub: 'Rychlé hubnutí bere sval a končí hladem. Ať dojídá do limitu, hlavně bílkoviny.' });
@@ -337,7 +339,7 @@ function weightWhy(from, to) {
   if (state === 'pomalu' && n >= 13 && X.conf >= n * 0.6 && rest >= 0.15) { const bmr = calcBase(s, w, 0, 0, s.walk_kmh, 0, 0).bmr; const f = Math.max(1.2, Math.round((s.activity - rest * KG_KCAL / 7 / bmr) * 100) / 100);
     const krokyFix = C.some(c => c.key === 'kroky' && c.apply);   // faktor podle kroků má přednost – dvě různá čísla by mátla
     add({ key: 'zbytek', lv: 2, em: '🔍', kg: rest, last: true, title: 'Zbytek záznamy nevysvětlí', sub: `Buď jí víc, než zapisuje (olej, pití, ochutnávky), nebo je výdej nadhodnocený o ~${fmt0(rest * KG_KCAL / 7)} kcal/den.${krokyFix ? ' Nejdřív oprav faktor podle kroků a týden počkej.' : ''}`,
-      ...(krokyFix || f >= s.activity ? {} : { apply: `A.applyAdvice(${JSON.stringify(JSON.stringify({ activity: f })).replace(/"/g, '&quot;')})`, label: `Faktor ${String(f).replace('.', ',')}` }) }); }
+      ...(krokyFix || autoK || f >= s.activity ? {} : { apply: `A.applyAdvice(${JSON.stringify(JSON.stringify({ activity: f })).replace(/"/g, '&quot;')})`, label: `Faktor ${String(f).replace('.', ',')}` }) }); }
   // jednorázový skok
   const a = pts[pts.length - 1];
   if (a && a.weight - a.avg >= 0.8) { const y = byDate[addDays(a.date, -1)] || {}, y2 = byDate[addDays(a.date, -2)] || {}; const cheat = [y, y2].some(d => d.beers || d.fried_g || (d.cheat_items || []).length);
@@ -482,13 +484,31 @@ function mismatchAlert(date) { const m = dayMismatch(date); if (!m) return ''; r
    a trenér podle vymyšlených čísel ladil faktor aktivity. */
 function stepsGoal() { return stepsTarget(S()); }   // cil urcuje trener v Planu a cilech
 function defaultSteps() { return stepsGoal(); }
-function daySteps(day) { return bezneKroky(day, S().walk_kmh); }   // běžná chůze = celkem z telefonu − zapsaná chůze
+function daySteps(day) { return bezneKroky(day, S().walk_kmh); }
+/* Průměr běžných kroků za 14 dní před datem – s ním počítá limit ráno a plán. Aspoň 5 dní se zapsanými
+   kroky, jinak null (pak platí faktor). Trenér může faktor zamknout (settings.factor_lock). */
+function stepsBaseFor(date) {
+  const s = S(); if (s.factor_lock || typeof Store === 'undefined' || !Store.profile) return null;
+  const c = App._sbc || (App._sbc = {}); if (date in c) return c[date];
+  const by = stepsDays(); const vals = [];
+  for (let k = 1; k <= 14; k++) { const d = by[addDays(date, -k)]; if (d && d.steps != null) vals.push(bezneKroky(d, s.walk_kmh)); }
+  return (c[date] = vals.length >= 5 ? Math.round(vals.reduce((a, b) => a + b, 0) / vals.length) : null);
+}
+function stepsDays() { return App._sbd || (App._sbd = Object.fromEntries(Store.rows('days', Store.ownerId()).filter(r => r.data.steps != null).map(r => [r.data.date, r.data]))); }
+/* Robertova délka kroku z Apple Health: km ÷ kroky za posledních 28 dní (aspoň 3 dny). */
+function strideM() {
+  if (App._stride) return App._stride;
+  if (typeof Store === 'undefined' || !Store.profile) return 0.75;
+  App._sbd = null; let km = 0, st = 0, n = 0; const t = todayISO();
+  Object.values(stepsDays()).forEach(d => { if (d.km > 0 && d.steps > 1000 && d.date >= addDays(t, -28)) { km += Number(d.km); st += Number(d.steps); n++; } });
+  return (App._stride = n >= 3 ? Math.min(0.95, Math.max(0.6, km * 1000 / st)) : 0.75);
+}   // běžná chůze = celkem z telefonu − zapsaná chůze
 function dayStepsTotal(day) { return day && day.steps != null ? Number(day.steps) : null; }
 A.setSteps = v => {
   const r = omez(v, 0, 80000);
   if (r.mimo) UI.toast('Kroky zapisuju v rozmezí 0 až 80 000.');
   const n = r.n;
-  Undo.run('Kroky', () => { const day = getDay(App.date); day.steps = n == null ? null : n; saveDay(day); }, () => stepsHodnoceni(daySteps(effectiveDay(App.date))));
+  Undo.run('Kroky', () => { const day = getDay(App.date); day.steps = n == null ? null : n; delete day.steps_src; saveDay(day); }, () => stepsHodnoceni(daySteps(effectiveDay(App.date))));
   render();
 };
 /* Zhodnocení dne podle kroků: nad cíl pochvala, pod cíl konkrétní cena za týden. */
@@ -516,7 +536,7 @@ function settingsAdvice() {
   const b = calcBase(s, w, s.walk_min, 0, s.walk_kmh, 0, 0);
   // kroky → faktor aktivity
   const st = stepsStat(Array.from({ length: 14 }, (_, i) => addDays(todayISO(), -i)));
-  if (st && st.n >= 5) { const rec = factorForSteps(st.avg); if (Math.abs(rec - s.activity) >= 0.05) { const dl = Math.round((rec - s.activity) * b.bmr);
+  if (s.factor_lock && st && st.n >= 5) { const rec = factorForSteps(st.avg); if (Math.abs(rec - s.activity) >= 0.05) { const dl = Math.round((rec - s.activity) * b.bmr);
     A_.push({ field: 'activity', lv: 1, text: `Běžná chůze Ø ${fmt0(st.avg)} kroků/den (${st.n} dní), faktor ${String(s.activity).replace('.', ',')} počítá s cílem ${fmt0(stepsTarget(s))}. ${rec < s.activity ? `Výdej je nadhodnocený o ~${fmt0(-dl)} kcal/den – Robert by mohl hubnout pomaleji, než čekáš, nebo přibírat.` : `Výdej je podhodnocený o ~${fmt0(dl)} kcal/den – Robert je ve větším deficitu, než chceš.`} Doporučení: faktor ${String(rec).replace('.', ',')} (limit ${dl > 0 ? '+' : ''}${fmt0(dl)} kcal/den).`, apply: { activity: rec }, label: `Nastavit ${String(rec).replace('.', ',')}` }); }
     else A_.push({ field: 'activity', lv: 3, text: `Běžná chůze Ø ${fmt0(st.avg)} kroků/den sedí s faktorem ${String(s.activity).replace('.', ',')}.` }); }
   // tempo
@@ -554,8 +574,8 @@ const HELP = {
   udrzovani: { t: 'Udržování', co: 'Natrvalo deficit nula – Robert jí na úrovni výdeje.', kdy: 'U cílové váhy. Appka to připomene 2 kg před cílem.' },
   chuze: { t: 'Chůze denně', co: 'Kolik minut cílené chůze má Robert ujít ve dnech, které nemají vlastní plán v Tréninku. Každá minuta zvedá limit dne.', kdy: 'Když ji opakovaně neplní, nastav, co reálně ujde – jinak jí podle plánu víc, než spálí.', tip: '45–75 minut.' },
   tempoChuze: { t: 'Tempo chůze', co: 'Rychlost chůze. Rychlejší chůze spálí víc za minutu.', tip: 'Fáze podle váhy ti řekne, kdy přidat.' },
-  kroky: { t: 'Běžné kroky', co: 'Chůze mimo procházku – doma, v práci, nákup. Je už započítaná ve faktoru výdeje, takže zapsané kroky limit nezvedají.', kdy: 'Nastav podle toho, kolik Robert opravdu chodí. Appka podle toho upraví faktor.', tip: 'Když zapisuje výrazně méně, sniž cíl (nebo faktor) – jinak hubne pomaleji, než plán čeká.' },
-  faktor: { t: 'Faktor běžného výdeje', co: 'Kolikrát běžný den bez cílené chůze převýší klidový výdej. 1,2 sedavě · 1,34 = 5 000 kroků · 1,48 = 9 000 a víc.', kdy: 'Podle zapsaných kroků – appka doporučí číslo a nabídne tlačítko.' },
+  kroky: { t: 'Cíl běžných kroků', co: 'Kolik kroků mimo procházku chceš, aby Robert dělal (doma, v práci, nákup). Je to tvůj cíl – limit jídla ale počítá s jeho skutečnými kroky, ne s cílem.', kdy: 'Zvedej postupně o 1 000, až ho dva týdny plní.', tip: 'Každých 1 000 kroků navíc ≈ 60 kcal jídla navíc při stejném deficitu.' },
+  faktor: { t: 'Běžný výdej', co: 'Kolik Robert spálí za běžný den bez procházky. Appka ho počítá z jeho kroků: klidový výdej × 1,2 + běžné kroky × kcal na krok. Ráno s průměrem 14 dní, večer se skutečností.', kdy: 'Ručně (zamčený faktor) jen když kroky chybí nebo jim nevěříš – v Nastavení.', tip: 'Bez kroků (méně než 5 dní za 14) platí faktor: 1,2 sedavě · 1,34 = 5 000 kroků.' },
   limit: { t: 'Limit dne', co: 'Kolik má Robert sníst a vypít: celkový výdej (klidový + běžný + chůze + trénink) mínus deficit z tempa. Nikdy pod 85 % klidového výdeje – to je pojistka appky.', tip: 'Mění ho tempo a pohyb. Rozpis krok po kroku je pod tlačítkem „Jak se limit počítá“.' },
   bilkoviny: { t: 'Bílkoviny', co: 'Minimum bílkovin za den. Při hubnutí chrání sval a sytí.', tip: '1,6–2 g na kg cílové váhy.' },
   chody: { t: 'Rozdělení mezi chody', co: 'Jak se limit dne dělí mezi jídla. Kolik Robert sní celkem, to nemění.', tip: 'Hlavní jídla 20–30 %, svačiny a druhá večeře 5–20 %.' },

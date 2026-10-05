@@ -65,7 +65,7 @@ function dayActivityPlan(date) {
   const pl = activePlanFor(date); if (pl) return { ...pl.days[dayIndex(date)], source: 'plan', planName: pl.name };
   return { walk_min: S().walk_min, walk_kmh: S().walk_kmh, items: [], source: 'default' };
 }
-function planActFor(date, weight) { const ap = dayActivityPlan(date); return { planWalk: ap.walk_min != null ? Number(ap.walk_min) : S().walk_min, planKcal: sessionKcal(ap.items || [], weight), items: ap.items || [] }; }
+function planActFor(date, weight) { const ap = dayActivityPlan(date); return { planWalk: ap.walk_min != null ? Number(ap.walk_min) : S().walk_min, planKcal: sessionKcal(ap.items || [], weight), items: ap.items || [], stepsBase: stepsBaseFor(date) }; }
 function weekActs(monday, weight) { return Array.from({ length: 7 }, (_, i) => planActFor(addDays(monday, i), weight)); }
 /* act pro calcBase z plánu + splnění zapsaného ve dni */
 function dayAct(date, day, weight) {
@@ -74,7 +74,9 @@ function dayAct(date, day, weight) {
   const planKcal = sessionKcal(items, weight);
   const doneKcal = items.reduce((a, it, i) => a + (done[i] ? itemKcal(it, weight) : 0), 0);
   const doneAll = items.length > 0 && items.every((_, i) => done[i]);
-  return { planWalk: ap.walk_min != null ? Number(ap.walk_min) : S().walk_min, planKcal, doneKcal, planItems: items.length, doneAll, items, source: ap.source, note: ap.note, walk_kmh: ap.walk_kmh };
+  const sb = stepsBaseFor(date);
+  return { planWalk: ap.walk_min != null ? Number(ap.walk_min) : S().walk_min, planKcal, doneKcal, planItems: items.length, doneAll, items, source: ap.source, note: ap.note, walk_kmh: ap.walk_kmh,
+    stepsBase: sb, stepsReal: sb != null && day && day.steps != null ? bezneKroky(day, S().walk_kmh) : null };
 }
 
 /* ===== Hlídání tempa (trenér) ===== */

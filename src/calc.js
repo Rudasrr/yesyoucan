@@ -5,6 +5,11 @@ const BEER_KCAL = 205;      // kcal za 0,5 l 12°  (Dnešní den!E24*205)
 const FRIED_KCAL_G = 2.9;   // kcal/g smaženého  (Dnešní den!E25*2.9)
 const KG_KCAL = 7700;
 const FLOOR_PCT = 0.85;   // spodní hranice jídla = 85 % klidového výdeje
+/* Běžný výdej z kroků (5. 10. 2026): sedavý den = klidový výdej × 1,2, každý krok běžné chůze přidá
+   kcalPerStep. Pro 5 000 kroků to dá ≈ 1,33 – skoro přesně dnešní faktor 1,34, jen plynule a ze skutečnosti.
+   STEPS.stride = Robertova délka kroku z Apple Health (km ÷ kroky), dokud není, 0,75 m. */
+const SED = 1.2;
+const STEPS = { stride: 0.75 };
 const COURSE_KEYS = ['snidane', 'obed', 'svacina', 'vecere1', 'vecere2'];
 
 const fmt0 = n => Math.round(n).toLocaleString('cs-CZ');
@@ -64,7 +69,11 @@ function metFor(kmh, met) {
 function calcBase(s, weight, walkMin, exerMin, walkKmh, beers, friedG, act, extraKcal, cheatText) {
   act = act || {};                       // { planWalk, planKcal, doneKcal }  – z tréninkového plánu
   const bmr = 10 * weight + 6.25 * s.height - 5 * s.age + 5;
-  const baseOut = bmr * s.activity;
+  /* act.stepsBase = průměr běžných kroků za 14 dní (ráno a pro plán), act.stepsReal = dnešní skutečnost
+     (až Robert kroky zapíše nebo přijdou z Apple Health). Bez dat o krocích platí faktor jako ve sešitu. */
+  const kps = kcalPerStep(weight), autoSteps = act.stepsBase != null;
+  const baseOut = autoSteps ? bmr * SED + act.stepsBase * kps : bmr * s.activity;
+  const baseOutReal = autoSteps && act.stepsReal != null ? bmr * SED + act.stepsReal * kps : baseOut;
   const kmh = walkKmh || s.walk_kmh;
   const walkPerMin = (metFor(kmh, s.met) - 1) * 3.5 * weight / 200;
   const exerPerMin = 2.5 * 3.5 * weight / 200;
@@ -80,7 +89,7 @@ function calcBase(s, weight, walkMin, exerMin, walkKmh, beers, friedG, act, extr
   const planWalk = planWalkBase + cheatWalk;
   const cheatCovered = cheatWalk * walkPerMin;
   const cheatRest = Math.max(0, cheatKcal - cheatCovered);
-  const totalOutRaw = baseOut + (walkMin || 0) * walkPerMin + (exerMin || 0) * exerPerMin + (act.doneKcal || 0);
+  const totalOutRaw = baseOutReal + (walkMin || 0) * walkPerMin + (exerMin || 0) * exerPerMin + (act.doneKcal || 0);
   const minOut = baseOut + planWalk * walkPerMin + (act.planKcal || 0);
   const deficit = weight * s.rate_pct / 100 * KG_KCAL / 7;
   const maxIntakeRaw = totalOutRaw - deficit, planLimitRaw = minOut - deficit;
@@ -93,7 +102,7 @@ function calcBase(s, weight, walkMin, exerMin, walkKmh, beers, friedG, act, extr
   const walkToBmr = belowBmr ? Math.ceil((floor - maxIntakeRaw) / walkPerMin) : 0;
   const drinkKcal = cheatKcal;
   const foodBudget = Math.max(600, planLimit - drinkKcal);
-  return { bmr, floor, baseOut, cheatPopis: cheatText || '', walkPerMin, exerPerMin, totalOut: totalOutRaw, minOut, deficit, maxIntake, maxIntakeRaw, planLimit, drinkKcal, foodBudget, kmh, planWalk, planWalkBase, cheatKcal, cheatWalk, cheatWalkFull, cheatCovered, cheatRest, cheatCoverable, belowBmr, planBelowBmr, walkToBmr, effDeficit: totalOutRaw - maxIntake, planKcal: act.planKcal || 0, doneKcal: act.doneKcal || 0 };
+  return { bmr, floor, baseOut, baseOutReal, autoSteps, stepsBase: autoSteps ? act.stepsBase : null, stepsReal: autoSteps ? act.stepsReal : null, effFactor: baseOut / bmr, kps, cheatPopis: cheatText || '', walkPerMin, exerPerMin, totalOut: totalOutRaw, minOut, deficit, maxIntake, maxIntakeRaw, planLimit, drinkKcal, foodBudget, kmh, planWalk, planWalkBase, cheatKcal, cheatWalk, cheatWalkFull, cheatCovered, cheatRest, cheatCoverable, belowBmr, planBelowBmr, walkToBmr, effDeficit: totalOutRaw - maxIntake, planKcal: act.planKcal || 0, doneKcal: act.doneKcal || 0 };
 }
 /* ===== Tolerance dne =====
    O kolik smi den prelezt limit, aniz to appka hlasi jako chybu. Dve veci ji urcuji:
@@ -191,7 +200,7 @@ function kcalPerStep(weight) { return (2.8 * 3.5 * weight / 200) / 110; }
    chůze odečte (délka kroku 0,75 m → při 5 km/h asi 111 kroků za minutu). Dřív se
    porovnávalo celé číslo z telefonu s cílem běžné chůze a hodinová procházka ho
    nafoukla o šest tisíc kroků. */
-function stepsPerMin(kmh) { return (Number(kmh) || 5) * 1000 / 60 / 0.75; }
+function stepsPerMin(kmh) { return (Number(kmh) || 5) * 1000 / 60 / (STEPS.stride || 0.75); }
 function walkSteps(day, kmhDefault) { return Math.round((Number(day && day.walk_min) || 0) * stepsPerMin((day && day.walk_kmh) || kmhDefault)); }
 function bezneKroky(day, kmhDefault) { if (!day || day.steps == null) return null; return Math.max(0, Math.round(Number(day.steps) - walkSteps(day, kmhDefault))); }
 function stepsMiss(s, day, weight) {
@@ -262,7 +271,9 @@ function calcDay(s0, foods, recipes, day, weight) {
   else checks.push({ name: 'Chůze', state: 2, label: 'OK', text: `OK – ušel jsi ${wm} minut (cíl ${wt}) při ${fmt1(base.kmh)} km/h = ${fmt0(wm * base.walkPerMin)} kcal` });
   /* Bezna chuze: hlasi se jen kdyz Robert neco zapsal a je to pod cilem trenera. */
   const sm = stepsMiss(s, day, weight);
-  if (sm) checks.push({ name: 'B\u011b\u017en\u00e1 ch\u016fze', state: 1, label: 'M\u00e1lo krok\u016f',
+  if (sm && base.autoSteps) checks.push({ name: 'Běžná chůze', state: 1, label: 'Málo kroků',
+    text: `Ušel jsi ${fmt0(sm.real)} běžných kroků, cíl je ${fmt0(sm.cil)}. Limit dne se podle skutečných kroků upravil – o ${fmt0(Math.max(0, (base.stepsBase - sm.real) * base.kps))} kcal méně než s tvým průměrem. Víc kroků = víc jídla, deficit zůstává.` });
+  else if (sm) checks.push({ name: 'B\u011b\u017en\u00e1 ch\u016fze', state: 1, label: 'M\u00e1lo krok\u016f',
     text: `U\u0161el jsi ${fmt0(sm.real)} z ${fmt0(sm.cil)} krok\u016f, chyb\u00ed ${fmt0(sm.chybi)}. Limit jsi m\u011bl spo\u010d\u00edtan\u00fd na ${fmt0(sm.cil)} krok\u016f, tak\u017ee ti dnes uteklo ${fmt0(sm.kcal)} kcal z v\u00fddeje. Kdyby to tak bylo cel\u00fd t\u00fdden, ubere to ${fmt2(sm.kgTyden)} kg z t\u00fddenn\u00edho \u00fabytku. Nen\u00ed to cilena ch\u016fze nav\u00edc \u2013 jen se v\u00edc hejbat b\u011bhem dne.` });
   if (day.act && day.act.planItems) checks.push({ name: 'Trénink', state: day.act.doneAll ? 2 : (day.act.doneKcal ? 3 : 1), label: day.act.doneAll ? 'Hotovo' : (day.act.doneKcal ? 'Rozdělané' : 'Čeká'), text: day.act.doneAll ? `OK – splněno, ${fmt0(day.act.doneKcal)} kcal` : (day.act.doneKcal ? `částečně (${fmt0(day.act.doneKcal)} z ${fmt0(day.act.planKcal)} kcal)` : `čeká – ${day.act.planItems} ${day.act.planItems === 1 ? 'položka' : 'položky'}, ~${fmt0(day.act.planKcal)} kcal`) });
   if (base.belowBmr) checks.push({ name: 'Spodní hranice', state: 1, label: 'Drží hranice', text: `Zatím máš málo cíleného pohybu, takže by ti limit vyšel pod spodní hranici ${fmt0(base.floor)} kcal (85 % toho, co tělo spálí v klidu). Níž jídlo nepouštím, aby ses nevyčerpal a vydržel. Chůze klidový výdej nezvedá, zvedá celkový výdej – a s ním limit: prvních ${base.walkToBmr} minut se limit ještě nehne, od té doby ti každá minuta přidá ${fmt0(base.walkPerMin)} kcal. Dokud limit drží hranice, je tvůj dnešní deficit menší než plánovaný, takže hubnutí jede pomaleji.` });

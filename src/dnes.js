@@ -268,8 +268,12 @@ A.stepsSheet = () => openSheet(() => {
     `<div class="field"><label class="f">Kroky dnes celkem – číslo z telefonu nebo hodinek${hq('rKroky')}</label>${stepper('steps-in', tot == null ? '' : tot, 500, 0, 80000, 'A.setSteps(this.value)', 'kroků')}</div>
      <p class="small muted">${day.walk_min ? `Tvoje chůze ${day.walk_min} min je zhruba ${fmt0(wk)} kroků – ty odečtu, cíl je běžná chůze mimo ni (schody, práce, nákup).` : 'Zapiš celé číslo. Až zapíšeš i chůzi v minutách, její kroky odečtu – cíl je běžná chůze mimo ni.'}</p>
      ${real == null ? '' : `<div class="stats3"><div><b>${fmt0(tot)}</b><span>celkem</span></div><div><b>−${fmt0(wk)}</b><span>chůze</span></div><div><b class="${splneno ? 'ok' : 'warn'}">${fmt0(real)}</b><span>běžná · cíl ${fmt0(cil)}</span></div></div>
-       ${splneno ? `<div class="alert a3"><div>${real > cil ? `O ${fmt0(real - cil)} kroků nad cíl – ${fmt0((real - cil) * kcalPerStep(w2))} kcal navrch.` : 'Cíl splněný.'}</div></div>`
-         : `<div class="alert a2"><div>Chybí ${fmt0(sm.chybi)} kroků běžné chůze – ${fmt0(sm.kcal)} kcal z výdeje. Celý týden takhle by ubral <b>${fmt2(sm.kgTyden)} kg</b> z úbytku.</div></div>`}`}`);
+       ${(() => { const act = effectiveDay(App.date).act || {}; if (act.stepsBase == null) return '';
+         const dk = (real - act.stepsBase) * kcalPerStep(w2); return `<div class="alert ${dk >= 0 ? 'a3' : 'a2'}"><div>Limit dne <b>${dk >= 0 ? '+' : '−'}${fmt0(Math.abs(dk))} kcal</b> proti tvému průměru ${fmt0(act.stepsBase)} kroků. Víc kroků = víc jídla, deficit zůstává.</div></div>`; })()}
+       ${splneno ? `<div class="alert a3"><div>${real > cil ? `O ${fmt0(real - cil)} kroků nad cíl trenéra.` : 'Cíl trenéra splněný.'}</div></div>`
+         : (effectiveDay(App.date).act || {}).stepsBase != null ? `<div class="small muted">Do cíle trenéra ${fmt0(cil)} chybí ${fmt0(sm.chybi)} kroků.</div>`
+         : `<div class="alert a2"><div>Chybí ${fmt0(sm.chybi)} kroků běžné chůze – ${fmt0(sm.kcal)} kcal z výdeje. Celý týden takhle by ubral <b>${fmt2(sm.kgTyden)} kg</b> z úbytku.</div></div>`}`}
+     ${day.steps_src === 'health' ? `<div class="small muted">📲 Z Apple Health${day.km ? ` · ${fmt1(day.km)} km` : ''} · ${new Date(day.steps_at).toLocaleTimeString('cs-CZ', { hour: '2-digit', minute: '2-digit' })}</div>` : ''}`);
 });
 
 /* ---- potvrzení dne: výchozí „jedl jsem podle plánu“, výjimky se opraví ťuknutím ----

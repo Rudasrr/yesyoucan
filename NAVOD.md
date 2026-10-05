@@ -145,6 +145,22 @@ npx --yes supabase@latest db query --linked --project-ref $SUPABASE_REF -f /tmp/
 
 Zkouška bez čekání na čas: `curl -s -H "x-cron-secret: $CRON_SECRET" "$SUPABASE_URL/functions/v1/remind?test=1"` – každému přihlášenému zařízení přijde „Připomínky fungují ✓“. Robert si připomínky zapne v **Více → Nastavení → Připomínky** (na iPhonu musí mít appku přidanou na plochu a otevřít ji odtamtud).
 
+## A10. Kroky z Apple Health (Zkratka na Robertově iPhonu, jednou)
+
+Appka nemůže číst Apple Health sama, posílá je tam **Zkratka** z Robertova iPhonu. Klíč (`HEALTH_TOKEN`) je v `~/.yesyoucan.env` – do zkratky ho opiš, nikam jinam ho neposílej. Robertovi pomoz zkratku vytvořit při setkání.
+
+1. **Zkratky → + → nová zkratka „YesYouCan kroky“:**
+   - *Najít vzorky zdraví* · Typ **Kroky** · Datum začátku **je dnes**
+   - *Vypočítat statistiku* · **Součet** (výsledek pojmenuj „Kroky“)
+   - *Najít vzorky zdraví* · Typ **Vzdálenost chůze a běhu** · Datum začátku **je dnes**
+   - *Vypočítat statistiku* · **Součet** (pojmenuj „Km“; zkontroluj, že je v kilometrech)
+   - *Aktuální datum* → *Formátovat datum* · Vlastní formát `yyyy-MM-dd`
+   - *Získat obsah URL* · `https://reizexthhcyemkpplvmt.supabase.co/functions/v1/health` · Metoda **POST** · Záhlaví `x-health-token` = klíč · Tělo **JSON**: `date` = formátované datum, `steps` = Kroky, `km` = Km
+2. **Zkratky → Automatizace → +** → *Denní čas* **20:00**, každý den, **Spustit okamžitě** → zkratka „YesYouCan kroky“. Druhou stejnou na **23:50** (konečné číslo dne).
+3. Zkouška: spusť zkratku ručně – v appce u kroků uvidí Robert „📲 Z Apple Health“.
+
+Co appka s kroky dělá: od procházky odečte kroky podle Robertovy délky kroku (z km), zbytek je běžná chůze. Limit jídla ráno počítá s jeho průměrem za 14 dní a večer se dopočítá podle skutečnosti (každých 1 000 kroků ≈ 60 kcal). Cíl kroků v Plánu je tvůj cíl – porovnává se, limit s ním nepočítá. Pevný faktor (Nastavení → Běžný výdej) zapni jen, když kroky chybí nebo jim nevěříš.
+
 ## A8. Jak appku používáš ty (trenér)
 
 Tři záložky: **Přehled · Plán · Trénink**. Pod kolečkem **T** je ⚙︎ Nastavení (výška, věk, start, faktor, pauza mezi sériemi, účet), Pohled Roberta a Návod. U všeho, co není jasné z názvu, je **?** – ťukni a uvidíš, co to dělá, kdy to použít a doporučení.
