@@ -555,7 +555,7 @@ const HELP = {
   tempoChuze: { t: 'Tempo chůze', co: 'Rychlost chůze. Rychlejší chůze spálí víc za minutu.', tip: 'Fáze podle váhy ti řekne, kdy přidat.' },
   kroky: { t: 'Běžné kroky', co: 'Chůze mimo procházku – doma, v práci, nákup. Je už započítaná ve faktoru výdeje, takže zapsané kroky limit nezvedají.', kdy: 'Nastav podle toho, kolik Robert opravdu chodí. Appka podle toho upraví faktor.', tip: 'Když zapisuje výrazně méně, sniž cíl (nebo faktor) – jinak hubne pomaleji, než plán čeká.' },
   faktor: { t: 'Faktor běžného výdeje', co: 'Kolikrát běžný den bez cílené chůze převýší klidový výdej. 1,2 sedavě · 1,34 = 5 000 kroků · 1,48 = 9 000 a víc.', kdy: 'Podle zapsaných kroků – appka doporučí číslo a nabídne tlačítko.' },
-  limit: { t: 'Limit dne', co: 'Kolik má Robert sníst a vypít: celkový výdej (klidový + běžný + chůze + trénink) mínus deficit z tempa. Nikdy pod klidový výdej.', tip: 'Mění ho tempo a pohyb. Rozdělení mezi chody ho nemění.' },
+  limit: { t: 'Limit dne', co: 'Kolik má Robert sníst a vypít: celkový výdej (klidový + běžný + chůze + trénink) mínus deficit z tempa. Nikdy pod klidový výdej – to je pojistka appky.', tip: 'Mění ho tempo a pohyb. Rozpis krok po kroku je pod tlačítkem „Jak se limit počítá“.' },
   bilkoviny: { t: 'Bílkoviny', co: 'Minimum bílkovin za den. Při hubnutí chrání sval a sytí.', tip: '1,6–2 g na kg cílové váhy.' },
   chody: { t: 'Rozdělení mezi chody', co: 'Jak se limit dne dělí mezi jídla. Kolik Robert sní celkem, to nemění.', tip: 'Hlavní jídla 20–30 %, svačiny a druhá večeře 5–20 %.' },
   // trenér · Trénink

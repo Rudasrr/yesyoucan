@@ -300,7 +300,7 @@ VIEWS.nastaveni = function () {
     ${adviceBox('activity')}${adviceBox('walk_min')}
     <div class="res">→ chůze ${s.walk_min} min ≈ <b>${fmt0(s.walk_min * b.walkPerMin)} kcal/den</b> · dny s tréninkem mají vlastní chůzi <button class="btn ghost sm" onclick="go('trenink')">Trénink ›</button></div></div>`;
   const jidlo = `<div class="card pblk"><h3>🍽️ Jídlo</h3>
-    <div class="res ${b.planBelowBmr ? 'warn' : 'okk'}">Limit dne <b>${fmt0(L)} kcal</b>${hq('limit')}<br><span class="small">výdej ${fmt0(b.minOut)} − deficit ${fmt0(b.deficit)}${b.planBelowBmr ? ` → drží ho spodní hranice ${fmt0(b.bmr)} (klidový výdej). Skutečný deficit ${fmt0(real)} kcal = −${fmt2(real * 7 / KG_KCAL)} kg/týden, ne −${fmt2(want)}. Vyšší tempo nic nezmění – přidej pohyb.` : ` · nikdy pod klidový výdej ${fmt0(b.bmr)}`}</span></div>
+    <div class="res ${b.planBelowBmr ? 'warn' : 'okk'}">Limit dne <b>${fmt0(L)} kcal</b>${hq('limit')} <button class="btn ghost sm" onclick="A.limitSheet()">jak se počítá ›</button><br><span class="small">výdej ${fmt0(b.minOut)} − deficit ${fmt0(b.deficit)}${b.planBelowBmr ? ` → drží ho spodní hranice ${fmt0(b.bmr)} (klidový výdej). Skutečný deficit ${fmt0(real)} kcal = −${fmt2(real * 7 / KG_KCAL)} kg/týden, ne −${fmt2(want)}. Vyšší tempo nic nezmění – přidej pohyb.` : ` · nikdy pod klidový výdej ${fmt0(b.bmr)}`}</span></div>
     ${frow('Bílkoviny min.', 'bilkoviny', numf(s, 'protein_min', 'g'), `doporučeno ${Math.round(1.6 * s.goal_weight)}–${Math.round(2 * s.goal_weight)} g`)}
     ${adviceBox('protein_min')}
     <div class="fl"><b>Rozdělení limitu mezi jídla${hq('chody')}</b></div>
@@ -348,6 +348,32 @@ A.setCoursePct = (i, v) => { const s = S(); const r = omez(v, 3, 60); if (r.n ==
   const pct = coursePct(s); const rest = pct.reduce((a, x, j) => a + (j === i ? 0 : x), 0) || 1;
   const courses = s.courses.map((c, j) => ({ ...c, kcal: Math.round((j === i ? r.n : pct[j] * (100 - r.n) / rest) / 100 * COURSE_BASE) }));
   commitSettings({ ...s, courses }, `${s.courses[i].name}: ${fmt0(r.n)} % limitu`); };
+/* Jak se limit počítá – krok po kroku s Robertovými čísly a proč tělo nestrádá.
+   Číslo pod číslem, ať trenér vidí, kde se limit bere a co s ním který knoflík udělá. */
+A.limitSheet = () => openSheet(() => {
+  const s = S(), b = limitToday(s), w = b.w, t = todayISO(), rate = effSettings(s, t).rate_pct;
+  const walkK = b.planWalk * b.walkPerMin, real = b.minOut - b.planLimit, pMin = Math.round(1.6 * s.goal_weight), pMax = Math.round(2 * s.goal_weight);
+  const step = (n, lab, val, note) => `<div class="lstep"><span class="n">${n}</span><div class="tx"><b>${lab}</b><span>${note}</span></div><b class="v">${val}</b></div>`;
+  return UI.sheetHtml('Jak se počítá limit dne', `Robert dnes · ${fmt1(w)} kg · ${b.planWalk} min chůze`,
+    `<div class="list lsteps">
+      ${step(1, 'Klidový výdej', fmt0(b.bmr), `kolik tělo spálí, i kdyby celý den leželo (Mifflin–St Jeor: váha ${fmt1(w)} kg, výška ${s.height}, věk ${s.age})`)}
+      ${step(2, 'Běžný výdej', '+ ' + fmt0(b.baseOut - b.bmr), `běžný den bez procházky: × faktor ${String(s.activity).replace('.', ',')} (≈ ${fmt0(stepsTarget(s))} běžných kroků)`)}
+      ${step(3, 'Cílený pohyb', '+ ' + fmt0(walkK + b.planKcal), `chůze ${b.planWalk} min × ${fmt1(b.walkPerMin)} kcal${b.planKcal ? ` + trénink ${fmt0(b.planKcal)}` : ''}`)}
+      ${step('=', 'Celkový výdej', fmt0(b.minOut), 'kolik Robert dnes spálí, když splní plán pohybu')}
+      ${step(4, 'Plánovaný deficit', '− ' + fmt0(b.deficit), `tempo ${String(rate).replace('.', ',')} % z ${fmt1(w)} kg = ${fmt2(w * rate / 100)} kg/týden × 7 700 kcal ÷ 7 dní`)}
+      ${step('=', 'Limit dne', fmt0(b.planLimit), b.planBelowBmr ? `výpočet dá ${fmt0(b.minOut - b.deficit)}, ale spodní hranice ho drží na klidovém výdeji` : 'kolik má sníst a vypít')}
+    </div>
+    <div class="res ${b.planBelowBmr ? 'warn' : 'okk'}">Skutečný deficit <b>${fmt0(real)} kcal/den</b> = −${fmt2(real * 7 / KG_KCAL)} kg/týden${b.planBelowBmr ? ` místo −${fmt2(w * rate / 100)}. Spodní hranice ubrala ${fmt0(b.deficit - real)} kcal deficitu – víc se dá jen pohybem.` : '.'}</div>
+    <h3>Proč Robert nestrádá</h3>
+    <div class="list lsteps">
+      ${step('🎯', 'Tempo 0,5–1 % váhy týdně', `${String(rate).replace('.', ',')} %`, 'Pomalejší úbytek bere hlavně tuk. Rychlejší víc svalu, roste hlad a únava – to je skutečná cena „hladovění“.')}
+      ${step('🥩', 'Bílkoviny', `${s.protein_min} g`, `Minimum za den, doporučeno ${pMin}–${pMax} g (1,6–2 g na kg cílové váhy). Hlavní ochrana svalu v deficitu.`)}
+      ${step('🏋️', 'Silový trénink', 'v Tréninku', 'Dává tělu důvod sval držet. Bez něj jde část úbytku ze svalu i při dobrém tempu.')}
+      ${step('⏸️', 'Přestávka v deficitu', 'po 6–10 t', 'Týden na úrovni výdeje sníží hlad, únavu a zpomalení metabolismu.')}
+      ${step('🧱', 'Spodní hranice', fmt0(b.bmr), 'Limit nikdy neklesne pod klidový výdej. Je to pojistka appky (tvoje rozhodnutí), ne fyziologická hranice – viz níž.')}
+    </div>
+    <p class="small muted">Odhad výdeje má i u přesných vzorců chybu ±10 %. Proto rozhoduje skutečnost: trend vážení za 2–3 týdny ukáže, jestli deficit opravdu je. Když trend dlouhodobě zaostává a dny jsou potvrzené, je výdej nadhodnocený – appka navrhne nižší faktor.</p>`);
+});
 /* Nastavení plánu: hodnoty zadané jednou. Žije v obrazovce Nastavení (⚙︎), ne v Plánu. */
 function profileCard() {
   const s = S();
