@@ -87,7 +87,7 @@ function paceGuard() {
   const uid = Store.ownerId(); const recs = Object.fromEntries(Store.rows('days', uid).map(r => [r.data.date, r.data]));
   let under = 0, bmrDays = 0; for (let k = 1; k <= 3; k++) { const dt = addDays(todayISO(), -k); const d = recs[dt]; if (!d) break; const ev = evaluateDay(dt); if (ev.confirmed && ev.d.tot.kcal > 0 && ev.d.intake < ev.d.base.maxIntake - 300) under++; if (ev.d.base.belowBmr) bmrDays++; }
   if (under >= 3) out.push({ lv: 1, text: '🍽️ Tři dny v řadě jedl o 300+ kcal míň, než smí. Deficit je větší než cílový – zvaž nižší tempo nebo větší porce.' });
-  if (bmrDays >= 2) out.push({ lv: 2, text: `🛡️ ${bmrDays} z posledních 3 dnů držela limit spodní hranice (klidový výdej ${fmt0(bmr)} kcal) – málo cíleného pohybu, deficit proto vyšel menší. Zvaž lehčí plán nebo víc chůze.` });
+  if (bmrDays >= 2) out.push({ lv: 2, text: `🛡️ ${bmrDays} z posledních 3 dnů držela limit spodní hranice (${fmt0(calcBase(S(), currentWeight(), 0, 0, S().walk_kmh, 0, 0).floor)} kcal) – málo cíleného pohybu, deficit proto vyšel menší. Zvaž lehčí plán nebo víc chůze.` });
   return out;
 }
 /* věta pro Roberta, když je deficit moc velký */
@@ -247,7 +247,7 @@ function trDaySheetHtml() {
   const wk = getWeek(mondayOf(D.date)); const sels = wk.plan[dayIndex(D.date)];
   const r = sels.some(Boolean) ? calcPlanDay(s, Foods(), Recipes(), sels, w, act) : null;
   const pozn = [];
-  if (b.planBelowBmr) pozn.push(`Málo pohybu – limit by vyšel pod klidový výdej, deficit dne bude o ${fmt0(b.bmr - (b.minOut - b.deficit))} kcal menší.`);
+  if (b.planBelowBmr) pozn.push(`Málo pohybu – limit by vyšel pod spodní hranici jídla, deficit dne bude o ${fmt0(b.floor - (b.minOut - b.deficit))} kcal menší.`);
   if (r && r.filled === 5 && Math.abs(r.planLimit - r.kcal) > 100) pozn.push(`Robertova jídla na ${czDateShort(D.date)} ${r.planLimit > r.kcal ? `se nedojí do limitu (chybí ${fmt0(r.planLimit - r.kcal)} kcal)` : `se nevejdou (o ${fmt0(r.kcal - r.planLimit)} kcal víc)`} – uvidí „Dorovnat“.`);
   const inp = (j, f, v, lab, ph) => `<div class="in"><label class="f">${lab}</label><input type="text" inputmode="decimal" value="${v ?? ''}" ${ph ? `placeholder="${ph}"` : ''} onchange="A.trItem(${j},'${f}',this.value)"></div>`;
   const items = D.items.map((it, j) => { const isC = it.type === 'cardio'; const sg = progressSuggestion(it);

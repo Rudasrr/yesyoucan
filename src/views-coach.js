@@ -300,7 +300,7 @@ VIEWS.nastaveni = function () {
     ${adviceBox('activity')}${adviceBox('walk_min')}
     <div class="res">→ chůze ${s.walk_min} min ≈ <b>${fmt0(s.walk_min * b.walkPerMin)} kcal/den</b> · dny s tréninkem mají vlastní chůzi <button class="btn ghost sm" onclick="go('trenink')">Trénink ›</button></div></div>`;
   const jidlo = `<div class="card pblk"><h3>🍽️ Jídlo</h3>
-    <div class="res ${b.planBelowBmr ? 'warn' : 'okk'}">Limit dne <b>${fmt0(L)} kcal</b>${hq('limit')} <button class="btn ghost sm" onclick="A.limitSheet()">jak se počítá ›</button><br><span class="small">výdej ${fmt0(b.minOut)} − deficit ${fmt0(b.deficit)}${b.planBelowBmr ? ` → drží ho spodní hranice ${fmt0(b.bmr)} (klidový výdej). Skutečný deficit ${fmt0(real)} kcal = −${fmt2(real * 7 / KG_KCAL)} kg/týden, ne −${fmt2(want)}. Vyšší tempo nic nezmění – přidej pohyb.` : ` · nikdy pod klidový výdej ${fmt0(b.bmr)}`}</span></div>
+    <div class="res ${b.planBelowBmr ? 'warn' : 'okk'}">Limit dne <b>${fmt0(L)} kcal</b>${hq('limit')} <button class="btn ghost sm" onclick="A.limitSheet()">jak se počítá ›</button><br><span class="small">výdej ${fmt0(b.minOut)} − deficit ${fmt0(b.deficit)}${b.planBelowBmr ? ` → drží ho spodní hranice ${fmt0(b.floor)} (85 % klidového výdeje). Skutečný deficit ${fmt0(real)} kcal = −${fmt2(real * 7 / KG_KCAL)} kg/týden, ne −${fmt2(want)}. Vyšší tempo nic nezmění – přidej pohyb.` : ` · spodní hranice ${fmt0(b.floor)} (85 % klidového výdeje ${fmt0(b.bmr)})`}</span></div>
     ${frow('Bílkoviny min.', 'bilkoviny', numf(s, 'protein_min', 'g'), `doporučeno ${Math.round(1.6 * s.goal_weight)}–${Math.round(2 * s.goal_weight)} g`)}
     ${adviceBox('protein_min')}
     <div class="fl"><b>Rozdělení limitu mezi jídla${hq('chody')}</b></div>
@@ -361,7 +361,7 @@ A.limitSheet = () => openSheet(() => {
       ${step(3, 'Cílený pohyb', '+ ' + fmt0(walkK + b.planKcal), `chůze ${b.planWalk} min × ${fmt1(b.walkPerMin)} kcal${b.planKcal ? ` + trénink ${fmt0(b.planKcal)}` : ''}`)}
       ${step('=', 'Celkový výdej', fmt0(b.minOut), 'kolik Robert dnes spálí, když splní plán pohybu')}
       ${step(4, 'Plánovaný deficit', '− ' + fmt0(b.deficit), `tempo ${String(rate).replace('.', ',')} % z ${fmt1(w)} kg = ${fmt2(w * rate / 100)} kg/týden × 7 700 kcal ÷ 7 dní`)}
-      ${step('=', 'Limit dne', fmt0(b.planLimit), b.planBelowBmr ? `výpočet dá ${fmt0(b.minOut - b.deficit)}, ale spodní hranice ho drží na klidovém výdeji` : 'kolik má sníst a vypít')}
+      ${step('=', 'Limit dne', fmt0(b.planLimit), b.planBelowBmr ? `výpočet dá ${fmt0(b.minOut - b.deficit)}, ale spodní hranice ho drží na ${fmt0(b.floor)} (85 % klidového výdeje)` : 'kolik má sníst a vypít')}
     </div>
     <div class="res ${b.planBelowBmr ? 'warn' : 'okk'}">Skutečný deficit <b>${fmt0(real)} kcal/den</b> = −${fmt2(real * 7 / KG_KCAL)} kg/týden${b.planBelowBmr ? ` místo −${fmt2(w * rate / 100)}. Spodní hranice ubrala ${fmt0(b.deficit - real)} kcal deficitu – víc se dá jen pohybem.` : '.'}</div>
     <h3>Proč Robert nestrádá</h3>
@@ -370,7 +370,7 @@ A.limitSheet = () => openSheet(() => {
       ${step('🥩', 'Bílkoviny', `${s.protein_min} g`, `Minimum za den, doporučeno ${pMin}–${pMax} g (1,6–2 g na kg cílové váhy). Hlavní ochrana svalu v deficitu.`)}
       ${step('🏋️', 'Silový trénink', 'v Tréninku', 'Dává tělu důvod sval držet. Bez něj jde část úbytku ze svalu i při dobrém tempu.')}
       ${step('⏸️', 'Přestávka v deficitu', 'po 6–10 t', 'Týden na úrovni výdeje sníží hlad, únavu a zpomalení metabolismu.')}
-      ${step('🧱', 'Spodní hranice', fmt0(b.bmr), 'Limit nikdy neklesne pod klidový výdej. Je to pojistka appky (tvoje rozhodnutí), ne fyziologická hranice – viz níž.')}
+      ${step('🧱', 'Spodní hranice', fmt0(b.floor), `Limit nikdy neklesne pod 85 % klidového výdeje (${fmt0(b.bmr)}). U velké váhy je to bezpečně nad 1 500 kcal; víc než hranice chrání bílkoviny, trénink a tempo.`)}
     </div>
     <p class="small muted">Odhad výdeje má i u přesných vzorců chybu ±10 %. Proto rozhoduje skutečnost: trend vážení za 2–3 týdny ukáže, jestli deficit opravdu je. Když trend dlouhodobě zaostává a dny jsou potvrzené, je výdej nadhodnocený – appka navrhne nižší faktor.</p>`);
 });

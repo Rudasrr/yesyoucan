@@ -176,4 +176,13 @@ with sync_playwright() as p:
     print('trenér bez databáze a plánování jídel:', pg.evaluate("!NAV_COACH.some(x=>x[0]==='databaze') && typeof A.toggleCoachPlan==='undefined'"), '· go(databaze) →', pg.evaluate("(go('databaze'),App.view)"))
     # reload persistence
     pg.reload(); pg.wait_for_timeout(300); print('after reload profile:', pg.evaluate("Store.profile && Store.profile.role"), 'meas:', pg.evaluate("Store.db.measurements.length"))
+    # rozbor váhy přes všechny větve včetně „zbytku“: 35 dní vážení, 16 potvrzených dnů s chůzí, kroky, pivy
+    z=b.new_page(); z.on('pageerror', lambda e: errs.append('rozbor: '+str(e))); z.goto(URL); z.wait_for_timeout(200)
+    z.evaluate("""localLogin("client"); const s=S(); s.start_date=addDays(todayISO(),-35); s.start_weight=134.4; saveSettings(s);
+      for(let k=35;k>=1;k--){ const dt=addDays(todayISO(),-k); saveMeas({date:dt, weight: Math.round((134.4-(35-k)*0.01+(k%3)*0.3)*10)/10});
+        if(k<=16){ const d=getDay(dt); d.walk_min=k%2?25:60; d.beers=k%7===2?6:0; d.steps=4500+(k%3)*500; S().courses.forEach(c=>{d.meals[c.key]={sel:'Kuřecí rizoto se zeleninou a sýrem',eaten:true}}); d.reviewed=true; saveDay(d);} }""")
+    _w = z.evaluate("(()=>{const W=weightWhy(addDays(todayISO(),-15),addDays(todayISO(),-1)); const D=diagnoza(); return [W.state, W.causes.map(c=>c.key).join(','), D.list.length]})()")
+    print('rozbor váhy (14 dní):', _w)
+    if 'zbytek' not in _w[1]: errs.append('rozbor: chybí větev zbytek')
+    z.close()
     print('errors:', errs or 'none'); b.close()

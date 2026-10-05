@@ -4,6 +4,7 @@ const VYNECHAT = '— (vynechat)';
 const BEER_KCAL = 205;      // kcal za 0,5 l 12°  (Dnešní den!E24*205)
 const FRIED_KCAL_G = 2.9;   // kcal/g smaženého  (Dnešní den!E25*2.9)
 const KG_KCAL = 7700;
+const FLOOR_PCT = 0.85;   // spodní hranice jídla = 85 % klidového výdeje
 const COURSE_KEYS = ['snidane', 'obed', 'svacina', 'vecere1', 'vecere2'];
 
 const fmt0 = n => Math.round(n).toLocaleString('cs-CZ');
@@ -83,13 +84,16 @@ function calcBase(s, weight, walkMin, exerMin, walkKmh, beers, friedG, act, extr
   const minOut = baseOut + planWalk * walkPerMin + (act.planKcal || 0);
   const deficit = weight * s.rate_pct / 100 * KG_KCAL / 7;
   const maxIntakeRaw = totalOutRaw - deficit, planLimitRaw = minOut - deficit;
-  // spodní hranice jídla: limit nikdy pod klidový výdej (rozhodnuto Rudou; odchylka od sešitu)
-  const maxIntake = Math.max(bmr, maxIntakeRaw), planLimit = Math.max(bmr, planLimitRaw);
-  const belowBmr = maxIntakeRaw < bmr, planBelowBmr = planLimitRaw < bmr;
-  const walkToBmr = belowBmr ? Math.ceil((bmr - maxIntakeRaw) / walkPerMin) : 0;
+  // spodní hranice jídla: limit nikdy pod 85 % klidového výdeje (rozhodnuto Rudou; odchylka od sešitu).
+  // Do 5. 10. 2026 to byl celý klidový výdej – při sedavém dni pak deficit tiše klesal a cíl utíkal.
+  // Ochranu svalu dělají bílkoviny, silový trénink, tempo do 1 % a přestávky v deficitu, ne tahle hranice.
+  const floor = bmr * FLOOR_PCT;
+  const maxIntake = Math.max(floor, maxIntakeRaw), planLimit = Math.max(floor, planLimitRaw);
+  const belowBmr = maxIntakeRaw < floor, planBelowBmr = planLimitRaw < floor;
+  const walkToBmr = belowBmr ? Math.ceil((floor - maxIntakeRaw) / walkPerMin) : 0;
   const drinkKcal = cheatKcal;
   const foodBudget = Math.max(600, planLimit - drinkKcal);
-  return { bmr, baseOut, cheatPopis: cheatText || '', walkPerMin, exerPerMin, totalOut: totalOutRaw, minOut, deficit, maxIntake, maxIntakeRaw, planLimit, drinkKcal, foodBudget, kmh, planWalk, planWalkBase, cheatKcal, cheatWalk, cheatWalkFull, cheatCovered, cheatRest, cheatCoverable, belowBmr, planBelowBmr, walkToBmr, effDeficit: totalOutRaw - maxIntake, planKcal: act.planKcal || 0, doneKcal: act.doneKcal || 0 };
+  return { bmr, floor, baseOut, cheatPopis: cheatText || '', walkPerMin, exerPerMin, totalOut: totalOutRaw, minOut, deficit, maxIntake, maxIntakeRaw, planLimit, drinkKcal, foodBudget, kmh, planWalk, planWalkBase, cheatKcal, cheatWalk, cheatWalkFull, cheatCovered, cheatRest, cheatCoverable, belowBmr, planBelowBmr, walkToBmr, effDeficit: totalOutRaw - maxIntake, planKcal: act.planKcal || 0, doneKcal: act.doneKcal || 0 };
 }
 /* ===== Tolerance dne =====
    O kolik smi den prelezt limit, aniz to appka hlasi jako chybu. Dve veci ji urcuji:
@@ -227,7 +231,7 @@ function calcDay(s0, foods, recipes, day, weight) {
   const allEaten = courses.every(c => !(c.active || c.situace) || (day.meals[c.key] || {}).eaten);
   const jenPlan = !allEaten;
   // limit, jak vyjde po splnění plánované chůze a tréninku
-  const limitPoPlanu = Math.max(base.bmr, base.minOut - base.deficit);
+  const limitPoPlanu = Math.max(base.floor, base.minOut - base.deficit);
   // kolik minut chůze den skutečně srovná (spodní hranice drží limit, dokud celkový výdej nevyroste dost)
   const walkFix = base.walkPerMin > 0 ? Math.max(0, Math.ceil((intake - base.maxIntakeRaw) / base.walkPerMin)) : 0;
   const checks = [];
@@ -261,7 +265,7 @@ function calcDay(s0, foods, recipes, day, weight) {
   if (sm) checks.push({ name: 'B\u011b\u017en\u00e1 ch\u016fze', state: 1, label: 'M\u00e1lo krok\u016f',
     text: `U\u0161el jsi ${fmt0(sm.real)} z ${fmt0(sm.cil)} krok\u016f, chyb\u00ed ${fmt0(sm.chybi)}. Limit jsi m\u011bl spo\u010d\u00edtan\u00fd na ${fmt0(sm.cil)} krok\u016f, tak\u017ee ti dnes uteklo ${fmt0(sm.kcal)} kcal z v\u00fddeje. Kdyby to tak bylo cel\u00fd t\u00fdden, ubere to ${fmt2(sm.kgTyden)} kg z t\u00fddenn\u00edho \u00fabytku. Nen\u00ed to cilena ch\u016fze nav\u00edc \u2013 jen se v\u00edc hejbat b\u011bhem dne.` });
   if (day.act && day.act.planItems) checks.push({ name: 'Trénink', state: day.act.doneAll ? 2 : (day.act.doneKcal ? 3 : 1), label: day.act.doneAll ? 'Hotovo' : (day.act.doneKcal ? 'Rozdělané' : 'Čeká'), text: day.act.doneAll ? `OK – splněno, ${fmt0(day.act.doneKcal)} kcal` : (day.act.doneKcal ? `částečně (${fmt0(day.act.doneKcal)} z ${fmt0(day.act.planKcal)} kcal)` : `čeká – ${day.act.planItems} ${day.act.planItems === 1 ? 'položka' : 'položky'}, ~${fmt0(day.act.planKcal)} kcal`) });
-  if (base.belowBmr) checks.push({ name: 'Spodní hranice', state: 1, label: 'Drží hranice', text: `Zatím máš málo cíleného pohybu, takže by ti limit vyšel pod klidový výdej (${fmt0(base.bmr)} kcal) – tolik tělo spotřebuje, i kdybys celý den ležel, a jíst míň nemá smysl. Proto limit držím na téhle spodní hranici. Chůze klidový výdej nezvedá, zvedá celkový výdej – a s ním limit: prvních ${base.walkToBmr} minut se limit ještě nehne, od té doby ti každá minuta přidá ${fmt0(base.walkPerMin)} kcal. Dokud limit drží hranice, je tvůj dnešní deficit menší než plánovaný, takže hubnutí jede pomaleji.` });
+  if (base.belowBmr) checks.push({ name: 'Spodní hranice', state: 1, label: 'Drží hranice', text: `Zatím máš málo cíleného pohybu, takže by ti limit vyšel pod spodní hranici ${fmt0(base.floor)} kcal (85 % toho, co tělo spálí v klidu). Níž jídlo nepouštím, aby ses nevyčerpal a vydržel. Chůze klidový výdej nezvedá, zvedá celkový výdej – a s ním limit: prvních ${base.walkToBmr} minut se limit ještě nehne, od té doby ti každá minuta přidá ${fmt0(base.walkPerMin)} kcal. Dokud limit drží hranice, je tvůj dnešní deficit menší než plánovaný, takže hubnutí jede pomaleji.` });
   // Ruční úpravy
   const edited = courses.reduce((a, c) => a + c.edited, 0);
   checks.push({ name: 'Ruční úpravy', state: 3, label: edited === 0 ? 'Žádné' : `${edited}×`, text: edited === 0 ? 'žádné – platí recepty, jak jsou' : `${edited} polí (vyměněná potravina či gramáž). Při změně dne nebo varianty je zkontroluj či smaž.` });

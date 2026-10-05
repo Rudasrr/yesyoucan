@@ -257,7 +257,7 @@ A.walkSheet = () => openSheet(() => {
      <div class="quick">${[15, 30, 60].map(n => `<button class="btn sec write" onclick="A.addWalk(${n})">+${n} min</button>`).join('')}</div>
      <div class="field"><label class="f">nebo přesně (minut)</label>${stepper('walk-in', wm, 5, 0, 600, 'A.setWalk(this.value)')}</div>
      <div class="field"><label class="f">Tempo${help(tempoNapoveda())}</label><select onchange="A.dayField('walk_kmh',this.value,'Tempo změněno')">${SEED.met.map(([k]) => `<option value="${k}" ${k === (day.walk_kmh || s.walk_kmh) ? 'selected' : ''}>${fmt1(k)} km/h</option>`).join('')}</select></div>
-     ${d.base.belowBmr ? `<div class="alert a2"><div>Zatím málo cíleného pohybu – limit by vyšel pod klidový výdej, drží ho spodní hranice. Od ${d.base.walkToBmr}. minuty chůze ti začne růst i limit.</div></div>` : ''}`);
+     ${d.base.belowBmr ? `<div class="alert a2"><div>Zatím málo cíleného pohybu – limit by vyšel pod spodní hranici jídla, drží ho na ní. Od ${d.base.walkToBmr}. minuty chůze ti začne růst i limit.</div></div>` : ''}`);
 });
 
 /* ---- kroky: celkem z telefonu, appka odečte procházku; nikdy se nepředvyplňují ---- */
