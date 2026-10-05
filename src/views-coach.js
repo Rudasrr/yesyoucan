@@ -168,7 +168,7 @@ function coachWeightChart(s, ov, opts) {
   const vis = rows.filter(r => r.idx >= x0);
   const ty = x => tr ? tr.y + tr.slope * (x - tr.at) : null;
   const ys = vis.map(r => r.weight).concat([planWeightAt(s, x0) + 0.5, planWeightAt(s, x1) - 0.5]); if (tr) ys.push(ty(x1));
-  if (R === -1) ys.push(gw - 0.5);
+  if (R === -1) ys.push(gw - 1.5);
   let y0 = Math.min(...ys) - 0.4, y1 = Math.max(...ys) + 0.4;
   const X = x => L + (x - x0) / span * (W - L - R_), Y = y => T + (y1 - y) / (y1 - y0) * (H - T - B);
   let g = `<svg class="chart" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" role="img">`;
@@ -182,10 +182,10 @@ function coachWeightChart(s, ov, opts) {
   g += `<path d="M${pp.map(p => `${p[0].toFixed(1)},${Y(p[1] + 0.5).toFixed(1)}`).join('L')}L${pp.slice().reverse().map(p => `${p[0].toFixed(1)},${Y(p[1] - 0.5).toFixed(1)}`).join('L')}Z" fill="rgba(154,163,184,.13)"/>`;
   g += `<path d="M${pp.map(p => `${p[0].toFixed(1)},${Y(p[1]).toFixed(1)}`).join('L')}" fill="none" stroke="#9aa3b8" stroke-width="1.5" stroke-dasharray="6 5"/>`;
   // cílová váha – vždy, když je v grafu
-  if (gw >= y0 && gw <= y1) { g += `<line x1="${L}" x2="${W - R_}" y1="${Y(gw)}" y2="${Y(gw)}" stroke="#15803d" stroke-width="1.6" stroke-dasharray="4 4"/><text x="${L + 4}" y="${Y(gw) - 5}" font-size="11.5" font-weight="700" fill="#15803d">cíl ${fmt1(gw)} kg</text>`;
+  if (gw >= y0 && gw <= y1) { g += `<line x1="${L}" x2="${W - R_}" y1="${Y(gw)}" y2="${Y(gw)}" stroke="#15803d" stroke-width="1.6" stroke-dasharray="4 4"/><text x="${L + 4}" y="${Y(gw) + 15}" font-size="11.5" font-weight="700" fill="#15803d">cíl ${fmt1(gw)} kg</text>`;
     // blízké značky: druhý popisek nad čáru, ať se nepřekrývají
     const close = gpI != null && fcI != null && Math.abs(X(gpI) - X(fcI)) < 95;
-    const pin = (xi, lab, col, up) => xi != null && xi >= x0 && xi <= x1 ? `<circle cx="${X(xi)}" cy="${Y(gw)}" r="5" fill="#fff" stroke="${col}" stroke-width="2.5"/><text x="${Math.min(X(xi), W - R_ - 40)}" y="${up ? Y(gw) - 10 : Y(gw) + 17}" font-size="11" font-weight="700" fill="${col}" text-anchor="middle">${lab}</text>` : '';
+    const pin = (xi, lab, col, up) => xi != null && xi >= x0 && xi <= x1 ? `<circle cx="${X(xi)}" cy="${Y(gw)}" r="5" fill="#fff" stroke="${col}" stroke-width="2.5"/><text x="${Math.min(X(xi), W - R_ - 40)}" y="${up ? Y(gw) - 24 : Y(gw) - 9}" font-size="11" font-weight="700" fill="${col}" text-anchor="middle">${lab}</text>` : '';
     g += pin(gpI, `plán ${czDateShort(gpD)}${String(parseISO(gpD).getFullYear()).slice(2)}`, '#5b6480', false) + pin(fcI, `trend ${fc.date ? czDateShort(fc.date) + String(parseISO(fc.date).getFullYear()).slice(2) : ''}`, '#d97706', close); }
   // vybrané období dole
   if (opts.shade !== false) { const pr = perRange(); const a = Math.max(x0, daysBetween(s.start_date, pr.from)), b = Math.min(x1, daysBetween(s.start_date, pr.to) + 1); if (b > a) g += `<rect x="${X(a)}" y="${T}" width="${X(b) - X(a)}" height="${H - B - T}" fill="rgba(20,120,212,.07)" rx="4"/>`; }
