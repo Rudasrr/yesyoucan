@@ -139,7 +139,7 @@ const MORE_CLIENT = [['recepty', 'Recepty', 'všech 200 jídel a tvoje vlastní'
 /* Trenér plánuje cíle a trénink, ne jídlo (1. 10. 2026) – databáze potravin ani
    plánování jídel za Roberta v jeho menu nejsou. */
 const NAV_COACH = [['klient', 'Přehled'], ['nastaveni', 'Plán'], ['trenink', 'Trénink']];
-const MORE_COACH = [['__preview', 'Pohled Roberta', 'appka přesně tak, jak ji vidí on', '👁️'], ['ucet', 'Nastavení', 'výška, věk, start, faktor · účet', '⚙️'], ['navod', 'Návod', 'pravidla, slovníček, jak appka počítá', '📘']];
+const MORE_COACH = [['__preview', 'Pohled Roberta', 'appka přesně tak, jak ji vidí on', '👁️'], ['ucet', 'Nastavení', 'účet, výchozí data, odhlášení', '⚙️'], ['navod', 'Návod', 'pravidla, slovníček, jak appka počítá', '📘']];
 /* staré názvy obrazovek (odkazy v úkolech, připomínkách, testech) → nové místo */
 const VIEW_ALIAS = { tyden: ['plan', { planTab: 'jidla' }], jidlo: ['plan', {}], nakup: ['plan', { planTab: 'nakup' }], spiz: ['plan', { planTab: 'nakup' }], vareni: ['plan', { planTab: 'vareni' }],
   mereni: ['pokrok', {}], prehled: ['pokrok', {}], zprava: ['klient', {}], databaze: ['klient', {}] };

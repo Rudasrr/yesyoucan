@@ -4,7 +4,7 @@
    Středem je tabulka cílů: řádek na cíl – plán · skutečnost · rozdíl · dny (kde) · dopad v kg/týden
    · náprava. Nahoře tři čísla vždy proti plánu. Graf pod tabulkou je důkaz, ne hlavní věc.
    Vše se vejde na notebook 1366×768. Problémy mají jeden zdroj – diagnoza(). */
-App.cg = App.cg || 'w'; App.cgR = App.cgR || 56; App.cgO = App.cgO || 'waist';
+App.cg = App.cg || 'w'; App.cgR = App.cgR != null ? App.cgR : -1; App.cgO = App.cgO || 'waist';
 /* rozdíl dvou dat v letech, měsících a dnech */
 function ymd(a, b) { let A_ = parseISO(a), B_ = parseISO(b), sign = 1; if (B_ < A_) { [A_, B_] = [B_, A_]; sign = -1; }
   let y = B_.getFullYear() - A_.getFullYear(), m = B_.getMonth() - A_.getMonth(), d = B_.getDate() - A_.getDate();
@@ -23,8 +23,8 @@ VIEWS.klient = function () {
   return `<div class="card ${state[2]} kstrip"><div class="kv"><div class="row nowrap"><span class="pill ${state[0]}">${state[1]}</span><b class="kn">${esc(name)}</b><span class="small muted">${czDateShort(todayISO())}</span>
       <span class="kact">${ch.items.length ? `<button class="btn ghost sm" onclick="A.sinceSheet()" title="Od poslední návštěvy">🔔 ${ch.items.length}</button>` : ''}<button class="btn ghost sm" onclick="A.numbersSheet()" title="Tabulky za 6 týdnů a 28 dní">📊</button></span></div><div class="kh">${esc(head)}</div></div>
     <div class="kq">${stripTiles(s, ov)}</div></div>
-  <div class="card kgoals">${goalsTable(pd, r)}</div>
-  <div class="cock2"><div class="card kchart">${chartCard(s, ov)}</div><div class="card kmore">${moreProblems(pd)}</div></div>`;
+  <div class="kgrid"><div class="kleft"><div class="card kgoals">${goalsTable(pd, r)}</div><div class="card kmore">${moreProblems(pd)}</div></div>
+    <div class="card kchart">${chartCard(s, ov, { w: 600, h: 400 })}</div></div>`;
 };
 /* tři čísla proti plánu: tempo · cíl · data */
 function stripTiles(s, ov) {
@@ -129,59 +129,88 @@ A.probSheet = i => { const p = App._diag[i]; if (!p) return;
     `${p.sub ? `<p>${esc(p.sub)}</p>` : ''}${p.kde && p.kde.length ? `<h3>Kde</h3><div class="chips">${p.kde.slice().sort().map(d => `<button class="chip" onclick="A.coachDaySheet('${d}')">${DAY_SHORT[dayIndex(d)]} ${czDateShort(d)}</button>`).join('')}</div>` : ''}`,
     p.apply ? `<button class="btn" onclick="UI.closeModal();${p.apply}">${esc(p.label)}</button>` : p.go ? `<button class="btn sec" onclick="UI.closeModal();${p.go}">${esc(p.label || 'Otevřít')}</button>` : ''); };
 /* graf: váha (týdenní průměry, trend, plán s pásmem) nebo obvody */
-function chartCard(s, ov) {
+const RANGES = [[56, '8 t'], [91, '3 m'], [0, 'vše'], [-1, 'do cíle']];
+/* řádek pod grafem: cíl, kolik zbývá, kdy podle plánu a kdy podle trendu */
+function goalLine(s, ov) { const gp = planGoalDate(s), fc = goalForecast(s, ov); const d = gp && fc.date ? ymd(gp, fc.date) : null;
+  return `<div class="gline"><b>🎯 Cíl ${fmt1(s.goal_weight)} kg</b><span>zbývá ${fmt1(Math.max(0, ov.cur - s.goal_weight))} kg</span><span>plán ${gp ? czDate(gp) : '–'}</span><span class="${d && d.sign > 0 ? 'bad' : 'ok'}">trend ${fc.text}${d ? ` (${d.sign > 0 ? '+' : '−'}${d.short})` : ''}</span></div>`; }
+function chartCard(s, ov, opts) {
   const seg = (v, lab) => `<button class="${App.cg === v ? 'on' : ''}" onclick="App.cg='${v}';render()">${lab}</button>`;
-  const sub = App.cg === 'w' ? [[56, '8 t'], [91, '3 m'], [0, 'vše']].map(([v, l]) => `<button class="chip ${App.cgR === v ? 'on' : ''}" onclick="App.cgR=${v};render()">${l}</button>`).join('')
+  const sub = App.cg === 'w' ? RANGES.map(([v, l]) => `<button class="chip ${App.cgR === v ? 'on' : ''}" onclick="App.cgR=${v};render()">${l}</button>`).join('')
     : CIRC.map(([k, l]) => `<button class="chip ${App.cgO === k ? 'on' : ''}" onclick="App.cgO='${k}';render()">${l}</button>`).join('');
   const leg = App.cg === 'w' ? `<div class="legend kleg"><span><i style="background:#1478d4"></i>Ø týdne</span><span><i style="background:#d97706"></i>trend</span><span><i style="background:#9aa3b8"></i>plán ±0,5</span><span><i style="background:#a8c6e4"></i>ráno</span></div>` : '';
-  return `<div class="row between kch"><div class="seg sm">${seg('w', 'Váha')}${seg('o', 'Obvody')}</div>${leg}<div class="chips">${sub}</div></div>
-    ${App.cg === 'w' ? coachWeightChart(s, ov) : circChart(s)}`;
+  return `<div class="row between kch"><div class="seg sm">${seg('w', 'Váha')}${seg('o', 'Obvody')}</div><div class="chips">${sub}</div><button class="btn ghost sm" onclick="A.bigChart()" title="Zvětšit graf">⤢</button></div>
+    ${leg}${App.cg === 'w' ? coachWeightChart(s, ov, opts) : circChart(s, opts)}${goalLine(s, ov)}`;
+}
+/* graf přes celou obrazovku */
+function bigChartHtml() { const s = S(), ov = calcOverview(s, Meas());
+  return `<div class="bigchart"><div class="row between"><h2>${App.cg === 'w' ? 'Váha' : 'Obvody'}</h2><button class="iconbtn" onclick="UI.closeModal()" aria-label="zavřít">×</button></div>${chartCard(s, ov, { w: 1100, h: 460, shade: false }).replace(/render\(\)/g, 'A.bigRedraw()').replace('<button class="btn ghost sm" onclick="A.bigChart()" title="Zvětšit graf">⤢</button>', '')}</div>`; }
+A.bigChart = () => UI.modal(bigChartHtml(), { center: true });
+
+A.bigRedraw = () => { const el = document.querySelector('.bigchart'); if (el) el.outerHTML = bigChartHtml(); render();
 }
 const CIRC = [['waist', 'Pas'], ['hips', 'Boky'], ['chest', 'Hrudník'], ['thigh', 'Stehno'], ['arm', 'Paže']];
+/* Graf váhy: týdenní průměry, trend s prognózou, plán s pásmem ±0,5 kg a cílová váha.
+   Rozsah 8 t / 3 m / vše / do cíle (-1): „do cíle“ ukáže celou cestu až k cílové váze –
+   kdy ji Robert dosáhne podle plánu a kdy podle trendu. opts: w, h (velikost plátna), shade, range. */
 function coachWeightChart(s, ov, opts) {
   opts = opts || {};
   const rows = ov.rows; if (!rows.length) return '<p class="muted small">Zatím žádné vážení.</p>';
-  const last = rows[rows.length - 1].idx; const range = App.cgR || (last + 1);
-  const x0 = Math.max(0, last - range + 1), ext = Math.max(7, Math.round(range * 0.2)), x1 = last + ext;
+  const last = rows[rows.length - 1].idx; const R = opts.range != null ? opts.range : App.cgR;
+  const tr = trend21(); const wa = weekAvgs(); const gw = s.goal_weight;
+  const gpD = planGoalDate(s), gpI = gpD ? daysBetween(s.start_date, gpD) : null;
+  const fc = goalForecast(s, ov), fcI = fc.date ? daysBetween(s.start_date, fc.date) : null;
+  let x0, x1;
+  if (R === -1) { x0 = 0; x1 = Math.max(last + 14, gpI || 0, Math.min(fcI || 0, last + 3 * 365)) + 21; }
+  else { const range = R || (last + 1); x0 = Math.max(0, last - range + 1); x1 = last + Math.max(7, Math.round(range * 0.2)); }
+  const span = x1 - x0;
   const narrow = window.innerWidth < 640;   // na telefonu užší plátno, ať text na osách není drobný
-  const W = narrow ? 420 : 760, H = narrow ? 230 : (opts.h || 122), L = 40, R = 10, T = 14, B = 22;
-  const vis = rows.filter(r => r.idx >= x0); const tr = trend21(); const wa = weekAvgs();
-  const ys = vis.map(r => r.weight).concat([planWeightAt(s, x0) + 0.5, planWeightAt(s, x1) - 0.5]); if (tr) ys.push(tr.y - tr.perWeek / 7 * ext);
+  const W = narrow ? 420 : (opts.w || 760), H = narrow ? 240 : (opts.h || 122), L = 40, R_ = 14, T = 16, B = 22;
+  const vis = rows.filter(r => r.idx >= x0);
+  const ty = x => tr ? tr.y + tr.slope * (x - tr.at) : null;
+  const ys = vis.map(r => r.weight).concat([planWeightAt(s, x0) + 0.5, planWeightAt(s, x1) - 0.5]); if (tr) ys.push(ty(x1));
+  if (R === -1) ys.push(gw - 0.5);
   let y0 = Math.min(...ys) - 0.4, y1 = Math.max(...ys) + 0.4;
-  const X = x => L + (x - x0) / (x1 - x0) * (W - L - R), Y = y => T + (y1 - y) / (y1 - y0) * (H - T - B);
+  const X = x => L + (x - x0) / span * (W - L - R_), Y = y => T + (y1 - y) / (y1 - y0) * (H - T - B);
   let g = `<svg class="chart" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" role="img">`;
-  const st = niceStep((y1 - y0) / 4); for (let v = Math.ceil(y0 / st) * st; v <= y1; v += st) g += `<line x1="${L}" x2="${W - R}" y1="${Y(v)}" y2="${Y(v)}" stroke="#e6ebea"/><text x="${L - 6}" y="${Y(v) + 4}" font-size="11" fill="#7a878c" text-anchor="end">${fmtTick(v)}</text>`;
-  // osa: pondělky jako data
-  const step = range > 120 ? 28 : range > 60 ? 14 : 7;
+  const st = niceStep((y1 - y0) / Math.max(3, Math.round(H / 60))); for (let v = Math.ceil(y0 / st) * st; v <= y1; v += st) g += `<line x1="${L}" x2="${W - R_}" y1="${Y(v)}" y2="${Y(v)}" stroke="#e6ebea"/><text x="${L - 6}" y="${Y(v) + 4}" font-size="11" fill="#7a878c" text-anchor="end">${fmtTick(v)}</text>`;
+  // osa: pondělky jako data, hustota podle délky a šířky
+  const per = span * 55 / (W - L - R_); const step = per > 91 ? 182 : per > 56 ? 91 : per > 28 ? 56 : per > 14 ? 28 : per > 7 ? 14 : 7;
   for (let x = x0; x <= x1; x++) { const dt = addDays(s.start_date, x); if (dayIndex(dt) !== 0 || daysBetween(mondayOf(addDays(s.start_date, x0)), dt) % step) continue;
-    g += `<line x1="${X(x)}" x2="${X(x)}" y1="${T}" y2="${H - B}" stroke="#f0f2f5"/><text x="${X(x)}" y="${H - 7}" font-size="11" fill="#7a878c" text-anchor="middle">${czDateShort(dt)}</text>`; }
+    g += `<line x1="${X(x)}" x2="${X(x)}" y1="${T}" y2="${H - B}" stroke="#f0f2f5"/><text x="${X(x)}" y="${H - 7}" font-size="11" fill="#7a878c" text-anchor="middle">${step >= 91 ? `${parseISO(dt).getMonth() + 1}/${String(parseISO(dt).getFullYear()).slice(2)}` : czDateShort(dt)}</text>`; }
   // plán s pásmem ±0,5 kg
-  const pp = []; for (let x = x0; x <= x1; x++) pp.push([X(x), planWeightAt(s, x)]);
+  const pp = []; const ps = Math.max(1, Math.round(span / 300)); for (let x = x0; x <= x1; x += ps) pp.push([X(x), planWeightAt(s, x)]);
   g += `<path d="M${pp.map(p => `${p[0].toFixed(1)},${Y(p[1] + 0.5).toFixed(1)}`).join('L')}L${pp.slice().reverse().map(p => `${p[0].toFixed(1)},${Y(p[1] - 0.5).toFixed(1)}`).join('L')}Z" fill="rgba(154,163,184,.13)"/>`;
   g += `<path d="M${pp.map(p => `${p[0].toFixed(1)},${Y(p[1]).toFixed(1)}`).join('L')}" fill="none" stroke="#9aa3b8" stroke-width="1.5" stroke-dasharray="6 5"/>`;
+  // cílová váha – vždy, když je v grafu
+  if (gw >= y0 && gw <= y1) { g += `<line x1="${L}" x2="${W - R_}" y1="${Y(gw)}" y2="${Y(gw)}" stroke="#15803d" stroke-width="1.6" stroke-dasharray="4 4"/><text x="${L + 4}" y="${Y(gw) - 5}" font-size="11.5" font-weight="700" fill="#15803d">cíl ${fmt1(gw)} kg</text>`;
+    // blízké značky: druhý popisek nad čáru, ať se nepřekrývají
+    const close = gpI != null && fcI != null && Math.abs(X(gpI) - X(fcI)) < 95;
+    const pin = (xi, lab, col, up) => xi != null && xi >= x0 && xi <= x1 ? `<circle cx="${X(xi)}" cy="${Y(gw)}" r="5" fill="#fff" stroke="${col}" stroke-width="2.5"/><text x="${Math.min(X(xi), W - R_ - 40)}" y="${up ? Y(gw) - 10 : Y(gw) + 17}" font-size="11" font-weight="700" fill="${col}" text-anchor="middle">${lab}</text>` : '';
+    g += pin(gpI, `plán ${czDateShort(gpD)}${String(parseISO(gpD).getFullYear()).slice(2)}`, '#5b6480', false) + pin(fcI, `trend ${fc.date ? czDateShort(fc.date) + String(parseISO(fc.date).getFullYear()).slice(2) : ''}`, '#d97706', close); }
   // vybrané období dole
   if (opts.shade !== false) { const pr = perRange(); const a = Math.max(x0, daysBetween(s.start_date, pr.from)), b = Math.min(x1, daysBetween(s.start_date, pr.to) + 1); if (b > a) g += `<rect x="${X(a)}" y="${T}" width="${X(b) - X(a)}" height="${H - B - T}" fill="rgba(20,120,212,.07)" rx="4"/>`; }
   // ranní váhy
   g += `<path d="M${vis.map(r => `${X(r.idx).toFixed(1)},${Y(r.weight).toFixed(1)}`).join('L')}" fill="none" stroke="#a8c6e4" stroke-width="1.2"/>`;
   vis.forEach(r => { g += `<circle cx="${X(r.idx)}" cy="${Y(r.weight)}" r="2.6" fill="#a8c6e4"/>`; });
-  // týdenní průměry: schod přes Po–Ne s číslem
-  wa.forEach(w => { const a = daysBetween(s.start_date, w.mon), b = a + 6; if (b < x0) return; const xa = X(Math.max(a, x0)), xb = X(Math.min(b, last));
-    g += `<line x1="${xa}" x2="${xb}" y1="${Y(w.avg)}" y2="${Y(w.avg)}" stroke="#1478d4" stroke-width="3" stroke-linecap="round"/><text x="${(xa + xb) / 2}" y="${Y(w.avg) - 7}" font-size="11.5" font-weight="700" fill="#0f5fa8" text-anchor="middle">${fmt1(w.avg)}</text>`; });
+  // týdenní průměry: schod přes Po–Ne, číslo jen když je místo
+  const wpx = 7 * (W - L - R_) / span;
+  wa.forEach((w, i) => { const a = daysBetween(s.start_date, w.mon), b = a + 6; if (b < x0) return; const xa = X(Math.max(a, x0)), xb = X(Math.min(b, last));
+    g += `<line x1="${xa}" x2="${xb}" y1="${Y(w.avg)}" y2="${Y(w.avg)}" stroke="#1478d4" stroke-width="3" stroke-linecap="round"/>${wpx >= 34 || i === wa.length - 1 ? `<text x="${(xa + xb) / 2}" y="${Y(w.avg) - 7}" font-size="11.5" font-weight="700" fill="#0f5fa8" text-anchor="middle">${fmt1(w.avg)}</text>` : ''}`; });
   // trend 21 dní a jeho pokračování
-  if (tr) { const ty = x => tr.y - tr.slope * 0 + tr.slope * (x - tr.at); const xa = Math.max(tr.from, x0);
-    g += `<line x1="${X(xa)}" x2="${X(last)}" y1="${Y(ty(xa))}" y2="${Y(ty(last))}" stroke="#d97706" stroke-width="2.2"/><line x1="${X(last)}" x2="${X(x1)}" y1="${Y(ty(last))}" y2="${Y(ty(x1))}" stroke="#d97706" stroke-width="2" stroke-dasharray="4 4"/>`; }
+  if (tr) { const xa = Math.max(tr.from, x0); const xe = Math.min(x1, fcI != null ? fcI : x1);
+    g += `<line x1="${X(xa)}" x2="${X(last)}" y1="${Y(ty(xa))}" y2="${Y(ty(last))}" stroke="#d97706" stroke-width="2.2"/><line x1="${X(last)}" x2="${X(xe)}" y1="${Y(ty(last))}" y2="${Y(ty(xe))}" stroke="#d97706" stroke-width="2" stroke-dasharray="4 4"/>`; }
   g += marksSvg(logMarks(s), x0, x1, X, T, H - B);
   const id = 'ct' + (++lineChart.n); lineChart.reg[id] = weightTips(ov, true).filter(t => t.x >= x0).map(t => ({ sx: X(t.x), sy: Y(t.y), html: t.html }));
   g += `<g class="tipg" style="display:none"><line y1="${T}" y2="${H - B}" stroke="#1478d4" stroke-width="1" stroke-dasharray="2 3"/><circle r="5.5" fill="#fff" stroke="#1478d4" stroke-width="2.5"/></g></svg>`;
   return `<div class="chartw" data-tip="${id}">${g}<div class="ctip" hidden></div></div>`;
 }
-function circChart(s) {
+function circChart(s, opts) {
   const k = App.cgO, lab = (CIRC.find(c => c[0] === k) || [k, k])[1];
   const ms = Meas().filter(m => m[k] != null).sort((a, b) => a.date.localeCompare(b.date));
   if (!ms.length) return `<p class="muted small">${lab}: zatím žádné měření. Robert měří obvody v neděli.</p>`;
   const f = ms[0]; const pts = ms.map(m => [daysBetween(s.start_date, m.date), m[k]]);
   const tips = ms.map(m => ({ x: daysBetween(s.start_date, m.date), y: m[k], html: `<b>${DAY_SHORT[dayIndex(m.date)]} ${czDateShort(m.date)}</b><br><span class="w">${fmt1(m[k])} cm</span> ${lab.toLowerCase()}<br>${m === f ? 'první měření' : `${signed1(m[k] - f[k])} cm od ${czDateShort(f.date)}`}` }));
-  return lineChart({ series: [{ name: lab.toLowerCase() + ' (cm)', color: '#1478d4', pts, dots: true }], xLabel: '', yUnit: 'cm', h: 128, tips, xFmt: x => czDateShort(addDays(s.start_date, x)), hLine: k === 'waist' && s.goal_waist && Math.min(...ms.map(m => m[k])) - s.goal_waist <= 6 ? { y: s.goal_waist, label: 'cíl ' + s.goal_waist + ' cm', color: '#15803d' } : null })
+  return lineChart({ series: [{ name: lab.toLowerCase() + ' (cm)', color: '#1478d4', pts, dots: true }], xLabel: '', yUnit: 'cm', h: (opts && opts.h) || 128, tips, xFmt: x => czDateShort(addDays(s.start_date, x)), hLine: k === 'waist' && s.goal_waist && Math.min(...ms.map(m => m[k])) - s.goal_waist <= 6 ? { y: s.goal_waist, label: 'cíl ' + s.goal_waist + ' cm', color: '#15803d' } : null })
     + `<div class="small muted">${ms.length} ${sklon(ms.length, 'měření', 'měření', 'měření')}${k === 'waist' && s.goal_waist ? ` · cíl ${s.goal_waist} cm` : ''} · ${ms.length > 1 ? `${signed1(ms[ms.length - 1][k] - f[k])} cm od ${czDateShort(f.date)}` : 'zatím jedno'}</div>`;
 }
 /* den u Roberta v listu: co snědl, chůze, kroky a hlad */
@@ -308,6 +337,7 @@ VIEWS.nastaveni = function () {
     <div class="cgrid">${s.courses.map((c, i) => `<label class="cpi"><span><i style="background:${CC[i % 5]}"></i>${esc(c.name)}</span><div class="numf s"><input type="text" inputmode="decimal" id="st_c${i}" value="${fmt0(pct[i])}" onchange="A.setCoursePct(${i},this.value)"><span>%</span></div><em>≈ ${fmt0(L * pct[i] / 100)}</em></label>`).join('')}</div>
     ${adviceBox('courses')}</div>`;
   return `<div class="ph"><div class="pt"><h1>Plán</h1><span class="sub">co má Robert dělat</span></div><div class="act"><button class="btn ghost sm" onclick="A.logSheet()">🕓 Historie změn (${(s.log || []).length})</button></div></div>
+  ${profileCard()}
   <div class="pgrid p3">${cil}${pohyb}${jidlo}</div>`;
 };
 /* meze, aby překlep nerozbil výpočet */
@@ -376,15 +406,13 @@ A.limitSheet = () => openSheet(() => {
 });
 /* Nastavení plánu: hodnoty zadané jednou. Žije v obrazovce Nastavení (⚙︎), ne v Plánu. */
 function profileCard() {
-  const s = S();
-  const f = (k, l, help, note) => `<div class="field"><label class="f">${l}${help ? hq(help) : ''}</label><input type="text" inputmode="decimal" id="st_${k}" value="${String(s[k]).replace('.', ',')}" onchange="A.setSetting('${k}',this.value)">${note ? `<div class="hint">${note}</div>` : ''}</div>`;
-  return `<div class="card stack s8"><h2>Výchozí hodnoty plánu</h2><p class="small muted">Zadávají se jednou. Cíle, tempo a pohyb jsou v Plánu.</p>
-    <div class="grid g2">${f('height', 'Výška (cm)')}${f('age', 'Věk')}</div>
-    <div class="grid g2"><div class="field"><label class="f">Datum startu</label><input type="date" id="st_start_date" value="${s.start_date}" onchange="A.setSetting('start_date',this.value)"></div>${f('start_weight', 'Startovní váha (kg)')}</div>
-    <div class="field"><label class="f">Běžný výdej${hq('faktor')}</label><div class="seg"><button class="${s.factor_lock ? '' : 'on'}" onclick="A.setFactorLock(false)">Z Robertových kroků</button><button class="${s.factor_lock ? 'on' : ''}" onclick="A.setFactorLock(true)">Pevný faktor</button></div>
-      <div class="hint">${s.factor_lock ? 'Limit počítá s pevným faktorem níž, kroky jen porovnává s cílem.' : (stepsBaseFor(todayISO()) != null ? `Teď Ø ${fmt0(stepsBaseFor(todayISO()))} běžných kroků za 14 dní = faktor ≈ ${String(Math.round(limitToday(s).effFactor * 100) / 100).replace('.', ',')}.` : 'Dokud nemá 5 dní kroků za posledních 14, platí faktor níž.')}</div></div>
-    <div class="grid g2">${f('activity', s.factor_lock ? 'Faktor (pevný)' : 'Faktor, když chybí kroky', null, 'sedavě 1,2 · 5 000 kroků 1,34')}${f('rest_sec', 'Pauza mezi sériemi (s)', 'trPauza')}</div>
-    <div class="small muted">Délka kroku ${String(Math.round(strideM() * 100) / 100).replace('.', ',')} m ${strideM() !== 0.75 ? '(z Robertových zapsaných km)' : '(výchozí – zpřesní se, až Robert zapíše km aspoň 3 dny)'}</div></div>`;
+  const s = S(); const sb = stepsBaseFor(todayISO());
+  const f = (k, l, help) => `<div class="field"><label class="f">${l}${help ? hq(help) : ''}</label><input type="text" inputmode="decimal" id="st_${k}" value="${String(s[k]).replace('.', ',')}" onchange="A.setSetting('${k}',this.value)"></div>`;
+  return `<div class="card prof"><h3>👤 Robert</h3>
+    <div class="pfgrid">${f('height', 'Výška cm')}${f('age', 'Věk')}<div class="field"><label class="f">Start</label><input type="date" id="st_start_date" value="${s.start_date}" onchange="A.setSetting('start_date',this.value)"></div>${f('start_weight', 'Start kg')}
+      <div class="field"><label class="f">Běžný výdej${hq('faktor')}</label><div class="seg"><button class="${s.factor_lock ? '' : 'on'}" onclick="A.setFactorLock(false)" title="${sb != null ? `Ø ${fmt0(sb)} běžných kroků za 14 dní` : 'zatím málo kroků – platí faktor'}">z kroků</button><button class="${s.factor_lock ? 'on' : ''}" onclick="A.setFactorLock(true)">pevný</button></div></div>
+      ${f('activity', s.factor_lock ? 'Faktor' : 'Faktor bez kroků', null)}${f('rest_sec', 'Pauza s', 'trPauza')}</div>
+    <div class="small muted">${s.factor_lock ? `Limit počítá s pevným faktorem ${String(s.activity).replace('.', ',')}.` : sb != null ? `Běžný výdej z Robertova průměru ${fmt0(sb)} běžných kroků (14 dní) = faktor ≈ ${String(Math.round(limitToday(s).effFactor * 100) / 100).replace('.', ',')}.` : 'Dokud Robert nezapíše kroky aspoň 5 dní ze 14, platí faktor.'} Délka kroku ${String(Math.round(strideM() * 100) / 100).replace('.', ',')} m${strideM() !== 0.75 ? ' (z jeho km)' : ''}.</div></div>`;
 }
 A.profileSheet = () => go('ucet');
 A.setFactorLock = on => commitSettings({ ...S(), factor_lock: !!on }, on ? 'Běžný výdej: pevný faktor' : 'Běžný výdej: z Robertových kroků');

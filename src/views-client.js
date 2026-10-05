@@ -25,8 +25,8 @@ VIEWS.pokrok = function () {
     ${ov.weekBack ? `<div class="status st${ov.weekBack.state}">${esc(ov.weekBack.text)}</div>` : ''}
   </div>
   <div class="card"><div class="ch"><h2>Váha proti plánu</h2>${ov.avgWeekLoss != null ? `<span class="pill ${ov.avgWeekLoss >= planW * 0.9 ? 'ok' : 'warn'}">−${fmt2(ov.avgWeekLoss)} kg/týden</span>` : ''}</div>
-    <div class="row between kch"><div class="legend kleg" style="justify-content:flex-start;margin:0"><span><i style="background:#1478d4"></i>Ø týdne</span><span><i style="background:#d97706"></i>trend</span><span><i style="background:#9aa3b8"></i>plán</span></div><div class="chips">${[[56, '8 t'], [91, '3 m'], [0, 'vše']].map(([v, l]) => `<button class="chip ${App.cgR === v ? 'on' : ''}" onclick="App.cgR=${v};render()">${l}</button>`).join('')}</div></div>
-    ${coachWeightChart(s, ov, { shade: false, h: 220 })}
+    <div class="row between kch"><div class="legend kleg" style="justify-content:flex-start;margin:0"><span><i style="background:#1478d4"></i>Ø týdne</span><span><i style="background:#d97706"></i>trend</span><span><i style="background:#9aa3b8"></i>plán</span></div><div class="chips">${RANGES.map(([v, l]) => `<button class="chip ${App.cgR === v ? 'on' : ''}" onclick="App.cgR=${v};render()">${l}</button>`).join('')}</div></div>
+    ${coachWeightChart(s, ov, { shade: false, h: 260 })}${goalLine(s, ov)}
     <p class="hint">Plán −${fmt2(planW)} kg za týden. Rozhoduje čára, ne jedna tečka.${(s.log || []).length ? ' Svislé čáry jsou změny od trenéra.' : ''}</p></div>
   <div class="card"><div class="rings">
     ${ring(clamp(ov.count / Math.max(1, (ov.daysSinceStart || 1)) * 100, 0, 100), ov.count + '×', `vážení za ${ov.daysSinceStart ?? '–'} ${sklon(ov.daysSinceStart || 0, 'den', 'dny', 'dní')}`, 'var(--carb)', 84)}
@@ -328,7 +328,6 @@ VIEWS.more = function () {
 VIEWS.ucet = function () {
   const coach = isCoach();
   return `<div class="ph"><button class="iconbtn" onclick="go('more')" aria-label="zpět">‹</button><div class="pt"><h1>Nastavení</h1></div></div>
-  ${coach ? profileCard() : ''}
   <div class="card stack s8"><h2>Účet</h2><p class="small muted">${Store.localMode() ? 'Aplikace běží bez cloudu – data jsou jen v tomto prohlížeči. Udělej si zálohu.' : `Přihlášen: ${esc(Store.session ? Store.session.user.email : '')} · ${coach ? 'trenér' : 'klient'}`}</p>
     <div class="row">${Store.localMode() ? '' : '<button class="btn sec sm" onclick="Store.sync().then(()=>{render();UI.toast(\'Synchronizováno\')})">Synchronizovat teď</button>'}<button class="btn sec sm" onclick="A.logout()">Odhlásit</button></div></div>
   ${!coach && !Meas().length ? `<div class="card stack s8"><h2>Historie ze sešitu</h2><p class="small muted">Zatím nemáš žádné vážení. Můžeš nahrát 14 vážení a obvody z Excelu (27. 8. – 9. 9. 2026), ať grafy navazují.</p><div class="row"><button class="btn sec sm" onclick="A.seedMeas()">Nahrát vážení ze sešitu</button></div></div>` : ''}

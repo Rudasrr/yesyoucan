@@ -591,7 +591,7 @@ button.dm-h{border:0;background:transparent;cursor:pointer;font:inherit;font-siz
 .fl b{display:flex;align-items:center;font-size:14px}.fl span{display:block;font-size:12px;color:var(--ink3)}
 .numf.w input{width:84px}.numf.s input{width:52px;padding:6px}
 .tempo{display:flex;align-items:center;gap:8px;flex:0 1 210px}.tempo input{flex:1;min-width:90px}.tempo b{font-size:16px;white-space:nowrap}
-.sel{width:118px}
+.sel{width:146px}
 .res{background:var(--gl-p);border-radius:12px;padding:8px 11px;font-size:13px;line-height:1.45}.res.okk{background:var(--gl-ok)}.res.warn{background:var(--gl-o2)}
 .res .btn.ghost{min-height:24px;padding:0 4px}
 .cbar{display:flex;height:14px;border-radius:7px;overflow:hidden;gap:2px}.cbar i{display:block;min-width:4px}
@@ -635,3 +635,18 @@ details.gdet > summary::after{content:'›';margin-left:auto;color:var(--ink3);t
 .lsteps .lstep{display:flex;align-items:center;gap:10px;padding:8px 2px;border-bottom:1px solid var(--line2)}.lsteps .lstep:last-child{border:0}
 .lstep .n{width:24px;height:24px;flex:none;border-radius:50%;background:var(--gl-p2);color:var(--p-ink);display:grid;place-items:center;font-size:12px;font-weight:800}
 .lstep .tx{flex:1;min-width:0}.lstep .tx b{display:block;font-size:14px}.lstep .tx span{display:block;font-size:12.5px;color:var(--ink2);line-height:1.35}.lstep .v{white-space:nowrap;font-size:15px}
+
+/* desktop: Přehled = tabulka vlevo, velký graf vpravo; Plán s profilem Roberta nahoře */
+.kgrid{display:grid;grid-template-columns:minmax(0,1fr);gap:14px}.kleft{display:flex;flex-direction:column;gap:14px;min-width:0}
+.kchart{display:flex;flex-direction:column;gap:6px;padding:10px 14px}
+.gline{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:13px;color:var(--ink2);padding-top:4px;border-top:1px solid var(--line2)}.gline b{color:#15803d}
+.modal.center .box:has(.bigchart){max-width:1180px;width:94vw}.bigchart{display:flex;flex-direction:column;gap:8px}.bigchart svg.chart{max-height:none}
+.prof{padding:10px 14px;display:flex;flex-direction:column;gap:6px}.prof > h3{margin:0;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink3)}
+.pfgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 12px;align-items:end}.pfgrid .field{margin:0}.pfgrid input{min-height:38px}.pfgrid .seg button{min-height:32px;padding:4px 10px;font-size:13px}
+@media (min-width:1000px){
+  .kgrid{grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);align-items:stretch}
+  .kchart svg.chart{max-height:none}
+  .pfgrid{grid-template-columns:repeat(7,minmax(0,1fr))}
+  body.wide #main{max-width:1440px}
+}
+@media (min-width:1000px) and (max-width:1599px){ .gtbl .g-d{display:none} }

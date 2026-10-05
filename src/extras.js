@@ -387,7 +387,8 @@ function goalForecast(s, ov) {
   if (ov.cur <= s.goal_weight) return { text: 'cíl dosažen' };
   const tr = trend21(); if (!tr) return { text: 'zatím málo dat' };
   if (tr.perWeek <= 0.02) return { text: 'tímto tempem ne', tr };
-  const date = addDays(todayISO(), Math.round((ov.cur - s.goal_weight) / tr.perWeek * 7)); return { date, text: czDate(date), tr };
+  // od proložené přímky v den posledního vážení – stejně jako oranžová čára v grafu
+  const date = addDays(addDays(s.start_date, tr.at), Math.max(0, Math.round((tr.y - s.goal_weight) / tr.perWeek * 7))); return { date, text: czDate(date), tr };
 }
 /* Týdenní průměry Po–Ne */
 function weekAvgs() {
