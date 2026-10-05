@@ -17,6 +17,7 @@ with sync_playwright() as p:
     pg.evaluate("A.mealSheet('snidane')"); pg.wait_for_timeout(150)   # jídlo se upravuje ve spodním listu
     pg.evaluate("document.querySelector('.modal .pickbtn').click()"); pg.wait_for_timeout(150); pg.fill('#pkq','míchaná'); pg.wait_for_timeout(100); print('picker hits:', pg.evaluate("document.querySelectorAll('.pitem').length")); pg.evaluate("window._pick('Míchaná vejce se šunkou a chlebem')"); pg.wait_for_timeout(100)
     print('sel:', pg.evaluate("getDay(App.date).meals.snidane"))
+    pg.evaluate("document.querySelectorAll('.modal details.gdet').forEach(d=>d.open=true)")
     pg.click('.modal .irow .pickbtn >> nth=0'); pg.wait_for_timeout(150)   # výměna suroviny přes panel s hledáním
     pg.fill('#fp-q','tofu'); pg.wait_for_timeout(150); print('panel surovin našel:', pg.evaluate("document.querySelectorAll('.pitem').length"))
     pg.evaluate("window._fppick('Tofu')"); pg.wait_for_timeout(150)
@@ -83,7 +84,7 @@ with sync_playwright() as p:
     pg.evaluate("Store.profile=null;LS.del('profile');render()"); pg.fill('#lem','r.pesek24@gmail.com'); pg.fill('#lpw','spatne'); pg.click('#lbtn'); pg.wait_for_timeout(100); print('login wrong:', pg.inner_text('#lerr'))
     pg.fill('#lem','rehor.rudolf@gmail.com'); pg.fill('#lpw','06392'); pg.click('#lbtn'); pg.wait_for_timeout(200); print('coach login role:', pg.evaluate("Store.profile.role"), pg.evaluate("App.view"))
     # Trénink: Robertův týden, den v listu, uložení „každé X“ nebo „jen tento den“
-    pg.evaluate("App.coachTab='trenink';go('nastaveni');A.trDaySheet(mondayOf(todayISO()))"); pg.wait_for_timeout(100)
+    pg.evaluate("go('trenink');A.trDaySheet(mondayOf(todayISO()))"); pg.wait_for_timeout(100)
     pg.evaluate("A.trAdd('Dřep');A.trAdd('Kettlebell swing');A.trAdd('Běh pomalý');A.trDraftField('walk_min',45);A.trSave()"); pg.wait_for_timeout(150)
     print('šablona platí od pondělí:', pg.evaluate("trTemplate()&&trTemplate().active_from===mondayOf(todayISO())"), '· po:', pg.evaluate("trTemplate().days[0].items.map(i=>i.ex).join(', ')+' / '+trTemplate().days[0].walk_min+' min'"))
     # knihovna cviků: nový, oblíbený, hledání, přejmenování, smazání
@@ -148,7 +149,7 @@ with sync_playwright() as p:
     print('measure:', pg.evaluate("[measureText('Rýže vařená',150), measureText('Chléb konzumní (Šumava)',100), measureText('Vejce',120), measureText('Zelenina míchaná',150), measureText('Kuřecí prsa',150)]"))
     pg.evaluate("generateWeek(App.week,'all')"); print('routine:', pg.evaluate("(()=>{const wk=getWeek(App.week);return new Set(wk.plan.map(d=>d[0])).size+' snídaní, '+new Set(wk.plan.map(d=>d[2])).size+' svačin'})()"))
     # mismatch after training change
-    pg.evaluate("localLogin('coach')"); pg.evaluate("App.coachTab='trenink';go('nastaveni');A.trDaySheet(todayISO());A.trAdd('Běh pomalý');A.trItem(App.trDraft.items.length-1,'min',60);A.trSave()"); pg.wait_for_timeout(100)
+    pg.evaluate("localLogin('coach')"); pg.evaluate("go('trenink');A.trDaySheet(todayISO());A.trAdd('Běh pomalý');A.trItem(App.trDraft.items.length-1,'min',60);A.trSave()"); pg.wait_for_timeout(100)
     print('pace:', pg.evaluate("(()=>{const p=paceOverview();return JSON.stringify({target:+p.target.toFixed(2),proj:+p.projThis.toFixed(2),floor:p.floorThis.length,actual:p.actual})})()"))
     print('měsíc tréninku:', pg.evaluate("document.querySelectorAll('#main .tmd').length"), 'dní ·', pg.evaluate("document.querySelector('#main .pill').textContent"))
     pg.evaluate("localLogin('client')"); print('mismatch today:', pg.evaluate("JSON.stringify(dayMismatch(todayISO()))"))
@@ -158,7 +159,7 @@ with sync_playwright() as p:
     print('verdikt:', pg.evaluate("document.querySelector('#main .card .pill').textContent"), '· signálů:', pg.evaluate("document.querySelectorAll('#main .sig').length"))
     print('Robert bez vzkazů:', pg.evaluate("!document.querySelector('#cmsg') && !/Vzkaz/.test(document.querySelector('#main').innerText)"))
     print('paceGuard:', pg.evaluate("paceGuard().map(g=>g.text)"))
-    pg.evaluate("App.coachTab='cile';go('nastaveni')"); pg.fill('#st_walk_min','70'); pg.press('#st_walk_min','Tab'); pg.wait_for_timeout(150)
+    pg.evaluate("go('nastaveni')"); pg.fill('#st_walk_min','70'); pg.press('#st_walk_min','Tab'); pg.wait_for_timeout(150)
     print('settings:', pg.evaluate("S().walk_min"), pg.evaluate("Store.rows('settings').map(r=>r.user_id)"), 'log:', pg.evaluate("(S().log||[]).slice(-1).map(l=>l.k+':'+l.from+'→'+l.to)"))
     pg.fill('#st_steps_goal','8000'); pg.press('#st_steps_goal','Tab'); pg.wait_for_timeout(150)
     print('kroky → faktor:', pg.evaluate("S().steps_goal+' / '+S().activity"))

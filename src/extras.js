@@ -212,7 +212,7 @@ function signaly() {
   if (vlk >= 3) push(1, `${vlk}× vlčí hlad za týden. Tempo je nejspíš moc rychlé – zpomal dřív, než to vzdá.`, { key: 'hlad', em: '🐺', kde: vlkD, head: 'Opakovaně vlčí hlad.', go: "go('nastaveni')", label: 'Tempo' });
   // vzorce z denního záznamu (posledních 7 dnů)
   { const ci = Array.from({ length: 7 }, (_, k) => effectiveDay(addDays(t, -k - 1))); const n = f => ci.filter(f).length; const kde = f => ci.filter(f).map(d => d.date);
-    const bol = n(d => (d.checkin || {}).move === 'bolest'); if (bol >= 2) push(1, `${bol}× za týden „něco bolí“ při pohybu. Podívej se na dny a zvaž lehčí trénink.`, { key: 'bolest', em: '🤕', kde: kde(d => (d.checkin || {}).move === 'bolest'), head: 'Opakovaně ho něco bolí.', go: "App.coachTab='trenink';go('nastaveni')", label: 'Trénink' });
+    const bol = n(d => (d.checkin || {}).move === 'bolest'); if (bol >= 2) push(1, `${bol}× za týden „něco bolí“ při pohybu. Podívej se na dny a zvaž lehčí trénink.`, { key: 'bolest', em: '🤕', kde: kde(d => (d.checkin || {}).move === 'bolest'), head: 'Opakovaně ho něco bolí.', go: "go('trenink')", label: 'Trénink' });
     const sp = n(d => (d.checkin || {}).sleep === 'spatne'); if (sp >= 3) push(2, `${sp}× za týden špatný spánek – s ním roste hlad a padá vůle.`, { key: 'spanek', em: '😴', kde: kde(d => (d.checkin || {}).sleep === 'spatne') });
     const st = n(d => (d.checkin || {}).stress === 'hodne'); if (st >= 3) push(2, `${st}× za týden hodně stresu.`, { key: 'stres', em: '😣', kde: kde(d => (d.checkin || {}).stress === 'hodne') });
     const cr = n(d => (d.checkin || {}).crave === 'silne'); if (cr >= 3) push(2, `${cr}× za týden silné chutě – zvaž, jestli limit není moc nízký, nebo přidej sytější přílohy.`, { key: 'chute', em: '🍫', kde: kde(d => (d.checkin || {}).crave === 'silne') });
@@ -229,12 +229,12 @@ function signaly() {
   const ph = phaseSuggestion(); if (ph) push(2, ph.text, { key: 'faze', em: '🚶', apply: `A.applyPhase(${ph.rec})`, label: `${fmt1(ph.rec)} km/h` });
   // cíl a udržování
   if (!s.maintain && ov.cur - s.goal_weight <= 0) push(1, `Robert dosáhl cílové váhy ${s.goal_weight} kg. Zapni udržování – jinak deficit běží dál.`, { key: 'cil', em: '🏁', head: 'Robert je u cíle.', apply: 'A.setMaintain(true)', label: 'Udržování' });
-  else if (!s.maintain && ov.cur - s.goal_weight <= 2) push(2, `Robert je ${fmt1(ov.cur - s.goal_weight)} kg od cíle. Připrav udržování.`, { key: 'cil', em: '🏁', go: "App.coachTab='cile';go('nastaveni')", label: 'Plán' });
+  else if (!s.maintain && ov.cur - s.goal_weight <= 2) push(2, `Robert je ${fmt1(ov.cur - s.goal_weight)} kg od cíle. Připrav udržování.`, { key: 'cil', em: '🏁', go: "go('nastaveni')", label: 'Plán' });
   // udržovací týden – jeden práh všude: po 8 týdnech upozornit, Plán radí 6–10
   const mw = (s.maint_weeks || []).slice().sort(); const odKdy = mw.length ? mw[mw.length - 1] : s.start_date; const tydnu = Math.floor(daysBetween(odKdy, t) / 7);
-  if (tydnu >= 8) push(2, `${tydnu} týdnů bez udržovacího týdne. Po osmi týdnech deficitu se vyplatí jeden týden na nule.`, { key: 'udrz', em: '⏸️', go: "App.coachTab='cile';go('nastaveni')", label: 'Zařadit' });
+  if (tydnu >= 8) push(2, `${tydnu} týdnů bez udržovacího týdne. Po osmi týdnech deficitu se vyplatí jeden týden na nule.`, { key: 'udrz', em: '⏸️', go: "go('nastaveni')", label: 'Zařadit' });
   const apl = activePlanFor(t); const naDatum = Array.from({ length: 14 }, (_, i) => addDays(t, i)).some(d => trainingOverride(d));
-  if (!apl && !naDatum) push(3, `Žádný tréninkový plán – Robert jede na výchozích ${s.walk_min} min chůze.`, { key: 'trenink', em: '🏋️', go: "App.coachTab='trenink';go('nastaveni')", label: 'Trénink' });
+  if (!apl && !naDatum) push(3, `Žádný tréninkový plán – Robert jede na výchozích ${s.walk_min} min chůze.`, { key: 'trenink', em: '🏋️', go: "go('trenink')", label: 'Trénink' });
   return out.sort((a, b) => a.lv - b.lv);
 }
 
@@ -276,7 +276,10 @@ function weightWhy(from, to) {
   const pts = rows.filter(r => r.date >= from && r.date <= addDays(to, 1));
   const span = Math.max(1, daysBetween(from, addDays(to < t ? to : t, 1)));
   const w = pts.length ? pts.reduce((a, r) => a + r.weight, 0) / pts.length : currentWeight();
-  const realW = slopeW(pts);
+  /* krátké období (týden): sklon z pěti vážení skáče – vezmi rozdíl průměru proti stejně dlouhému období předtím */
+  const len = daysBetween(from, to) + 1; const prevPts = rows.filter(r => r.date >= addDays(from, -len) && r.date < from);
+  const avg = a => a.reduce((x, r) => x + r.weight, 0) / a.length;
+  const realW = len < 14 ? (pts.length >= 3 && prevPts.length >= 3 ? (avg(prevPts) - avg(pts)) / len * 7 : null) : slopeW(pts);
   let planKg = 0; for (let k = 0; k < span; k++) planKg += w * effSettings(s, addDays(from, k)).rate_pct / 100 / 7;
   const planW = planKg / span * 7, gap = realW == null ? planW : planW - realW;
   const state = realW == null ? 'malo' : realW < planW * 0.8 && gap >= 0.15 ? 'pomalu' : (realW > planW * 1.4 && realW - planW >= 0.3 ? 'rychle' : 'ok');
@@ -312,9 +315,9 @@ function weightWhy(from, to) {
   const kFood = perW(X.food, X.conf), kMove = perW(X.move, X.conf), kFloor = perW(X.floor, X.conf);
   if (D.over.length && kFood >= 0.03) add({ key: 'jidlo', lv: lvK(kFood), em: '🍽️', kg: kFood, kde: D.over, title: `Snědl víc, než měl: ${D.over.length}× přes limit`, sub: X.cheatDays ? `Z toho ${X.cheatDays}× cheat${X.beers ? ` (${X.beers} piv)` : ''}. Cheat patří do rezervy dne, ne navíc.` : 'Bez cheatu – porce nebo jídlo mimo plán. Otevři ty dny.' });
   if (D.move.length && kMove >= 0.03) { const avgW = Math.round(X.walk / X.conf), avgP = Math.round(X.walkPlan / X.conf);
-    add({ key: 'pohyb', lv: lvK(kMove), em: '🚶', kg: kMove, kde: D.move, title: `Méně pohybu: Ø ${avgW} z ${avgP} min chůze${X.trMiss ? ` · ${X.trMiss}× bez tréninku` : ''}`, sub: 'Jídlo z plánu počítá s celým pohybem – bez něj přetáhne limit. Nastav cíl, který reálně ujde.', go: "App.coachTab='cile';go('nastaveni')", label: 'Cíl chůze' }); }
-  else if (D.tr.length) add({ key: 'trenink', lv: 2, em: '🏋️', kde: D.tr, title: `${D.tr.length}× vynechaný trénink`, sub: 'Plán tréninku a skutečnost se rozcházejí. Uprav dny, které mu nesedí.', go: "App.coachTab='trenink';go('nastaveni')", label: 'Trénink' });
-  if (kFloor >= 0.04) add({ key: 'spodni', lv: 2, em: '🧱', kg: kFloor, kde: D.floor, title: `${D.floor.length}× limit na spodní hranici jídla`, sub: 'Deficit ten den vyšel menší, než chce tempo. Přidej chůzi nebo sniž tempo.', go: "App.coachTab='cile';go('nastaveni')", label: 'Plán' });
+    add({ key: 'pohyb', lv: lvK(kMove), em: '🚶', kg: kMove, kde: D.move, title: `Méně pohybu: Ø ${avgW} z ${avgP} min chůze${X.trMiss ? ` · ${X.trMiss}× bez tréninku` : ''}`, sub: 'Jídlo z plánu počítá s celým pohybem – bez něj přetáhne limit. Nastav cíl, který reálně ujde.', go: "go('nastaveni')", label: 'Cíl chůze' }); }
+  else if (D.tr.length) add({ key: 'trenink', lv: 2, em: '🏋️', kde: D.tr, title: `${D.tr.length}× vynechaný trénink`, sub: 'Plán tréninku a skutečnost se rozcházejí. Uprav dny, které mu nesedí.', go: "go('trenink')", label: 'Trénink' });
+  if (kFloor >= 0.04) add({ key: 'spodni', lv: 2, em: '🧱', kg: kFloor, kde: D.floor, title: `${D.floor.length}× limit na spodní hranici jídla`, sub: 'Deficit ten den vyšel menší, než chce tempo. Přidej chůzi nebo sniž tempo.', go: "go('nastaveni')", label: 'Plán' });
   // kroky: skrytá chyba – limit je nevidí, faktor výdeje počítá s cílem
   if (X.stepsN >= 3) { const avg = X.stepsSum / X.stepsN, k = perW(X.stepsGap, X.stepsN); const rec = factorForSteps(avg);
     const fix = Math.abs(rec - s.activity) >= 0.05 ? { apply: `A.applyAdvice(${JSON.stringify(JSON.stringify({ activity: rec })).replace(/"/g, '&quot;')})`, label: `Faktor ${String(rec).replace('.', ',')}` } : {};
@@ -326,11 +329,11 @@ function weightWhy(from, to) {
     if (kU >= 0.04) add({ key: 'podlimit', lv: 1, em: '🥗', kg: kU, kde: D.under, title: `Jí pod limit: ${D.under.length}× o víc než 300 kcal`, sub: 'Rychlé hubnutí bere sval a končí hladem. Ať dojídá do limitu, hlavně bílkoviny.' });
     if (pts.length && pts[0].idx < 21) add({ key: 'start', lv: 3, em: '💧', title: 'Začátek hubnutí', sub: 'První tři týdny jde dolů hlavně voda a glykogen. Rychlý start je normální.' });
   }
-  if (D.vlk.length >= 2) add({ key: 'hlad', lv: state === 'rychle' ? 1 : 2, em: '🐺', kde: D.vlk, title: `${D.vlk.length}× vlčí hlad`, sub: 'Takové tempo dlouho nevydrží. Zpomal.', go: "App.coachTab='cile';go('nastaveni')", label: 'Tempo' });
+  if (D.vlk.length >= 2) add({ key: 'hlad', lv: state === 'rychle' ? 1 : 2, em: '🐺', kde: D.vlk, title: `${D.vlk.length}× vlčí hlad`, sub: 'Takové tempo dlouho nevydrží. Zpomal.', go: "go('nastaveni')", label: 'Tempo' });
   if (D.psych.length >= 3) add({ key: 'psych', lv: 3, em: '😴', kde: D.psych, title: [D.sleep && `${D.sleep}× špatný spánek`, D.stress && `${D.stress}× stres`, D.crave && `${D.crave}× silné chutě`].filter(Boolean).join(' · '), sub: 'Zvedá hlad a chutě – často stojí za přejídáním.' });
   // zbytek, který záznamy nevysvětlí
   const expl = C.reduce((tt, c) => tt + (c.kg && !c.data ? c.kg : 0), 0), rest = gap - expl;
-  if (state === 'pomalu' && X.conf >= n * 0.6 && rest >= 0.15) { const bmr = calcBase(s, w, 0, 0, s.walk_kmh, 0, 0).bmr; const f = Math.max(1.2, Math.round((s.activity - rest * KG_KCAL / 7 / bmr) * 100) / 100);
+  if (state === 'pomalu' && n >= 13 && X.conf >= n * 0.6 && rest >= 0.15) {   // zbytek má smysl až za dva týdny const bmr = calcBase(s, w, 0, 0, s.walk_kmh, 0, 0).bmr; const f = Math.max(1.2, Math.round((s.activity - rest * KG_KCAL / 7 / bmr) * 100) / 100);
     const krokyFix = C.some(c => c.key === 'kroky' && c.apply);   // faktor podle kroků má přednost – dvě různá čísla by mátla
     add({ key: 'zbytek', lv: 2, em: '🔍', kg: rest, last: true, title: 'Zbytek záznamy nevysvětlí', sub: `Buď jí víc, než zapisuje (olej, pití, ochutnávky), nebo je výdej nadhodnocený o ~${fmt0(rest * KG_KCAL / 7)} kcal/den.${krokyFix ? ' Nejdřív oprav faktor podle kroků a týden počkej.' : ''}`,
       ...(krokyFix || f >= s.activity ? {} : { apply: `A.applyAdvice(${JSON.stringify(JSON.stringify({ activity: f })).replace(/"/g, '&quot;')})`, label: `Faktor ${String(f).replace('.', ',')}` }) }); }
@@ -528,3 +531,52 @@ function settingsAdvice() {
 }
 A.applyAdvice = (json) => commitSettings({ ...S(), ...JSON.parse(json) }, 'Nastavení podle doporučení');
 function adviceBox(field) { const list = settingsAdvice().filter(a => a.field === field); return list.map(a => `<div class="alert a${a.lv}"><div>${esc(a.text)}</div>${a.apply ? `<button class="btn sm" onclick="A.applyAdvice(${JSON.stringify(JSON.stringify(a.apply)).replace(/"/g, '&quot;')})">${a.label}</button>` : ''}</div>`).join(''); }
+
+/* ===== Nápověda (2. 10. 2026) =====
+   U každého prvku, jehož význam není jasný z názvu, je „?“. Ťuknutí ukáže 2–4 věty:
+   co to dělá · kdy to použít · doporučení. Texty jsou jen tady – Návod z nich vychází. */
+const HELP = {
+  // trenér · Plán
+  cilVaha: { t: 'Cílová váha', co: 'Kam Robert míří. Z ní a z tempa appka počítá, kdy cíle dosáhne podle plánu.', tip: 'Cíl nad BMI 30 je mezikrok – po dosažení nastav další.' },
+  cilPas: { t: 'Cílový pas', co: 'Obvod pasu, ke kterému Robert míří.', tip: 'Zdravotní hranice je polovina výšky.' },
+  tempo: { t: 'Tempo hubnutí', co: 'Kolik procent váhy má Robert shodit za týden. Z toho appka počítá deficit a limit dne – a tím i velikost všech jídel.', kdy: 'Když trend dva týdny výrazně ujíždí od plánu nebo má opakovaně vlčí hlad.', tip: '0,5–1 %. Nad ~0,9 % limit obvykle drží spodní hranice a vyšší tempo už nic nezmění.' },
+  prestavka: { t: 'Přestávka v deficitu', co: 'Jeden týden jí Robert na úrovni výdeje – deficit nula. Tělo si odpočine, klesne hlad a únava.', kdy: 'Po 6–10 týdnech hubnutí nebo když váha dva týdny stojí.', tip: 'Naplánuj dopředu; Robert ji uvidí v Dnes a jí víc.' },
+  udrzovani: { t: 'Udržování', co: 'Natrvalo deficit nula – Robert jí na úrovni výdeje.', kdy: 'U cílové váhy. Appka to připomene 2 kg před cílem.' },
+  chuze: { t: 'Chůze denně', co: 'Kolik minut cílené chůze má Robert ujít ve dnech, které nemají vlastní plán v Tréninku. Každá minuta zvedá limit dne.', kdy: 'Když ji opakovaně neplní, nastav, co reálně ujde – jinak jí podle plánu víc, než spálí.', tip: '45–75 minut.' },
+  tempoChuze: { t: 'Tempo chůze', co: 'Rychlost chůze. Rychlejší chůze spálí víc za minutu.', tip: 'Fáze podle váhy ti řekne, kdy přidat.' },
+  kroky: { t: 'Běžné kroky', co: 'Chůze mimo procházku – doma, v práci, nákup. Je už započítaná ve faktoru výdeje, takže zapsané kroky limit nezvedají.', kdy: 'Nastav podle toho, kolik Robert opravdu chodí. Appka podle toho upraví faktor.', tip: 'Když zapisuje výrazně méně, sniž cíl (nebo faktor) – jinak hubne pomaleji, než plán čeká.' },
+  faktor: { t: 'Faktor běžného výdeje', co: 'Kolikrát běžný den bez cílené chůze převýší klidový výdej. 1,2 sedavě · 1,34 = 5 000 kroků · 1,48 = 9 000 a víc.', kdy: 'Podle zapsaných kroků – appka doporučí číslo a nabídne tlačítko.' },
+  limit: { t: 'Limit dne', co: 'Kolik má Robert sníst a vypít: celkový výdej (klidový + běžný + chůze + trénink) mínus deficit z tempa. Nikdy pod klidový výdej.', tip: 'Mění ho tempo a pohyb. Rozdělení mezi chody ho nemění.' },
+  bilkoviny: { t: 'Bílkoviny', co: 'Minimum bílkovin za den. Při hubnutí chrání sval a sytí.', tip: '1,6–2 g na kg cílové váhy.' },
+  chody: { t: 'Rozdělení mezi chody', co: 'Jak se limit dne dělí mezi jídla. Kolik Robert sní celkem, to nemění.', tip: 'Hlavní jídla 20–30 %, svačiny a druhá večeře 5–20 %.' },
+  // trenér · Trénink
+  trPlati: { t: 'Platí', co: '„Každé X“ změní šablonu od dneška – minulé dny zůstanou, jak byly. „Jen tento den“ je výjimka; ostatní dny jedou podle šablony.' },
+  trVratit: { t: 'Vrátit na šablonu', co: 'Zahodí úpravu tohoto dne. Den bude stejný jako ostatní dny téhož jména podle šablony.' },
+  trKopie: { t: 'Zkopírovat na další dny', co: 'Vybereš dny v kalendáři a tento den (chůze i cviky) se na ně zkopíruje jako jejich vlastní plán.' },
+  trUlozit: { t: 'Uložit jako trénink', co: 'Uloží cviky do knihovny tréninků. Jindy je vložíš do libovolného dne jedním ťuknutím.' },
+  trVyprazdnit: { t: 'Vyprázdnit', co: 'Smaže cviky tohoto dne. Chůze zůstane.' },
+  trIntenzita: { t: 'Intenzita', co: 'Jak náročně má cvičit. Podle ní appka odhadne kalorie tréninku a o ně zvedne limit dne.' },
+  trPauza: { t: 'Pauza', co: 'Odpočinek mezi sériemi v sekundách. Při cvičení Robertovi běží odpočet.', tip: 'Prázdné = výchozí z Nastavení.' },
+  // trenér · Přehled
+  pTempo: { t: 'Tempo hubnutí', co: 'Trend = sklon ranních vážení za poslední 3 týdny, v kg za týden. Srovnává se s tempem z plánu.', tip: 'Pod 80 % plánu dva týdny po sobě = je co řešit.' },
+  pCil: { t: 'Kdy dosáhne cíle', co: 'Podle plánu = při nastaveném tempu od startu. Prognóza = při současném trendu. Rozdíl ukazuje, kolik se cíl posouvá.' },
+  pData: { t: 'Data od Roberta', co: 'Bez potvrzených dnů, vážení a kroků appka nepozná, co ujelo. Rozbor stojí jen na tom, co Robert zapíše.' },
+  gVaha: { t: 'Váha', co: 'Změna průměru vážení proti předchozímu období a kolik to mělo být podle plánu.' },
+  gJidlo: { t: 'Jídlo v limitu', co: 'Kolik potvrzených dnů bylo v limitu. Dopad = kolik kg týdně to ubírá.' },
+  gDeficit: { t: 'Deficit', co: 'Průměrný skutečný deficit potvrzených dnů proti plánovanému. Rozhoduje o tempu.' },
+  gChuze: { t: 'Chůze', co: 'Ušlé minuty proti plánu (cíl chůze nebo plán z Tréninku) ve dnech, kdy Robert něco zapsal.' },
+  gKroky: { t: 'Kroky', co: 'Průměr běžné chůze (kroky z telefonu bez procházky) proti cíli. Když je nízko, faktor výdeje přeceňuje a Robert hubne pomaleji.' },
+  gTrenink: { t: 'Trénink', co: 'Odcvičené tréninky proti naplánovaným v Tréninku.' },
+  gZapis: { t: 'Zapisování', co: 'Potvrzené dny, vážení a zapsané kroky. Bez nich nejde říct, kde je problém.' },
+  gPocit: { t: 'Jak se cítí', co: 'Souhrn odpovědí z potvrzení dne – spánek, stres, hlad, chutě, bolest.' },
+  // Robert
+  rLimit: { t: 'Limit dne', co: 'Kolik dnes můžeš sníst a vypít, abys hubnul podle plánu. Roste s každou minutou chůze a s tréninkem.', tip: 'Nikdy neklesne pod klidový výdej – jíst míň nemá smysl.' },
+  rCheat: { t: 'Cheat', co: 'Pivo, řízek, dort – cokoli navíc. Zapiš dopředu a appka ho přednostně pokryje chůzí navíc, ať nemusíš ubírat z jídel.' },
+  rPotvrdit: { t: 'Potvrdit den', co: 'Večer jedním ťuknutím řekneš, že jsi jedl podle plánu. Co bylo jinak, opravíš u jídla. Bez potvrzení appka neví, co jsi opravdu snědl.' },
+  rKroky: { t: 'Kroky', co: 'Zapiš celkový počet z telefonu. Zapsanou procházku appka odečte sama.' },
+  rTyden: { t: 'Týden jídel', co: 'Řádek = den, ikony = chody. 🎲 vyřeším podle situace · – vynechané. Číslo vpravo je součet dne, tečka: zelená sedí, oranžová moc nebo málo.' },
+  rVareni: { t: 'Vaření', co: 'Vybereš dny, appka sečte porce. Když uvaříš, ťukni „uvařeno“ – pokryté chody dostanou gramy z krabičky.' },
+};
+function hq(key) { return HELP[key] ? `<button class="hq" type="button" onclick="event.stopPropagation();A.help(this,'${key}')" aria-label="nápověda: ${esc(HELP[key].t)}">?</button>` : ''; }
+A.help = (el, key) => { const h = HELP[key]; if (!h) return;
+  UI.popHtml(el, `<b>${esc(h.t)}</b><div>${esc(h.co)}</div>${h.kdy ? `<div><b class="hk">Kdy:</b> ${esc(h.kdy)}</div>` : ''}${h.tip ? `<div><b class="hk">Doporučení:</b> ${esc(h.tip)}</div>` : ''}`); };

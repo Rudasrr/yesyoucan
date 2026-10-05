@@ -25,7 +25,8 @@ VIEWS.pokrok = function () {
     ${ov.weekBack ? `<div class="status st${ov.weekBack.state}">${esc(ov.weekBack.text)}</div>` : ''}
   </div>
   <div class="card"><div class="ch"><h2>Váha proti plánu</h2>${ov.avgWeekLoss != null ? `<span class="pill ${ov.avgWeekLoss >= planW * 0.9 ? 'ok' : 'warn'}">−${fmt2(ov.avgWeekLoss)} kg/týden</span>` : ''}</div>
-    ${lineChart({ series: [{ name: 'plán', color: '#9aa3b8', dash: true, pts: planPts }, { name: 'ranní váha', color: '#a8c6e4', pts: rawPts, thin: true }, { name: 'průměr 7 dní', color: '#1478d4', pts: realPts, dots: true }], xLabel: 'dní od startu', yUnit: 'kg', tips: weightTips(ov), marks: (s.log || []).map(l => ({ x: daysBetween(s.start_date, l.at), label: l.pop.split(' ')[0] + ' ' + l.to })) })}
+    <div class="row between kch"><div class="legend kleg" style="justify-content:flex-start;margin:0"><span><i style="background:#1478d4"></i>Ø týdne</span><span><i style="background:#d97706"></i>trend</span><span><i style="background:#9aa3b8"></i>plán</span></div><div class="chips">${[[56, '8 t'], [91, '3 m'], [0, 'vše']].map(([v, l]) => `<button class="chip ${App.cgR === v ? 'on' : ''}" onclick="App.cgR=${v};render()">${l}</button>`).join('')}</div></div>
+    ${coachWeightChart(s, ov, { shade: false, h: 220 })}
     <p class="hint">Plán −${fmt2(planW)} kg za týden. Rozhoduje čára, ne jedna tečka.${(s.log || []).length ? ' Svislé čáry jsou změny od trenéra.' : ''}</p></div>
   <div class="card"><div class="rings">
     ${ring(clamp(ov.count / Math.max(1, (ov.daysSinceStart || 1)) * 100, 0, 100), ov.count + '×', `vážení za ${ov.daysSinceStart ?? '–'} ${sklon(ov.daysSinceStart || 0, 'den', 'dny', 'dní')}`, 'var(--carb)', 84)}
@@ -220,7 +221,7 @@ VIEWS._jidla = function () {
   else cta = `<button class="btn block sec" onclick="A.planTab('nakup')">🛒 Pokračovat na nákup ›</button>`;
   const emo = (d, ci) => { const v = d.sels[ci]; const k = s.courses[ci].key;
     if (!v) return '<i class="no">+</i>'; if (v === VYNECHAT) return '<i class="no">–</i>'; if (v === SITUACE) return '<i class="sit" title="podle situace">🎲</i>'; return `<i title="${esc(v)}">${COURSE_EMOJI[k]}</i>`; };
-  return `<div class="card"><div class="row nowrap" style="align-items:flex-start"><span class="dot" style="width:12px;height:12px;background:${tone}"></span><div class="sp"><b style="font-size:16px">${headline}</b><div class="small muted">${subline}</div>${msgs[0] && filled ? `<div class="small">${msgs[0].em} ${esc(msgs[0].text)}</div>` : ''}</div></div></div>
+  return `<div class="card"><div class="row nowrap" style="align-items:flex-start"><span class="dot" style="width:12px;height:12px;background:${tone}"></span><div class="sp"><b style="font-size:16px">${headline}${hq('rTyden')}</b><div class="small muted">${subline}</div>${msgs[0] && filled ? `<div class="small">${msgs[0].em} ${esc(msgs[0].text)}</div>` : ''}</div></div></div>
   <div class="card flush">${days.map(d => { const past = d.date < today; const mm = dayMismatch(d.date);
     const st = d.r.filled === 0 ? '' : d.r.state === 2 && !mm ? 's2' : (d.r.filled < 5 || mm ? 's3' : 's1');
     const kc = d.r.filled === 0 ? '<span class="muted">prázdný</span>' : (d.r.state === 2 || d.r.filled < 5 ? fmt0(d.r.kcal) : `<span class="${d.r.state === 1 ? 'bad' : 'warn'}" title="${esc(d.r.status)}">${fmt0(d.r.kcal)} · ${signed0(d.r.kcal - d.r.planLimit)}</span>`);
@@ -327,6 +328,7 @@ VIEWS.more = function () {
 VIEWS.ucet = function () {
   const coach = isCoach();
   return `<div class="ph"><button class="iconbtn" onclick="go('more')" aria-label="zpět">‹</button><div class="pt"><h1>Nastavení</h1></div></div>
+  ${coach ? profileCard() : ''}
   <div class="card stack s8"><h2>Účet</h2><p class="small muted">${Store.localMode() ? 'Aplikace běží bez cloudu – data jsou jen v tomto prohlížeči. Udělej si zálohu.' : `Přihlášen: ${esc(Store.session ? Store.session.user.email : '')} · ${coach ? 'trenér' : 'klient'}`}</p>
     <div class="row">${Store.localMode() ? '' : '<button class="btn sec sm" onclick="Store.sync().then(()=>{render();UI.toast(\'Synchronizováno\')})">Synchronizovat teď</button>'}<button class="btn sec sm" onclick="A.logout()">Odhlásit</button></div></div>
   ${!coach && !Meas().length ? `<div class="card stack s8"><h2>Historie ze sešitu</h2><p class="small muted">Zatím nemáš žádné vážení. Můžeš nahrát 14 vážení a obvody z Excelu (27. 8. – 9. 9. 2026), ať grafy navazují.</p><div class="row"><button class="btn sec sm" onclick="A.seedMeas()">Nahrát vážení ze sešitu</button></div></div>` : ''}
@@ -376,7 +378,7 @@ VIEWS.navod = function () {
   <div class="card tint-p stack s8"><p style="font-size:17px;font-weight:700">${esc(T.start_intro[0])}</p><p class="small muted">${esc(T.start_intro[1])}</p><div class="row"><button class="btn sec sm" onclick="A.intro(0)">Ukázat úvod znovu</button></div></div>
   <div class="tiles"><div class="tile big"><div class="tt">${fmt0(b.planLimit)}</div><div class="tb">kcal na jídlo a pití za den</div></div><div class="tile big"><div class="tt">${fmt1(Math.max(0, ov.cur - s.goal_weight))} kg</div><div class="tb">do cíle ${s.goal_weight} kg</div></div><div class="tile big"><div class="tt">${Math.round(ov.progress * 100)} %</div><div class="tb">cesty za tebou</div></div><div class="tile big"><div class="tt">${esc(ov.phase.split(' – ')[0])}</div><div class="tb">${esc(ov.phase.split(' – ')[1] || 'fáze chůze')}</div></div></div>
   ${sec('rules', '📜', 'Deset pravidel, která platí vždy', 'Krátká. Když si nebudeš vědět rady, vrať se sem.', `<div class="rules2">${T.rules.map((r, i) => `<div class="rule"><span class="rem">${RULE_EM[i] || '•'}</span><div>${esc(r)}</div></div>`).join('')}</div>`, true)}
-  ${sec('day', '☀️', 'Jak vypadá tvůj den v appce', 'Ráno váha, pět jídel, chůze, večer shrnutí. Appka tě vede kartou „Teď“.', steps([['Ráno: zvaž se', 'Po WC, nalačno. Zapíšeš přímo v kartě Teď. Průměr 7 dní si poradí s výkyvy.'], ['Jídla podle plánu', 'Naskočí z Plánu. Po jídle ťukni na kolečko. Nesedí? Otevři jídlo a dej 💡 jiný návrh.'], ['Chůze a trénink', 'U chůze přidávej minuty tlačítkem +15. Trénink otevři a odcvič nebo odškrtni. Pohyb zvedá limit jídla.'], ['Cheat', 'Pivo nebo řízek zapiš ráno do řádku Cheat – appka ti zvedne cíl chůze, ať tě to nestojí tempo.'], ['Večer', 'Zapiš kroky a uzavři den – uvidíš verdikt a ťukneš, jak ti bylo s jídlem. Když na to zapomeneš, den se uzavře sám.']]))}
+  ${sec('day', '☀️', 'Jak vypadá tvůj den v appce', 'Ráno váha, pět jídel, chůze, večer shrnutí. Appka tě vede zvýrazněným řádkem – další krok s tlačítkem.', steps([['Ráno: zvaž se', 'Po WC, nalačno. Zapíšeš přímo ve zvýrazněném řádku. Průměr 7 dní si poradí s výkyvy.'], ['Jídla podle plánu', 'Naskočí z Plánu. Po jídle ťukni na kolečko. Nesedí? Otevři jídlo a dej 💡 jiný návrh.'], ['Chůze a trénink', 'U chůze přidávej minuty tlačítkem +15. Trénink otevři a odcvič nebo odškrtni. Pohyb zvedá limit jídla.'], ['Cheat', 'Pivo nebo řízek zapiš ráno do řádku Cheat – appka ti zvedne cíl chůze, ať tě to nestojí tempo.'], ['Večer', 'Zapiš kroky a uzavři den – uvidíš verdikt a ťukneš, jak ti bylo s jídlem. Když na to zapomeneš, den se uzavře sám.']]))}
   ${sec('week', '🗓️', 'Neděle – 10 minut', 'Obvody, plán týdne, nákup. Všechno v záložce Plán: Jídla → Nákup → Vaření.', steps([['Změř obvody', 'Pas, boky, hrudník, stehno, paže – ráno nalačno, stejné místo.'], ['Projdi návrh týdne', 'Po 18:00 appka navrhne příští týden. Změň, co nechceš (hvězdičkou označ oblíbené – budou častěji).'], ['Nákup', 'Seznam se složí sám z plánu, podle regálů. Co máš doma, označ „mám doma“.'], ['Vaření', 'Vyber dny, na které vaříš. Gramy jsou v nákupním stavu, přepočítané na tvoji váhu.']]))}
   ${sec('costs', '💸', 'Kolik co stojí', `Denní deficit je teď ${fmt0(costs.deficit)} kcal. Kilo tuku = 7 700 kcal ≈ týden.`, tiles(costs.rows.map(r => [r[1], r[0], r[2]])) + `<p class="hint">${esc(T.costs_note)}</p>`)}
   ${sec('ways', '🧭', 'Dvě cesty, jak appku používat', esc(T.navod.two_ways), tiles(T.navod.ways.map(r => [r[0], r[1], r[2]])))}
@@ -457,9 +459,7 @@ function lineChart({ series, xLabel, yUnit, hLine, marks, tips, xFmt, h = 260 })
     g += `<path d="${d}" fill="none" stroke="${sr.color}" stroke-width="${sr.thin ? 1.2 : 2.2}" ${sr.dash ? 'stroke-dasharray="6 5"' : ''} stroke-linejoin="round"/>`;
     if (sr.dots) sr.pts.forEach(p => { g += `<circle cx="${X(p[0])}" cy="${Y(p[1])}" r="3" fill="${sr.color}"/>`; }); });
   /* svislé značky: zásahy trenéra – bez nich nepoznáš, jestli změna tempa něco udělala */
-  (marks || []).forEach(m => { if (m.x < x0 || m.x > x1) return;
-    g += `<line x1="${X(m.x)}" x2="${X(m.x)}" y1="${T}" y2="${H - B}" stroke="#8a5a9e" stroke-width="1.2" stroke-dasharray="2 3"/>`
-      + `<text x="${X(m.x) + 3}" y="${T + 11}" font-size="10" fill="#8a5a9e">${esc(m.label)}</text>`; });
+  g += marksSvg(marks, x0, x1, X, T, H - B);
   /* popisek po najetí: body se uloží do registru, svg nese jen id (HTML v atributu by se rozbilo) */
   let tipId = '';
   if (tips && tips.length) { tipId = 'ct' + (++lineChart.n); lineChart.reg[tipId] = tips.filter(t => t.x >= x0 && t.x <= x1).map(t => ({ sx: X(t.x), sy: Y(t.y), html: t.html }));
@@ -470,6 +470,14 @@ function lineChart({ series, xLabel, yUnit, hLine, marks, tips, xFmt, h = 260 })
   return g + `<div class="legend">${series.filter(sr => sr.pts.length).map(sr => `<span><i style="background:${sr.color}"></i>${sr.name}</span>`).join('')}${yUnit ? `<span class="muted">osa: ${yUnit}</span>` : ''}</div>`;
 }
 lineChart.n = 0; lineChart.reg = {};
+/* zásahy trenéra v grafu: víc změn v jeden den = jeden štítek, blízké štítky se střídají nahoře a níž */
+function logMarks(s) { const by = {}; (s.log || []).forEach(l => { (by[l.at] = by[l.at] || []).push(l); });
+  return Object.keys(by).sort().map(at => { const L = by[at]; const last = L[L.length - 1];
+    return { x: daysBetween(s.start_date, at), label: L.length > 1 ? `⚙︎ ${L.length} ${sklon(L.length, 'změna', 'změny', 'změn')}` : `⚙︎ ${last.pop.split(' ')[0]} ${String(last.to).replace('.', ',')}`, title: L.map(l => `${l.pop}: ${String(l.from).replace('.', ',')} → ${String(l.to).replace('.', ',')}`).join('\n') }; }); }
+function marksSvg(marks, x0, x1, X, T, bottom) { let g = '', lastX = -1e9, lvl = 0;
+  (marks || []).filter(m => m.x >= x0 && m.x <= x1).forEach(m => { const px = X(m.x); lvl = px - lastX < 80 ? (lvl + 1) % 2 : 0; lastX = px;
+    g += `<g><title>${esc(m.title || m.label)}</title><line x1="${px}" x2="${px}" y1="${T}" y2="${bottom}" stroke="#8a5a9e" stroke-width="1.2" stroke-dasharray="2 3"/><text x="${px + 3}" y="${T + 10 + lvl * 12}" font-size="10" fill="#8a5a9e">${esc(m.label)}</text></g>`; });
+  return g; }
 /* nejbližší bod podle osy x; myš i ťuknutí na mobilu */
 let chartTipOn = null;
 function chartTip(e) {

@@ -141,7 +141,7 @@ A.vSpan = n => { const t = todayISO(); const out = []; for (let k = 0; k < n; k+
 VIEWS._vareni = function () {
   const s = S(), foods = Foods(), recipes = Recipes(), w = currentWeight();
   const sel = varDays(); const t = todayISO();
-  const chips = `<div class="card noprint stack s8"><div class="row between"><b>Vařím na</b><span class="small muted">${sel.length} ${DEN(sel.length)}</span></div>
+  const chips = `<div class="card noprint stack s8"><div class="row between"><b>Vařím na${hq('rVareni')}</b><span class="small muted">${sel.length} ${DEN(sel.length)}</span></div>
     <div class="chips scroll">${Array.from({ length: 10 }, (_, k) => addDays(t, k)).map(d => `<button class="chip ${sel.includes(d) ? 'on' : ''}" onclick="A.vDay('${d}')" title="${czDate(d)}">${d === t ? 'dnes' : DAY_SHORT[dayIndex(d)] + ' ' + parseISO(d).getDate() + '.'}</button>`).join('')}</div>
     <div class="row"><button class="btn ghost sm" onclick="A.vSpan(3)">3 dny</button><button class="btn ghost sm" onclick="A.vSpan(7)">celý týden</button></div></div>`;
   const zbytky = cooks().map(c => ({ c, left: cookLeft(c) })).filter(x => x.left > 0);

@@ -129,7 +129,7 @@ Tři věty a dva údaje:
 
 > Tady je tvoje appka: **https://rudasrr.github.io/yesyoucan/** – otevři to v telefonu a přidej si to na plochu (Safari: Sdílet → Přidat na plochu; Chrome: ⋮ → Přidat na plochu).
 > Přihlásíš se e-mailem **r.pesek24@gmail.com** a heslem, které ti posílám zvlášť – hned si ho změň přes „Zapomenuté heslo“.
-> Nic nevymýšlej: otevři **Dnes** a drž se karty **Teď** – vždycky ti řekne jeden další krok. Pod ní je celý den v jednom seznamu, stačí odškrtávat. Psát si budeme jako doteď, appka na zprávy není.
+> Nic nevymýšlej: otevři **Dnes** a drž se zvýrazněného řádku – vždycky je to jeden další krok s tlačítkem. Celý den je v jednom seznamu, stačí odškrtávat. Psát si budeme jako doteď, appka na zprávy není.
 
 ## A9. Push připomínky – nasazení (jednorázově)
 
@@ -147,17 +147,13 @@ Zkouška bez čekání na čas: `curl -s -H "x-cron-secret: $CRON_SECRET" "$SUPA
 
 ## A8. Jak appku používáš ty (trenér)
 
-Dvě záložky dole (na počítači nahoře), zbytek pod kolečkem **T** vpravo nahoře. Plánuješ cíle a trénink, ne jídlo.
+Tři záložky: **Přehled · Plán · Trénink**. Pod kolečkem **T** je ⚙︎ Nastavení (výška, věk, start, faktor, pauza mezi sériemi, účet), Pohled Roberta a Návod. U všeho, co není jasné z názvu, je **?** – ťukni a uvidíš, co to dělá, kdy to použít a doporučení.
 
-- **Robert** – všechno na jednu obrazovku (notebook i menší). **Nahoře** barva, jedna věta (co se děje a hlavní příčina) a pět čísel: průměr tohoto týdne a rozdíl proti minulému, trend za 3 týdny proti plánu, kdy dojde k cíli tímto tempem, pas a kolik dnů ze 7 potvrdil. 📊 otevře tabulky za 6 týdnů.
-- **Graf** – přepínač **Váha / Obvody**. Váha: modré schody = týdenní průměry s číslem, oranžová = trend 3 týdnů s prognózou, šedá = plán s pásmem ±0,5 kg, světlé tečky = ranní vážení. Najeď myší (na telefonu ťukni) na tečku: datum, váha, průměr týdne, plán a jak šel den předtím. Rozsah 8 týdnů / 3 měsíce / vše. Obvody: pas, boky, hrudník, stehno, paže zvlášť.
-- **Problémy** (vpravo) – za období, které máš dole vybrané. U každého **co** (s dopadem v kg za týden), **kde** (dny) a tlačítko **nápravy** (faktor, cíl chůze, tempo, trénink). Najeď na problém a v tabulce dole se rozsvítí jeho dny. Ťuknutím na problém vidíš vysvětlení a dny k otevření.
-- **Období dole: Měsíc · Týden** (výchozí tento týden) – nahoře cíle proti plnění: váha proti plánu, dny v limitu, průměrný deficit, chůze, kroky, tréninky, vážení. **Měsíc** se rozpadne na týdny (klik otevře týden), **týden** na dny po oblastech (jídlo, chůze, kroky, trénink, váha, pocit; zelená sedí, červená ujela, šrafovaná chybí). Ťukni na den a vpravo se otevře **den**: co ho rozhodlo a doporučení, snědeno proti limitu, deficit proti plánu, každé jídlo proti svému cíli, chůze, kroky, trénink cvik po cviku a jak šel den. Šipkami jdeš na předchozí a další den.
-- Appka na komunikaci není – vzkazy, poznámky ani zprávy k posílání v ní nejsou.
-- **Plán → Cíle** – tempo hubnutí, cíl chůze, cíl kroků (běžná chůze mimo procházku – Robert zapisuje kroky celkem, appka procházku odečte), tempo chůze a udržovací týden. U cíle zapni **Udržování** (appka to připomene). **Ukládá se hned** a každá změna jde vrátit tlačítkem Zpět v hlášce. Pod tempem vidíš **limit dne**, který z něj vyjde; když ho drží spodní hranice (klidový výdej), appka napíše skutečný deficit – vyšší tempo pak nic nezmění, pomůže jen pohyb. Věci na roky (výška, věk, start, cílové hodnoty, bílkoviny) jsou v **Profil a výchozí hodnoty**. Tam je i **rozdělení limitu mezi chody v %** – kolik Robert sní celkem, řídí tempo a pohyb, procenta jen dělí limit mezi jídla. **Historie změn** ukazuje všechny zásahy; v grafu váhy jsou jako svislé čáry.
-- **Plán → Trénink** – kalendář měsíce, šipkami listuješ dopředu. Ťukni na den, nastav chůzi a cviky a při uložení vyber **Každé úterý** (šablona od dneška, minulé dny zůstanou) nebo **Jen 29. 9.** Hotový den zkopíruješ na další dny („zkopírovat na další dny“, rychle každé úterý na 4 nebo 8 týdnů), pod kalendářem kopíruješ celý **týden** nebo **měsíc**. Tečka u dne = plán na konkrétní datum. Kalorie řešit nemusíš – appka se ozve, když je v měsíci málo pohybu na tempo.
-- **Dny bez potvrzení** jsou šedé s otazníkem: appka neví, co Robert jedl, proto je nehodnotí. Když jich přibývá, appka to hlásí.
-- **Více → Pohled Roberta** – jen pro podporu („nevidím tlačítko“): appka tak, jak ji vidí on, nic se neuloží. Na sledování plnění slouží obrazovka Robert.
+- **Přehled** – nahoře barva a jedna věta, pak tři čísla vždy proti plánu: **tempo** (trend 3 týdnů a na kolik % plní plán), **cíl** (kdy ho dosáhne tímto tempem, kdy podle plánu a rozdíl v letech, měsících a dnech), **zápisy** za 7 dní. Pod tím **tabulka cílů**: každý cíl má plán, skutečnost, rozdíl, stav, políčka dnů (nebo týdnů v měsíci), dopad v kg za týden a tlačítko nápravy. Přepínač **Měsíc / Týden**, šipkami listuješ. Ťukni na řádek – vysvětlení, co vázne a dny. Ťukni na den – vpravo se otevře **den**: co ho rozhodlo a doporučení, snědeno proti limitu, deficit, jídla proti cíli, chůze, kroky, trénink cvik po cviku a jak šel den. Dole graf **Váha / Obvody** (najeď na tečku) a další upozornění.
+- **Plán** – tři bloky: **🎯 Cíl a tempo** (cílová váha, tempo hubnutí, pas, přestávka v deficitu – týden na nule po 6–10 týdnech, udržování u cíle), **🚶 Pohyb** (chůze denně, tempo chůze, běžné kroky), **🍽️ Jídlo** (výsledný limit dne a z čeho je, bílkoviny, rozdělení limitu mezi jídla v %). Každý blok končí řádkem, co z nastavení vyjde. Ukládá se hned, Zpět v hlášce. **🕓 Historie změn** vpravo nahoře; zásahy jsou i v grafu.
+- **Trénink** – kalendář měsíce. Ťukni na den: **1 chůze**, **2 cviky** (+ cvik, + uložený trénink), **3 platí** (každou sobotu od dneška, nebo jen tento den) a Uložit. Kopírování, uložení jako trénink, vyprázdnění a vrácení na šablonu jsou v menu **⋯**. Pod kalendářem kopíruješ týden nebo měsíc.
+- **Dny bez potvrzení** jsou šrafované: appka neví, co Robert jedl, proto je nehodnotí.
+- Appka na komunikaci není – vzkazy, poznámky ani zprávy k posílání v ní nejsou. **Pohled Roberta** je jen pro podporu, nic se v něm neuloží.
 
 Denní kontrola: otevři **Robert**. Když je zeleno, nic nedělej.
 
@@ -184,9 +180,9 @@ Recepty, suroviny, nastavení a tenhle návod jsou pod kolečkem **R** vpravo na
 
 ## B3. Den, jak ho appka čeká
 
-Nahoře velké číslo: **kolik ještě můžeš sníst**. Pod ním karta **Teď** s jedním krokem a jedním tlačítkem. Pod ní celý den v jednom seznamu podle času.
+Nahoře velké číslo: **kolik ještě můžeš sníst**. Pod ním věta, kolik limit ještě vyroste s chůzí. Pod tím celý den v jednom seznamu podle času – **další krok je zvýrazněný** a tlačítko má přímo pod sebou. U všeho nejasného je **?**.
 
-1. **Ráno se zvaž** – číslo zapíšeš rovnou v kartě Teď. Nalačno, po WC, pokaždé stejně.
+1. **Ráno se zvaž** – číslo zapíšeš rovnou ve zvýrazněném řádku. Nalačno, po WC, pokaždé stejně.
 2. **Po jídle ťukni na kolečko** u jídla. Když ťukneš na řádek, otevře se jídlo celé: suroviny, gramy, domácí míry, výměna, 💡 jiný návrh, 🍽️ mimo dům.
 3. **Chůze** – u řádku je tlačítko +15 minut. Ťuknutím na řádek zapíšeš přesně.
 4. **Trénink** (když ho máš v plánu) – ťukni na řádek a dej „Začít cvičit“, nebo jen odškrtni, co jsi udělal.

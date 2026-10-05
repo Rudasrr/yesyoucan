@@ -148,6 +148,9 @@ function trCopyPairs(pairs, label) {
 
 App.trMonth = null; App.trSel = null;
 VIEWS.trenink = function () {
+  return `<div class="ph"><div class="pt"><h1>Trénink</h1><span class="sub">Robertův kalendář · den upravíš ťuknutím</span></div></div>${trMonthHtml()}`;
+};
+function trMonthHtml() {
   if (!App.ro) adoptLegacyPlan();
   const s = S(), w = currentWeight(), ov = calcOverview(s, Meas()); const t = todayISO();
   if (!App.trMonth) App.trMonth = monthStart(t);
@@ -181,7 +184,7 @@ function trCopyDayHtml() {
   const src = App.trCopySrc, t = todayISO(), sel = App.trSel || new Set(); const start = mondayOf(t);
   const dny = Array.from({ length: 56 }, (_, i) => addDays(start, i)); const den = DAY_NAMES[dayIndex(src)].toLowerCase();
   const sum = trDaySummary(dayActivityPlan(src));
-  return UI.sheetHtml(`Zkopírovat ${czDateShort(src)}`, sum, `<div class="row"><button class="btn ghost sm" onclick="A.trSelQuick('weekday',4)">každé ${den} · 4 týdny</button><button class="btn ghost sm" onclick="A.trSelQuick('weekday',8)">každé ${den} · 8 týdnů</button><button class="btn ghost sm" onclick="A.trSelQuick('none')">nic</button></div>
+  return UI.sheetHtml(`Zkopírovat ${czDateShort(src)}`, sum, `<div class="row"><button class="btn ghost sm" onclick="A.trSelQuick('weekday',4)">${KAZDE[dayIndex(src)]} · 4 týdny</button><button class="btn ghost sm" onclick="A.trSelQuick('weekday',8)">${KAZDE[dayIndex(src)]} · 8 týdnů</button><button class="btn ghost sm" onclick="A.trSelQuick('none')">nic</button></div>
     <div class="tmgrid">${DAY_SHORT.map(d => `<div class="tmh">${d}</div>`).join('')}${dny.map(d => { const lab = parseISO(d).getDate() === 1 ? `1. ${parseISO(d).getMonth() + 1}.` : parseISO(d).getDate(); const ap = dayActivityPlan(d); const n = (ap.items || []).length;
       return d < t || d === src ? `<div class="tmd past"><b>${lab}</b></div>` : `<button class="tmd ${sel.has(d) ? 'sel' : ''} ${n && !sel.has(d) ? 'tr' : ''}" onclick="A.trSelToggle('${d}')"><b>${lab}</b><span>${n ? '🏋️' + n : '🚶' + (ap.walk_min ?? S().walk_min)}</span></button>`; }).join('')}</div>`,
     `<button class="btn" ${sel.size ? '' : 'disabled'} onclick="A.trCopyDayGo()">Zkopírovat na ${sel.size} ${sklon(sel.size, 'den', 'dny', 'dní')}</button>`);
@@ -249,19 +252,30 @@ function trDaySheetHtml() {
   const inp = (j, f, v, lab, ph) => `<div class="in"><label class="f">${lab}</label><input type="text" inputmode="decimal" value="${v ?? ''}" ${ph ? `placeholder="${ph}"` : ''} onchange="A.trItem(${j},'${f}',this.value)"></div>`;
   const items = D.items.map((it, j) => { const isC = it.type === 'cardio'; const sg = progressSuggestion(it);
     return `<div class="exrow"><div class="exn">${esc(it.ex)}<span>${isC ? `kardio · MET ${itemMet(it)}` : `${fmt0(itemMinutes(it))} min`} · ~${fmt0(itemKcal(it, w))} kcal</span>${sg && sg.apply ? `<span class="ok">${esc(sg.text)} <button class="btn ghost sm" style="min-height:24px;padding:0 4px" onclick="A.trProgress(${j})">použít</button></span>` : ''}</div><button class="xbtn sm" onclick="A.trItemDel(${j})" aria-label="odebrat">×</button>
-      <div class="exf">${isC ? inp(j, 'min', it.min, 'Minut') : inp(j, 'sets', it.sets, 'Série') + inp(j, 'reps', it.reps, EX_LIB.find(e => e.ex === it.ex && e.timed) ? 'Sekund' : 'Opak.') + inp(j, 'weight', it.weight, 'kg', '–') + inp(j, 'rest', it.rest, 'Pauza s', S().rest_sec || REST_DEFAULT)
-        + `<div class="in wide"><label class="f">Intenzita</label><select onchange="A.trItem(${j},'intensity',this.value)">${Object.entries(INTENSITY_LABEL).map(([k, l]) => `<option value="${k}" ${(it.intensity || 'medium') === k ? 'selected' : ''}>${l}</option>`).join('')}</select></div>`}</div></div>`; }).join('');
-  return UI.sheetHtml(`${DAY_NAMES[dayIndex(D.date)]} ${czDateShort(D.date)}`, D.date < t ? 'minulý den – změna platí jen od dneška dál' : (D.wasOverride ? 'tento den má výjimku' : `podle šablony „každé ${den}“`),
-    `<div class="grid g2"><div class="field"><label class="f">Chůze (minut)</label><input type="text" inputmode="decimal" id="trw" value="${D.walk_min}" onchange="A.trDraftField('walk_min',this.value)"></div>
-      <div class="field"><label class="f">Tempo</label><select onchange="A.trDraftField('walk_kmh',this.value)">${SEED.met.map(([k]) => `<option value="${k}" ${Number(D.walk_kmh) === k ? 'selected' : ''}>${fmt1(k)} km/h</option>`).join('')}</select></div></div>
-    <div>${items || '<p class="small muted">Bez cviků – jen chůze.</p>'}</div>
-    <div class="row"><button class="btn sec sm" onclick="A.trPickEx()">+ přidat cvik</button><button class="btn ghost sm" onclick="A.trInsertWorkout()">📂 vložit uložený</button>${D.items.length ? `<button class="btn ghost sm" onclick="A.twEdit(null,{name:'${DAY_NAMES[dayIndex(D.date)]} – trénink',items:JSON.parse(JSON.stringify(App.trDraft.items))})">💾 uložit jako trénink</button><button class="btn ghost sm" onclick="A.trClear()">🧹 vyprázdnit</button>` : ''}${D.dirty ? '' : `<button class="btn ghost sm" onclick="A.trCopyDaySheet('${D.date}')">📑 zkopírovat na další dny</button>`}</div>
-    ${pozn.map(x => `<div class="alert a2"><div>${esc(x)}</div></div>`).join('')}
-    ${D.wasOverride ? `<button class="btn ghost sm" style="align-self:flex-start" onclick="A.trDropOverride()">↺ zrušit výjimku a vrátit šablonu</button>` : ''}`,
-    `<div class="seg" style="flex:1 1 100%"><button class="${D.scope === 'every' ? 'on' : ''}" onclick="A.trScope('every')">Každé ${den}</button><button class="${D.scope === 'day' ? 'on' : ''}" onclick="A.trScope('day')">Jen ${czDateShort(D.date)}</button></div>
-     <div class="hint" style="flex:1 1 100%">${D.scope === 'every' ? 'Změní šablonu od dneška – dny, které už Robert má za sebou, zůstanou.' : 'Jednorázová výjimka – šablona týdne zůstane.'}</div>
-     <button class="btn" onclick="A.trSave()">Uložit</button>`);
+      <div class="exf">${isC ? inp(j, 'min', it.min, 'Minut') : inp(j, 'sets', it.sets, 'Série') + inp(j, 'reps', it.reps, EX_LIB.find(e => e.ex === it.ex && e.timed) ? 'Sekund' : 'Opak.') + inp(j, 'weight', it.weight, 'kg', '–') + inp(j, 'rest', it.rest, 'Pauza s' + hq('trPauza'), S().rest_sec || REST_DEFAULT)
+        + `<div class="in wide"><label class="f">Intenzita${hq('trIntenzita')}</label><select onchange="A.trItem(${j},'intensity',this.value)">${Object.entries(INTENSITY_LABEL).map(([k, l]) => `<option value="${k}" ${(it.intensity || 'medium') === k ? 'selected' : ''}>${l}</option>`).join('')}</select></div>`}</div></div>`; }).join('');
+  const kc = sessionKcal(D.items, w);
+  return UI.sheetHtml(`${DAY_NAMES[dayIndex(D.date)]} ${czDateShort(D.date)}`, D.date < t ? 'minulý den – změna platí jen od dneška dál' : (D.wasOverride ? 'upravený jen pro tento den' : `podle šablony „${KAZDE[dayIndex(D.date)]}“`),
+    `<div class="blk"><h4><span class="n">1</span>Chůze ten den</h4><div class="grid g2"><div class="field"><label class="f">Minut</label><input type="text" inputmode="decimal" id="trw" value="${D.walk_min}" onchange="A.trDraftField('walk_min',this.value)"></div>
+      <div class="field"><label class="f">Tempo</label><select onchange="A.trDraftField('walk_kmh',this.value)">${SEED.met.map(([k]) => `<option value="${k}" ${Number(D.walk_kmh) === k ? 'selected' : ''}>${fmt1(k)} km/h</option>`).join('')}</select></div></div></div>
+    <div class="blk"><h4><span class="n">2</span>Cviky${D.items.length ? `<span class="r">~${fmt0(kc)} kcal</span>` : ''}</h4>
+      ${items || '<p class="small muted">Bez cviků – jen chůze.</p>'}
+      <div class="row"><button class="btn sec sm" onclick="A.trPickEx()">+ cvik</button><button class="btn sec sm" onclick="A.trInsertWorkout()">+ uložený trénink</button></div></div>
+    ${pozn.map(x => `<div class="alert a2"><div>${esc(x)}</div></div>`).join('')}`,
+    `<div class="ftl"><span class="n">3</span>Platí${hq('trPlati')}</div><div class="seg" style="flex:1 1 100%"><button class="${D.scope === 'every' ? 'on' : ''}" onclick="A.trScope('every')">${KAZDE[dayIndex(D.date)].replace('k', 'K')}</button><button class="${D.scope === 'day' ? 'on' : ''}" onclick="A.trScope('day')">Jen ${czDateShort(D.date)}</button></div>
+     <div class="hint" style="flex:1 1 100%">${D.scope === 'every' ? `Změní šablonu od dneška – ${KAZDE[dayIndex(D.date)]} bude takhle. Dny, které už Robert má za sebou, zůstanou.` : `Jen ${czDateShort(D.date)} – ostatní dny jedou dál podle šablony.`}</div>
+     <button class="btn" onclick="A.trSave()">Uložit</button>`,
+    `<button class="iconbtn" onclick="A.trDayMenu()" aria-label="další akce">⋯</button>`);
 }
+/* méně časté akce se dnem – každá s větou, co udělá */
+A.trDayMenu = () => { const D = App.trDraft; if (!D) return;
+  UI.menu('Další akce', [
+    [`📑 ${HELP.trKopie.t}`, D.dirty ? `UI.toast('Nejdřív ulož změny, pak kopíruj.')` : `A.trCopyDaySheet('${D.date}')`, D.dirty ? 'nejdřív ulož změny' : HELP.trKopie.co],
+    D.items.length ? [`💾 ${HELP.trUlozit.t}`, `A.twEdit(null,{name:'${DAY_NAMES[dayIndex(D.date)]} – trénink',items:JSON.parse(JSON.stringify(App.trDraft.items))})`, HELP.trUlozit.co] : null,
+    D.items.length ? [`🧹 ${HELP.trVyprazdnit.t}`, 'A.trClear()', HELP.trVyprazdnit.co] : null,
+    D.wasOverride ? [`↺ ${HELP.trVratit.t}`, 'A.trDropOverride()', HELP.trVratit.co] : null,
+  ]); };
+const KAZDE = ['každé pondělí', 'každé úterý', 'každou středu', 'každý čtvrtek', 'každý pátek', 'každou sobotu', 'každou neděli'];
 const trDirty = () => { App.trDraft.dirty = true; if (window._sheetRedraw) window._sheetRedraw(); };
 A.trDraftField = (f, v) => { const r = f === 'walk_min' ? omez(v, 0, 600) : { n: cislo(v) }; if (r.mimo) UI.toast('Chůze se plánuje v rozmezí 0 až 600 minut.'); App.trDraft[f] = r.n ?? 0; trDirty(); };
 A.trItem = (j, f, v) => { const it = App.trDraft.items[j]; it[f] = f === 'intensity' ? v : (v === '' ? null : cislo(v)); trDirty(); };
@@ -276,12 +290,12 @@ A.trInsertWorkout = () => openWorkoutPicker(wo => { if (!wo || !App.trDraft) ret
 A.trSave = () => { const D = App.trDraft; if (!D) return; const idx = dayIndex(D.date);
   const day = { walk_min: Number(D.walk_min) || 0, walk_kmh: Number(D.walk_kmh) || S().walk_kmh, items: D.items };
   const den = DAY_NAMES[idx].toLowerCase();
-  Undo.run(D.scope === 'every' ? `Každé ${den} od dneška` : `Jen ${czDateShort(D.date)}`, () => {
+  Undo.run(D.scope === 'every' ? `${KAZDE[dayIndex(D.date)].replace('k', 'K')} od dneška` : `Jen ${czDateShort(D.date)}`, () => {
     if (D.scope === 'every') { editTemplate(pl => { pl.days[idx] = day; });
       // den, který měl výjimku, má po uložení „každé X“ platit podle šablony
       if (D.wasOverride && D.date >= todayISO()) Store.remove('training', oid('to', D.date)); }
     else Store.put('training', oid('to', D.date), day);
-  }, D.scope === 'every' ? `Robert to uvidí každé ${den} od dneška. Limit i recepty se přepočítaly.` : `Platí jen ${czDateShort(D.date)}.`);
+  }, D.scope === 'every' ? `Robert to uvidí ${KAZDE[dayIndex(D.date)]} od dneška. Limit i recepty se přepočítaly.` : `Platí jen ${czDateShort(D.date)}.`);
   D.dirty = false; App.trDraft = null; UI.closeModal(); render(); };
 A.trDropOverride = () => { const D = App.trDraft; Undo.run('Výjimka zrušena', () => Store.remove('training', oid('to', D.date)), 'Den se vrátil na šablonu týdne.'); D.dirty = false; App.trDraft = null; UI.closeModal(); render(); };
 /* Co Robert opravdu odcvičil: série, zátěž, náročnost a pocit zapisuje při běhu tréninku.
@@ -330,8 +344,9 @@ A.trainDone = (i, v) => { const items = (effectiveDay(App.date).act || {}).items
 A.trainDoneAll = () => { const items = (effectiveDay(App.date).act || {}).items || []; Undo.run('Celý trénink odškrtnutý', () => { const day = getDay(App.date); day.training = { done: Object.fromEntries(items.map((_, i) => [i, true])) }; saveDay(day); }, () => { const dd = calcDay(S(), Foods(), Recipes(), effectiveDay(App.date), currentWeight()); return `+${fmt0(dd.base.doneKcal)} kcal aktivity, limit ${fmt0(dd.base.maxIntake)} kcal.`; }); render(); };
 
 /* ===== nápověda (i) ===== */
-function help(text) { return `<button class="ibtn" type="button" onclick="event.stopPropagation();UI.pop(this,${JSON.stringify(text).replace(/"/g, '&quot;')})" title="nápověda">i</button>`; }
-UI.pop = (el, text) => { document.querySelectorAll('.popx').forEach(p => p.remove()); const p = document.createElement('div'); p.className = 'popx'; p.innerHTML = `<div>${esc(text)}</div>`; document.body.appendChild(p); const r = el.getBoundingClientRect(); const w = Math.min(340, window.innerWidth - 24); p.style.width = w + 'px'; p.style.left = Math.max(12, Math.min(r.left, window.innerWidth - w - 12)) + 'px'; p.style.top = (r.bottom + 8 + window.scrollY) + 'px'; const close = e => { if (!p.contains(e.target)) { p.remove(); document.removeEventListener('click', close); } }; setTimeout(() => document.addEventListener('click', close), 0); };
+function help(text) { return `<button class="hq" type="button" onclick="event.stopPropagation();UI.pop(this,${JSON.stringify(text).replace(/"/g, '&quot;')})" aria-label="nápověda">?</button>`; }
+UI.pop = (el, text) => UI.popHtml(el, `<div>${esc(text)}</div>`);
+UI.popHtml = (el, html) => { document.querySelectorAll('.popx').forEach(p => p.remove()); const p = document.createElement('div'); p.className = 'popx'; p.innerHTML = html; document.body.appendChild(p); const r = el.getBoundingClientRect(); const w = Math.min(340, window.innerWidth - 24); p.style.width = w + 'px'; p.style.left = Math.max(12, Math.min(r.left, window.innerWidth - w - 12)) + 'px'; p.style.top = (r.bottom + 8 + window.scrollY) + 'px'; const close = e => { if (!p.contains(e.target)) { p.remove(); document.removeEventListener('click', close); } }; setTimeout(() => document.addEventListener('click', close), 0); };
 
 /* ===== Knihovna cviků =====
    Výchozí cviky jsou v EX_LIB. Trenér je mění globálně (řádky `exg:<slug>`,

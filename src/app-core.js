@@ -138,16 +138,17 @@ const NAV_CLIENT = [['dnes', 'Dnes'], ['plan', 'Plán'], ['pokrok', 'Pokrok']];
 const MORE_CLIENT = [['recepty', 'Recepty', 'všech 200 jídel a tvoje vlastní', '📖'], ['suroviny', 'Suroviny', 'hodnoty na 100 g, vlastní suroviny', '🥦'], ['ucet', 'Nastavení', 'připomínky, nádoby, záloha, odhlášení', '⚙️'], ['navod', 'Návod', 'pravidla, slovníček, jak appka počítá', '📘']];
 /* Trenér plánuje cíle a trénink, ne jídlo (1. 10. 2026) – databáze potravin ani
    plánování jídel za Roberta v jeho menu nejsou. */
-const NAV_COACH = [['klient', 'Robert'], ['nastaveni', 'Plán']];
-const MORE_COACH = [['__preview', 'Pohled Roberta', 'appka přesně tak, jak ji vidí on', '👁️'], ['ucet', 'Nastavení', 'účet, výchozí data, odhlášení', '⚙️'], ['navod', 'Návod', 'pravidla, slovníček, jak appka počítá', '📘']];
+const NAV_COACH = [['klient', 'Přehled'], ['nastaveni', 'Plán'], ['trenink', 'Trénink']];
+const MORE_COACH = [['__preview', 'Pohled Roberta', 'appka přesně tak, jak ji vidí on', '👁️'], ['ucet', 'Nastavení', 'výška, věk, start, faktor · účet', '⚙️'], ['navod', 'Návod', 'pravidla, slovníček, jak appka počítá', '📘']];
 /* staré názvy obrazovek (odkazy v úkolech, připomínkách, testech) → nové místo */
 const VIEW_ALIAS = { tyden: ['plan', { planTab: 'jidla' }], jidlo: ['plan', {}], nakup: ['plan', { planTab: 'nakup' }], spiz: ['plan', { planTab: 'nakup' }], vareni: ['plan', { planTab: 'vareni' }],
-  mereni: ['pokrok', {}], prehled: ['pokrok', {}], zprava: ['klient', {}], databaze: ['klient', {}], trenink: ['nastaveni', { coachTab: 'trenink' }] };
+  mereni: ['pokrok', {}], prehled: ['pokrok', {}], zprava: ['klient', {}], databaze: ['klient', {}] };
 const ICONS = {
   dnes: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
   plan: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="15" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>',
   pokrok: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 19V5"/><path d="M4 19h16"/><path d="M7 15l4-5 3 3 5-7"/></svg>',
   klient: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>',
+  trenink: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 8v8M18 8v8M3 10v4M21 10v4M6 12h12"/></svg>',
   nastaveni: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h10M4 17h6M18 7h2M14 17h6"/><circle cx="16" cy="7" r="2"/><circle cx="12" cy="17" r="2"/></svg>',
   databaze: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg>'
 };
@@ -196,6 +197,7 @@ function renderShell() {
 /* obrazovky, které patří Robertovi – trenér je vidí jen v náhledu, ať neklikne omylem do jeho dat */
 const CLIENT_ONLY = ['dnes', 'plan', 'pokrok', 'recepty', 'suroviny'];
 function render() {
+  document.querySelectorAll('.popx').forEach(p => p.remove());   // nápověda nepřežije překreslení
   if (!Store.profile) { renderLogin(); return; }
   document.body.classList.remove('out'); $('#login').classList.remove('on'); $('#app').classList.add('on');
   if (VIEW_ALIAS[App.view]) { const [to, st] = VIEW_ALIAS[App.view]; Object.assign(App, st); App.view = to; }
@@ -339,7 +341,7 @@ document.addEventListener('DOMContentLoaded', boot);
    jednou pochopil, četl pak jen text navíc. Teď je to jednorázový úvod na tři karty
    a zbytek je v Návodu. Automatické testy (navigator.webdriver) úvod přeskakují. */
 const INTRO = {
-  client: [['☀️', 'Dnes', 'Nahoře vidíš, kolik ještě můžeš sníst. Pod tím karta Teď – jeden další krok a jedno tlačítko. Když nevíš, drž se jí.'],
+  client: [['☀️', 'Dnes', 'Nahoře vidíš, kolik ještě můžeš sníst. Pod tím celý den v jednom seznamu – další krok je zvýrazněný a má tlačítko přímo pod sebou. Když nevíš, drž se ho.'],
     ['🗓️', 'Plán', 'Jednou týdně: nech si navrhnout jídla, nakup podle seznamu a uvař dopředu. Tři kroky vedle sebe.'],
     ['📈', 'Pokrok', 'Váha ráno po WC, nalačno. Appka počítá s průměrem sedmi vážení – jedno číslo nic neznamená.']],
   coach: [['🚦', 'Robert', 'Barva a jedna věta řeknou, jestli zasáhnout. Pod tím jen to, co vyžaduje akci – každé s tlačítkem.'],

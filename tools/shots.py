@@ -5,7 +5,7 @@ import os; URL='file://'+os.path.abspath(os.path.join(os.path.dirname(__file__),
 SETUP_CLIENT='''localLogin("client");SEED.measurements.forEach(m=>saveMeas({...m}));const wk=getWeek(App.week);const sw=SEED.sample_week;const names=["Pondělí","Úterý","Střední","Čtvrtek","Pátek","Sobota","Neděle"];names[2]="Středa";wk.plan=names.map(n=>sw[n]);saveWeek(wk);A.dayField("walk_min",65);
 for(let k=1;k<=5;k++){const dt=addDays(todayISO(),-k);const d=getDay(dt);d.walk_min=k===3?30:70;d.beers=k===4?4:0;S().courses.forEach(c=>{d.meals[c.key]={eaten:true}});saveDay(d);}
 autoClosePast();A.eaten('snidane',true);render();'''
-SETUP_COACH='''localLogin("coach");App.coachTab='trenink';go('nastaveni');const mo=mondayOf(todayISO());[0,2,4].forEach(k=>{A.trDaySheet(addDays(mo,k));A.trAdd('Dřep');A.trAdd('Klik o stůl');A.trAdd('Běh pomalý');A.trDraftField('walk_min',45);A.trSave()});UI.closeModal();render();'''
+SETUP_COACH='''localLogin("coach");go('trenink');const mo=mondayOf(todayISO());[0,2,4].forEach(k=>{A.trDaySheet(addDays(mo,k));A.trAdd('Dřep');A.trAdd('Klik o stůl');A.trAdd('Běh pomalý');A.trDraftField('walk_min',45);A.trSave()});UI.closeModal();render();'''
 def shots(jobs):
     with sync_playwright() as p:
         b=p.chromium.launch()
