@@ -348,7 +348,7 @@ A.trainDoneAll = () => { const items = (effectiveDay(App.date).act || {}).items 
 /* ===== nápověda (i) ===== */
 function help(text) { return `<button class="hq" type="button" onclick="event.stopPropagation();UI.pop(this,${JSON.stringify(text).replace(/"/g, '&quot;')})" aria-label="nápověda">?</button>`; }
 UI.pop = (el, text) => UI.popHtml(el, `<div>${esc(text)}</div>`);
-UI.popHtml = (el, html) => { document.querySelectorAll('.popx').forEach(p => p.remove()); const p = document.createElement('div'); p.className = 'popx'; p.innerHTML = html; document.body.appendChild(p); const r = el.getBoundingClientRect(); const w = Math.min(340, window.innerWidth - 24); p.style.width = w + 'px'; p.style.left = Math.max(12, Math.min(r.left, window.innerWidth - w - 12)) + 'px'; p.style.top = (r.bottom + 8 + window.scrollY) + 'px'; const close = e => { if (!p.contains(e.target)) { p.remove(); document.removeEventListener('click', close); } }; setTimeout(() => document.addEventListener('click', close), 0); };
+UI.popHtml = (el, html) => { document.querySelectorAll('.popx').forEach(p => p.remove()); const p = document.createElement('div'); p.className = 'popx'; p.innerHTML = paceFix(html); document.body.appendChild(p); const r = el.getBoundingClientRect(); const w = Math.min(340, window.innerWidth - 24); p.style.width = w + 'px'; p.style.left = Math.max(12, Math.min(r.left, window.innerWidth - w - 12)) + 'px'; p.style.top = (r.bottom + 8 + window.scrollY) + 'px'; const close = e => { if (!p.contains(e.target)) { p.remove(); document.removeEventListener('click', close); } }; setTimeout(() => document.addEventListener('click', close), 0); };
 
 /* ===== Knihovna cviků =====
    Výchozí cviky jsou v EX_LIB. Trenér je mění globálně (řádky `exg:<slug>`,

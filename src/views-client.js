@@ -473,7 +473,8 @@ lineChart.n = 0; lineChart.reg = {};
 /* zásahy trenéra v grafu: víc změn v jeden den = jeden štítek, blízké štítky se střídají nahoře a níž */
 function logMarks(s) { const by = {}; (s.log || []).forEach(l => { (by[l.at] = by[l.at] || []).push(l); });
   return Object.keys(by).sort().map(at => { const L = by[at]; const last = L[L.length - 1];
-    return { x: daysBetween(s.start_date, at), label: L.length > 1 ? `⚙︎ ${L.length} ${sklon(L.length, 'změna', 'změny', 'změn')}` : `⚙︎ ${last.pop.split(' ')[0]} ${String(last.to).replace('.', ',')}`, title: L.map(l => `${l.pop}: ${String(l.from).replace('.', ',')} → ${String(l.to).replace('.', ',')}`).join('\n') }; }); }
+    return { x: daysBetween(s.start_date, at), label: L.length > 1 ? `⚙︎ ${L.length} ${sklon(L.length, 'změna', 'změny', 'změn')}` : `⚙︎ ${last.pop.split(' ')[0]} ${logVal(last, last.to)}`, title: L.map(l => `${l.pop}: ${logVal(l, l.from)} → ${logVal(l, l.to)}`).join('\n') }; }); }
+const logVal = (l, v) => l.k === 'walk_kmh' ? paceTxt(v) : String(v).replace('.', ',');
 function marksSvg(marks, x0, x1, X, T, bottom) { let g = '', lastX = -1e9, lvl = 0;
   (marks || []).filter(m => m.x >= x0 && m.x <= x1).forEach(m => { const px = X(m.x); lvl = px - lastX < 80 ? (lvl + 1) % 2 : 0; lastX = px;
     g += `<g><title>${esc(m.title || m.label)}</title><line x1="${px}" x2="${px}" y1="${T}" y2="${bottom}" stroke="#8a5a9e" stroke-width="1.2" stroke-dasharray="2 3"/><text x="${px + 3}" y="${T + 10 + lvl * 12}" font-size="10" fill="#8a5a9e">${esc(m.label)}</text></g>`; });

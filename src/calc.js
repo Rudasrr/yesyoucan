@@ -9,6 +9,15 @@ const FLOOR_PCT = 0.85;   // spodní hranice jídla = 85 % klidového výdeje
    kcalPerStep. Pro 5 000 kroků to dá ≈ 1,33 – skoro přesně dnešní faktor 1,34, jen plynule a ze skutečnosti.
    STEPS.stride = Robertova délka kroku z Apple Health (km ÷ kroky), dokud není, 0,75 m. */
 const SED = 1.2;
+/* Tempo chůze se ukazuje v min/km (5. 10. 2026, km/h vlastníkovi nic neříkají). Uvnitř se dál počítá
+   v km/h (MET tabulka ze sešitu); paceFix() převede každé „X km/h“ v textu, který jde na obrazovku. */
+function paceTxt(kmh) { const m = 60 / Number(kmh); let mm = Math.floor(m), ss = Math.round((m - mm) * 60); if (ss === 60) { mm++; ss = 0; } return `${mm}:${String(ss).padStart(2, '0')}`; }
+function paceFix(h) {
+  if (!h || typeof h !== 'string' || h.indexOf('km/h') < 0) return h;
+  const n = x => Number(String(x).replace(',', '.'));
+  return h.replace(/(\d+(?:[,.]\d+)?)(\s*(?:–|-|až|→)\s*)(\d+(?:[,.]\d+)?)\s*km\/h/g, (_, a, sep, b) => `${paceTxt(n(a))}${sep}${paceTxt(n(b))} min/km`)
+    .replace(/(\d+(?:[,.]\d+)?)\s*km\/h/g, (_, a) => `${paceTxt(n(a))} min/km`);
+}
 const STEPS = { stride: 0.75 };
 const COURSE_KEYS = ['snidane', 'obed', 'svacina', 'vecere1', 'vecere2'];
 

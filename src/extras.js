@@ -145,8 +145,8 @@ function progressSuggestion(it) { if (it.type !== 'strength') return null; const
 
 /* ===== Fáze chůze: návrh přepnutí tempa ===== */
 const PHASE_KMH = [[124, 5], [117, 5.5], [110, 6], [102, 6.5], [0, 7]];
-function phaseSuggestion() { const s = S(), ov = calcOverview(s, Meas()); let rec = 5; for (const [th, k] of PHASE_KMH) { if (ov.cur > th) { rec = k; break; } rec = k; } if (rec > s.walk_kmh && ov.count >= 7) return { rec, text: `Robert je pod ${PHASE_KMH.find(x => x[1] === rec) ? (PHASE_KMH[PHASE_KMH.findIndex(x => x[1] === rec) - 1] || [124])[0] : 124} kg – fáze doporučuje tempo ${fmt1(rec)} km/h (teď ${fmt1(s.walk_kmh)}).` }; return null; }
-A.applyPhase = kmh => commitSettings({ ...S(), walk_kmh: kmh }, `Tempo chůze ${fmt1(kmh)} km/h`);
+function phaseSuggestion() { const s = S(), ov = calcOverview(s, Meas()); let rec = 5; for (const [th, k] of PHASE_KMH) { if (ov.cur > th) { rec = k; break; } rec = k; } if (rec > s.walk_kmh && ov.count >= 7) return { rec, text: `Robert je pod ${PHASE_KMH.find(x => x[1] === rec) ? (PHASE_KMH[PHASE_KMH.findIndex(x => x[1] === rec) - 1] || [124])[0] : 124} kg – fáze doporučuje tempo ${paceTxt(rec)} min/km (teď ${paceTxt(s.walk_kmh)}).` }; return null; }
+A.applyPhase = kmh => commitSettings({ ...S(), walk_kmh: kmh }, `Tempo chůze ${paceTxt(kmh)} min/km`);
 
 /* ===== Změny od minulé návštěvy trenéra =====
    Razítko se posune jednou za otevření appky, ne při každém překreslení – jinak by
@@ -226,7 +226,7 @@ function signaly() {
     if (log >= 5 && ok / log < 0.6) push(2, `Chůzi splnil jen ${ok} z ${log} zapsaných dnů.`, { key: 'chuze', em: '🚶', kde: chD }); }
   // nastavení podle dat
   settingsAdvice().filter(a => a.lv === 1).forEach(a => push(1, a.text, a.apply ? { key: 'advice:' + a.field, em: '⚙️', apply: `A.applyAdvice(${JSON.stringify(JSON.stringify(a.apply)).replace(/"/g, '&quot;')})`, label: a.label } : { key: 'advice:' + a.field, em: '⚙️', go: "go('nastaveni')", label: 'Plán' }));
-  const ph = phaseSuggestion(); if (ph) push(2, ph.text, { key: 'faze', em: '🚶', apply: `A.applyPhase(${ph.rec})`, label: `${fmt1(ph.rec)} km/h` });
+  const ph = phaseSuggestion(); if (ph) push(2, ph.text, { key: 'faze', em: '🚶', apply: `A.applyPhase(${ph.rec})`, label: `${paceTxt(ph.rec)} min/km` });
   // cíl a udržování
   if (!s.maintain && ov.cur - s.goal_weight <= 0) push(1, `Robert dosáhl cílové váhy ${s.goal_weight} kg. Zapni udržování – jinak deficit běží dál.`, { key: 'cil', em: '🏁', head: 'Robert je u cíle.', apply: 'A.setMaintain(true)', label: 'Udržování' });
   else if (!s.maintain && ov.cur - s.goal_weight <= 2) push(2, `Robert je ${fmt1(ov.cur - s.goal_weight)} kg od cíle. Připrav udržování.`, { key: 'cil', em: '🏁', go: "go('nastaveni')", label: 'Plán' });
@@ -575,7 +575,7 @@ const HELP = {
   prestavka: { t: 'Přestávka v deficitu', co: 'Jeden týden jí Robert na úrovni výdeje – deficit nula. Tělo si odpočine, klesne hlad a únava.', kdy: 'Po 6–10 týdnech hubnutí nebo když váha dva týdny stojí.', tip: 'Naplánuj dopředu; Robert ji uvidí v Dnes a jí víc.' },
   udrzovani: { t: 'Udržování', co: 'Natrvalo deficit nula – Robert jí na úrovni výdeje.', kdy: 'U cílové váhy. Appka to připomene 2 kg před cílem.' },
   chuze: { t: 'Chůze denně', co: 'Kolik minut cílené chůze má Robert ujít ve dnech, které nemají vlastní plán v Tréninku. Každá minuta zvedá limit dne.', kdy: 'Když ji opakovaně neplní, nastav, co reálně ujde – jinak jí podle plánu víc, než spálí.', tip: '45–75 minut.' },
-  tempoChuze: { t: 'Tempo chůze', co: 'Rychlost chůze. Rychlejší chůze spálí víc za minutu.', tip: 'Fáze podle váhy ti řekne, kdy přidat.' },
+  tempoChuze: { t: 'Tempo chůze', co: 'Kolik minut trvá jeden kilometr. Méně minut = rychlejší chůze = víc kcal za minutu. 12:00 min/km je svižná procházka, 10:00 už rychlá chůze.', tip: 'Fáze podle váhy ti řekne, kdy přidat.' },
   kroky: { t: 'Cíl běžných kroků', co: 'Kolik kroků mimo procházku chceš, aby Robert dělal (doma, v práci, nákup). Je to tvůj cíl – limit jídla ale počítá s jeho skutečnými kroky, ne s cílem.', kdy: 'Zvedej postupně o 1 000, až ho dva týdny plní.', tip: 'Každých 1 000 kroků navíc ≈ 60 kcal jídla navíc při stejném deficitu.' },
   faktor: { t: 'Běžný výdej', co: 'Kolik Robert spálí za běžný den bez procházky. Appka ho počítá z jeho kroků: klidový výdej × 1,2 + běžné kroky × kcal na krok. Ráno s průměrem 14 dní, večer se skutečností.', kdy: 'Ručně (zamčený faktor) jen když kroky chybí nebo jim nevěříš – v Nastavení.', tip: 'Bez kroků (méně než 5 dní za 14) platí faktor: 1,2 sedavě · 1,34 = 5 000 kroků.' },
   limit: { t: 'Limit dne', co: 'Kolik má Robert sníst a vypít: celkový výdej (klidový + běžný + chůze + trénink) mínus deficit z tempa. Nikdy pod 85 % klidového výdeje – to je pojistka appky.', tip: 'Mění ho tempo a pohyb. Rozpis krok po kroku je pod tlačítkem „Jak se limit počítá“.' },

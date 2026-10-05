@@ -80,7 +80,7 @@ Store.remove = function (t, id) { Undo.record(t, id); return _rm(t, id); };
 
 /* ---- UI ---- */
 const UI = {
-  toast(msg, undoFn, btnLabel) { const t = $('#toast'); if (!t) return; t.innerHTML = `<span>${esc(msg)}</span>${undoFn ? `<button class="ubtn" id="undo-btn">${esc(btnLabel || 'Zpět')}</button>` : ''}`; if (undoFn) t.querySelector('#undo-btn').onclick = () => { t.classList.remove('on'); undoFn(); }; t.classList.add('on'); clearTimeout(this._t); this._t = setTimeout(() => t.classList.remove('on'), undoFn ? 9000 : 3000); },
+  toast(msg, undoFn, btnLabel) { const t = $('#toast'); if (!t) return; t.innerHTML = `<span>${esc(paceFix(msg))}</span>${undoFn ? `<button class="ubtn" id="undo-btn">${esc(btnLabel || 'Zpět')}</button>` : ''}`; if (undoFn) t.querySelector('#undo-btn').onclick = () => { t.classList.remove('on'); undoFn(); }; t.classList.add('on'); clearTimeout(this._t); this._t = setTimeout(() => t.classList.remove('on'), undoFn ? 9000 : 3000); },
   syncBadge() {
     const el = $('#syncb'); if (!el) return;
     if (Store.localMode()) { el.innerHTML = '<span class="dot off"></span>bez cloudu'; return; }
@@ -91,7 +91,7 @@ const UI = {
     el.innerHTML = '<span class="dot"></span>uloženo';
   },
   modal(html, opts) {
-    const m = document.createElement('div'); m.className = 'modal' + (opts && opts.center ? ' center' : ''); m.innerHTML = `<div class="box">${html}</div>`;
+    const m = document.createElement('div'); m.className = 'modal' + (opts && opts.center ? ' center' : ''); m.innerHTML = `<div class="box">${paceFix(html)}</div>`;
     if (opts && opts.guardEdits) {   // editor: nezavírat rozdělanou práci bez zeptání
       const dirty = () => { m._dirty = true; };
       m.addEventListener('input', dirty); m.addEventListener('change', dirty);
@@ -113,7 +113,7 @@ const UI = {
     return `<div class="sh"><h2>${title}${sub ? `<span class="shsub">${sub}</span>` : ''}</h2>${side || ''}<button class="xbtn" onclick="UI.closeModal()" aria-label="zavřít">×</button></div>${body}${foot ? `<div class="shfoot">${foot}</div>` : ''}`;
   },
   /* překreslit obsah otevřeného listu (po změně v něm) */
-  resheet(m, html) { if (!m || !document.body.contains(m)) return; const box = m.querySelector('.box'); const st = box.scrollTop; box.innerHTML = html; box.scrollTop = st; },
+  resheet(m, html) { if (!m || !document.body.contains(m)) return; const box = m.querySelector('.box'); const st = box.scrollTop; box.innerHTML = paceFix(html); box.scrollTop = st; },
   /* zavřít okno – s otázkou, pokud v něm něco rozdělaného zůstalo */
   tryClose(m) {
     if (!m) return;
@@ -215,7 +215,7 @@ function render() {
   const keep = ae && ae.id && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA') && el.contains(ae)
     ? { id: ae.id, s: ae.selectionStart, e: ae.selectionEnd } : null;
   const sy = window.scrollY;
-  el.innerHTML = head + V();
+  el.innerHTML = paceFix(head + V());
   el.querySelectorAll('input[type=number]:not([inputmode])').forEach(i => i.setAttribute('inputmode', 'decimal'));
   if (keep) { const n = document.getElementById(keep.id); if (n) { n.focus(); try { n.setSelectionRange(keep.s, keep.e); } catch (e) { } } }
   if (Math.abs(window.scrollY - sy) > 2) window.scrollTo(0, sy);

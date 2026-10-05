@@ -313,7 +313,7 @@ VIEWS.nastaveni = function () {
 /* meze, aby překlep nerozbil výpočet */
 const SET_MEZ = { height: [120, 230], age: [15, 100], activity: [1.1, 2], start_weight: [40, 400], goal_weight: [40, 400],
   goal_waist: [50, 200], rate_pct: [0.3, 1.2], walk_kmh: [2, 9], walk_min: [0, 600], rest_sec: [15, 600], protein_min: [60, 400], steps_goal: [0, 30000] };
-const SET_POP = { factor_lock: 'pevný faktor výdeje', maintain: 'udržování (cíl dosažen)', rate_pct: 'tempo hubnutí (%)', walk_min: 'cíl chůze (min)', protein_min: 'bílkoviny (g)', goal_weight: 'cílová váha (kg)', activity: 'faktor běžného výdeje', walk_kmh: 'tempo chůze (km/h)', goal_waist: 'cíl pasu (cm)', steps_goal: 'cíl kroků/den', height: 'výška (cm)', age: 'věk', start_weight: 'startovní váha (kg)' };
+const SET_POP = { factor_lock: 'pevný faktor výdeje', maintain: 'udržování (cíl dosažen)', rate_pct: 'tempo hubnutí (%)', walk_min: 'cíl chůze (min)', protein_min: 'bílkoviny (g)', goal_weight: 'cílová váha (kg)', activity: 'faktor běžného výdeje', walk_kmh: 'tempo chůze (min/km)', goal_waist: 'cíl pasu (cm)', steps_goal: 'cíl kroků/den', height: 'výška (cm)', age: 'věk', start_weight: 'startovní váha (kg)' };
 /* Jedno místo, kudy jde každá změna nastavení – ruční, z doporučení i z fáze chůze.
    Dřív se změny z doporučení nelogovaly a v grafu po nich nezůstala značka. */
 function commitSettings(d, label, msg) {
@@ -389,7 +389,7 @@ function profileCard() {
 A.profileSheet = () => go('ucet');
 A.setFactorLock = on => commitSettings({ ...S(), factor_lock: !!on }, on ? 'Běžný výdej: pevný faktor' : 'Běžný výdej: z Robertových kroků');
 A.logSheet = () => { const s = S(); const log = (s.log || []).slice().reverse();
-  UI.sheet('🕓 Historie změn', 'každá změna nastavení', log.length ? `<div class="list">${log.map(l => `<div class="li static"><span class="tm">${czDateShort(l.at)}</span><div class="tx"><b>${esc(l.pop)}</b><span>${esc(String(l.from).replace('.', ','))} → ${esc(String(l.to).replace('.', ','))}</span></div></div>`).join('')}</div>` : '<p class="muted">Zatím žádná změna.</p>'); };
+  UI.sheet('🕓 Historie změn', 'každá změna nastavení', log.length ? `<div class="list">${log.map(l => `<div class="li static"><span class="tm">${czDateShort(l.at)}</span><div class="tx"><b>${esc(l.pop)}</b><span>${l.k === 'walk_kmh' ? `${paceTxt(l.from)} → ${paceTxt(l.to)}` : `${esc(String(l.from).replace('.', ','))} → ${esc(String(l.to).replace('.', ','))}`}</span></div></div>`).join('')}</div>` : '<p class="muted">Zatím žádná změna.</p>'); };
 A.maintWeek = m => { const s = S(); const mw = (s.maint_weeks || []).slice();
   const i = mw.indexOf(m); if (i >= 0) mw.splice(i, 1); else mw.push(m);
   Undo.run('Udržovací týden', () => saveSettings({ ...s, maint_weeks: mw.sort() }), i >= 0 ? `Týden od ${czDateShort(m)} zase v deficitu.` : `Týden od ${czDateShort(m)} je udržovací – deficit nula, limit na celkovém výdeji.`); render(); };
