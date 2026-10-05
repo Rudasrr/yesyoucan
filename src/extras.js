@@ -487,6 +487,8 @@ function defaultSteps() { return stepsGoal(); }
 function daySteps(day) { return bezneKroky(day, S().walk_kmh); }
 /* Průměr běžných kroků za 14 dní před datem – s ním počítá limit ráno a plán. Aspoň 5 dní se zapsanými
    kroky, jinak null (pak platí faktor). Trenér může faktor zamknout (settings.factor_lock). */
+A.setKm = v => { const r = omez(v, 0, 60); if (r.mimo) UI.toast('Km zapisuju v rozmezí 0 až 60.');
+  const day = getDay(App.date); day.km = r.n == null ? null : Math.round(r.n * 100) / 100; saveDay(day); render(); };
 function stepsBaseFor(date) {
   const s = S(); if (s.factor_lock || typeof Store === 'undefined' || !Store.profile) return null;
   const c = App._sbc || (App._sbc = {}); if (date in c) return c[date];
@@ -508,7 +510,7 @@ A.setSteps = v => {
   const r = omez(v, 0, 80000);
   if (r.mimo) UI.toast('Kroky zapisuju v rozmezí 0 až 80 000.');
   const n = r.n;
-  Undo.run('Kroky', () => { const day = getDay(App.date); day.steps = n == null ? null : n; delete day.steps_src; saveDay(day); }, () => stepsHodnoceni(daySteps(effectiveDay(App.date))));
+  Undo.run('Kroky', () => { const day = getDay(App.date); day.steps = n == null ? null : n; saveDay(day); }, () => stepsHodnoceni(daySteps(effectiveDay(App.date))));
   render();
 };
 /* Zhodnocení dne podle kroků: nad cíl pochvala, pod cíl konkrétní cena za týden. */
@@ -603,7 +605,7 @@ const HELP = {
   rLimit: { t: 'Limit dne', co: 'Kolik dnes můžeš sníst a vypít, abys hubnul podle plánu. Roste s každou minutou chůze a s tréninkem.', tip: 'Nikdy neklesne pod spodní hranici – níž by ses vyčerpal a nevydržel.' },
   rCheat: { t: 'Cheat', co: 'Pivo, řízek, dort – cokoli navíc. Zapiš dopředu a appka ho přednostně pokryje chůzí navíc, ať nemusíš ubírat z jídel.' },
   rPotvrdit: { t: 'Potvrdit den', co: 'Večer jedním ťuknutím řekneš, že jsi jedl podle plánu. Co bylo jinak, opravíš u jídla. Bez potvrzení appka neví, co jsi opravdu snědl.' },
-  rKroky: { t: 'Kroky', co: 'Zapiš celkový počet z telefonu. Zapsanou procházku appka odečte sama.' },
+  rKroky: { t: 'Kroky', co: 'Zapiš celkový počet z telefonu (Apple Health → Kroky). Zapsanou procházku appka odečte sama. Když připíšeš i km chůze, odečte ji přesněji.' },
   rTyden: { t: 'Týden jídel', co: 'Řádek = den, ikony = chody. 🎲 vyřeším podle situace · – vynechané. Číslo vpravo je součet dne, tečka: zelená sedí, oranžová moc nebo málo.' },
   rVareni: { t: 'Vaření', co: 'Vybereš dny, appka sečte porce. Když uvaříš, ťukni „uvařeno“ – pokryté chody dostanou gramy z krabičky.' },
 };

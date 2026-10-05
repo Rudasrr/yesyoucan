@@ -384,7 +384,7 @@ function profileCard() {
     <div class="field"><label class="f">Běžný výdej${hq('faktor')}</label><div class="seg"><button class="${s.factor_lock ? '' : 'on'}" onclick="A.setFactorLock(false)">Z Robertových kroků</button><button class="${s.factor_lock ? 'on' : ''}" onclick="A.setFactorLock(true)">Pevný faktor</button></div>
       <div class="hint">${s.factor_lock ? 'Limit počítá s pevným faktorem níž, kroky jen porovnává s cílem.' : (stepsBaseFor(todayISO()) != null ? `Teď Ø ${fmt0(stepsBaseFor(todayISO()))} běžných kroků za 14 dní = faktor ≈ ${String(Math.round(limitToday(s).effFactor * 100) / 100).replace('.', ',')}.` : 'Dokud nemá 5 dní kroků za posledních 14, platí faktor níž.')}</div></div>
     <div class="grid g2">${f('activity', s.factor_lock ? 'Faktor (pevný)' : 'Faktor, když chybí kroky', null, 'sedavě 1,2 · 5 000 kroků 1,34')}${f('rest_sec', 'Pauza mezi sériemi (s)', 'trPauza')}</div>
-    <div class="small muted">Délka kroku ${String(Math.round(strideM() * 100) / 100).replace('.', ',')} m ${strideM() !== 0.75 ? '(z Apple Health)' : '(výchozí – zpřesní se z km v Apple Health)'}</div></div>`;
+    <div class="small muted">Délka kroku ${String(Math.round(strideM() * 100) / 100).replace('.', ',')} m ${strideM() !== 0.75 ? '(z Robertových zapsaných km)' : '(výchozí – zpřesní se, až Robert zapíše km aspoň 3 dny)'}</div></div>`;
 }
 A.profileSheet = () => go('ucet');
 A.setFactorLock = on => commitSettings({ ...S(), factor_lock: !!on }, on ? 'Běžný výdej: pevný faktor' : 'Běžný výdej: z Robertových kroků');

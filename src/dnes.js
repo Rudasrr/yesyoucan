@@ -273,7 +273,7 @@ A.stepsSheet = () => openSheet(() => {
        ${splneno ? `<div class="alert a3"><div>${real > cil ? `O ${fmt0(real - cil)} kroků nad cíl trenéra.` : 'Cíl trenéra splněný.'}</div></div>`
          : (effectiveDay(App.date).act || {}).stepsBase != null ? `<div class="small muted">Do cíle trenéra ${fmt0(cil)} chybí ${fmt0(sm.chybi)} kroků.</div>`
          : `<div class="alert a2"><div>Chybí ${fmt0(sm.chybi)} kroků běžné chůze – ${fmt0(sm.kcal)} kcal z výdeje. Celý týden takhle by ubral <b>${fmt2(sm.kgTyden)} kg</b> z úbytku.</div></div>`}`}
-     ${day.steps_src === 'health' ? `<div class="small muted">📲 Z Apple Health${day.km ? ` · ${fmt1(day.km)} km` : ''} · ${new Date(day.steps_at).toLocaleTimeString('cs-CZ', { hour: '2-digit', minute: '2-digit' })}</div>` : ''}`);
+     <div class="field"><label class="f">Km chůze za den – nepovinné, z Apple Health</label><div class="numf"><input type="text" inputmode="decimal" id="km-in" value="${day.km != null ? String(day.km).replace('.', ',') : ''}" placeholder="např. 6,4" onchange="A.setKm(this.value)"><span>km</span></div><div class="hint">Z km a kroků appka spočítá tvou délku kroku – procházku pak odečte přesněji.</div></div>`);
 });
 
 /* ---- potvrzení dne: výchozí „jedl jsem podle plánu“, výjimky se opraví ťuknutím ----
