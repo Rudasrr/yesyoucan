@@ -205,7 +205,8 @@ function signaly() {
   // kroky
   { const cil = stepsTarget(s), w2 = currentWeight(); let pod = 0, kcal = 0, zapsano = 0; const podD = [];
     for (let k = 1; k <= 7; k++) { const d2 = effectiveDay(addDays(t, -k)); const bk = daySteps(d2); if (bk == null) continue; zapsano++; if (bk < cil) { pod++; podD.push(addDays(t, -k)); kcal += (cil - bk) * kcalPerStep(w2); } }
-    if (pod >= 3) push(1, `${pod} ${DEN(pod)} pod cílem ${fmt0(cil)} kroků – ${fmt0(kcal)} kcal, to je ${fmt2(kcal / KG_KCAL)} kg úbytku, který nebude. Zvaž nižší cíl kroků.`, { key: 'kroky', em: '👣', kde: podD, head: `${pod} ${DEN(pod)} pod cílem kroků.` });
+    if (pod >= 3 && stepsBaseFor(t) != null) push(2, `${pod} ${DEN(pod)} pod cílem ${fmt0(cil)} běžných kroků. Limit už počítá s jeho skutečnými kroky – deficit drží, jen má méně jídla. Chceš cíl snížit, nebo ho podpořit?`, { key: 'kroky', em: '👣', kde: podD, head: `${pod} ${DEN(pod)} pod cílem kroků`, go: "go('nastaveni')", label: 'Cíl kroků' });
+    else if (pod >= 3) push(1, `${pod} ${DEN(pod)} pod cílem ${fmt0(cil)} kroků – ${fmt0(kcal)} kcal, to je ${fmt2(kcal / KG_KCAL)} kg úbytku, který nebude. Zvaž nižší cíl kroků.`, { key: 'kroky', em: '👣', kde: podD, head: `${pod} ${DEN(pod)} pod cílem kroků.` });
     else if (zapsano <= 2 && daysBetween(s.start_date, t) >= 7) push(2, `Kroky za poslední týden zapsal jen ${zapsano}×. Bez nich nevíš, jestli faktor běžného výdeje sedí.`, { key: 'krokyzap', em: '👣', head: `Kroky zapsané jen ${zapsano}× za týden.` }); }
   // hlad
   let vlk = 0; const vlkD = []; for (let k = 0; k <= 7; k++) if (effectiveDay(addDays(t, -k)).hunger === 'vlk') { vlk++; vlkD.push(addDays(t, -k)); }
@@ -591,6 +592,7 @@ const HELP = {
   trIntenzita: { t: 'Intenzita', co: 'Jak náročně má cvičit. Podle ní appka odhadne kalorie tréninku a o ně zvedne limit dne.' },
   trPauza: { t: 'Pauza', co: 'Odpočinek mezi sériemi v sekundách. Při cvičení Robertovi běží odpočet.', tip: 'Prázdné = výchozí z Nastavení.' },
   // trenér · Přehled
+  pSkore: { t: 'Skóre plnění', co: 'Jedno číslo za minulý týden: potvrzené dny 30 % · dny v limitu 30 % · chůze proti plánu 20 % · vážení 20 %.', tip: 'Nad 70 jde Robert podle plánu. Pod 40 nejde o plán, ale o zapisování a kázeň – nejdřív to.' },
   pTempo: { t: 'Tempo hubnutí', co: 'Trend = sklon ranních vážení za poslední 3 týdny, v kg za týden. Srovnává se s tempem z plánu.', tip: 'Pod 80 % plánu dva týdny po sobě = je co řešit.' },
   pCil: { t: 'Kdy dosáhne cíle', co: 'Podle plánu = při nastaveném tempu od startu. Prognóza = při současném trendu. Rozdíl ukazuje, kolik se cíl posouvá.' },
   pData: { t: 'Data od Roberta', co: 'Bez potvrzených dnů, vážení a kroků appka nepozná, co ujelo. Rozbor stojí jen na tom, co Robert zapíše.' },

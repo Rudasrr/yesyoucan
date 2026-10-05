@@ -150,7 +150,7 @@ function trCopyPairs(pairs, label) {
 
 App.trMonth = null; App.trSel = null;
 VIEWS.trenink = function () {
-  return `<div class="ph"><div class="pt"><h1>Trénink</h1><span class="sub">Robertův kalendář · den upravíš ťuknutím</span></div></div>${trMonthHtml()}`;
+  return `<div class="ph"><div class="pt"><h1>Trénink</h1><span class="sub">Robertův kalendář · ťukni na den a uprav ho</span></div><div class="act"><button class="btn sec sm" onclick="A.trCopyWeekSheet()">Kopírovat týden</button><button class="btn sec sm" onclick="A.trCopyMonthSheet()">Kopírovat měsíc</button><button class="btn sm" onclick="A.exLibrary()">${ico('dumbbell')} Knihovna cviků</button></div></div>${trMonthHtml()}`;
 };
 function trMonthHtml() {
   if (!App.ro) adoptLegacyPlan();
@@ -168,16 +168,16 @@ function trMonthHtml() {
   const trenDni = acts.filter(x => (x.ap.items || []).length).length;
   const cell = dt => { const inM = dt.slice(0, 7) === m.slice(0, 7); if (!inM) return '<div class="tm0"></div>';
     const ap = dayActivityPlan(dt); const n = (ap.items || []).length; const vyj = ap.source === 'override';
-    return `<button class="tmd ${dt === t ? 'dnes' : ''} ${dt < t ? 'past' : ''} ${n ? 'tr' : ''}" onclick="A.trDaySheet('${dt}')" aria-label="${czDate(dt)}"><b>${parseISO(dt).getDate()}</b><span>${n ? '🏋️' + n : '🚶' + (ap.walk_min ?? s.walk_min)}</span>${vyj ? '<i></i>' : ''}</button>`; };
-  return `<div class="pgrid tgrid"><div class="pcol"><div class="card stack s8"><div class="row between nowrap"><button class="iconbtn" onclick="App.trMonth=addMonths(App.trMonth,-1);render()" aria-label="předchozí měsíc">‹</button><b style="font-size:17px">${monthName(m)}</b><button class="iconbtn" onclick="App.trMonth=addMonths(App.trMonth,1);render()" aria-label="další měsíc">›</button></div>
+    const trMin = Math.round((ap.items || []).reduce((a, it) => a + itemMinutes(it), 0));
+    return `<button class="tmd2 ${dt === t ? 'dnes' : ''} ${dt < t ? 'past' : ''}" onclick="A.trDaySheet('${dt}')" aria-label="${czDate(dt)}"><b>${parseISO(dt).getDate()}${vyj ? '<i title="upraveno jen pro tento den"></i>' : ''}</b><span class="tg w">${ico('walk')}${ap.walk_min ?? s.walk_min}</span>${n ? `<span class="tg s">${ico('dumbbell')}${trMin || n}</span>` : ''}</button>`; };
+  return `<div class="pgrid tgrid"><div class="pcol"><div class="card stack s8"><div class="row between nowrap"><button class="iconbtn" onclick="App.trMonth=addMonths(App.trMonth,-1);render()" aria-label="předchozí měsíc">‹</button><h2>${monthName(m).replace(/^./, c => c.toUpperCase())}</h2><div class="legend" style="margin:0"><span><i style="background:#16a34a"></i>chůze min</span><span><i style="background:#7c3aed"></i>silový trénink min</span></div><button class="iconbtn" onclick="App.trMonth=addMonths(App.trMonth,1);render()" aria-label="další měsíc">›</button></div>
     <div class="tmgrid">${DAY_SHORT.map(d => `<div class="tmh">${d}</div>`).join('')}${grid.map(cell).join('')}</div>
-    <div class="row between small muted"><span>${trenDni} ${sklon(trenDni, 'tréninkový den', 'tréninkové dny', 'tréninkových dní')} · tečka = naplánováno na datum</span></div>
-    <div class="row"><button class="btn sec sm" onclick="A.trCopyWeekSheet()">📑 Kopírovat týden</button><button class="btn sec sm" onclick="A.trCopyMonthSheet()">📑 Kopírovat měsíc</button><button class="btn ghost sm" onclick="A.trResetMonth()">↺ vrátit měsíc na šablonu</button></div></div></div>
-  <div class="pcol"><div class="card stack s8"><div class="row between"><h2>Měsíc</h2>${kgT != null ? `<span class="pill ${kgT >= cil * 0.97 ? 'ok' : 'warn'}">−${fmt2(kgT)} kg/týden</span>` : ''}</div>
-    ${warns.slice(0, 6).map(x => `<div class="alert a2"><div>${esc(x)}</div></div>`).join('') || '<div class="small muted">V pořádku: pohyb drží tempo.</div>'}${warns.length > 6 ? `<div class="small muted">a dalších ${warns.length - 6}…</div>` : ''}</div>
-  <div class="card flush"><div class="navrow" onclick="A.trInsight()"><span class="ico">📈</span><div class="tx"><b>Jak Robert cvičí</b><span>odcvičené tréninky, náročnost, zátěž u cviků</span></div><span class="chev">›</span></div>
-    <div class="navrow" onclick="A.twLibrary()"><span class="ico">💾</span><div class="tx"><b>Uložené tréninky</b><span>${Workouts().length} · vložíš je do kteréhokoli dne</span></div><span class="chev">›</span></div>
-    <div class="navrow" onclick="A.exLibrary()"><span class="ico">🏋️</span><div class="tx"><b>Knihovna cviků</b><span>${Exercises().length} cviků · upravit nebo přidat</span></div><span class="chev">›</span></div></div></div></div>`;
+    <div class="sumr"><div><b>${trenDni}×</b><span>silový trénink v měsíci</span></div><div><b>${fmt0(acts.reduce((a, x) => a + x.act.planWalk, 0))} min</b><span>chůze v měsíci</span></div><div><b class="${kgT != null && kgT >= cil * 0.97 ? 'ok' : 'warn'}">${kgT != null ? '−' + fmt2(kgT) + ' kg/t' : '–'}</b><span>${kgT != null && kgT >= cil * 0.97 ? 'pohyb drží tempo' : 'pohyb tempo nedrží'}</span></div></div>
+    <div class="row small muted"><span>tečka u čísla = upraveno jen pro ten den</span><button class="btn ghost sm" style="margin-left:auto" onclick="A.trResetMonth()">Vrátit měsíc na šablonu</button></div></div></div>
+  <div class="pcol">${warns.length ? `<div class="card stack s8"><h2>Pohlídat</h2>${warns.slice(0, 4).map(x => `<div class="alert a2"><div>${esc(x)}</div></div>`).join('')}</div>` : ''}
+  <div class="card flush"><div class="navrow" onclick="A.trInsight()"><span class="ico">${ico('trend')}</span><div class="tx"><b>Jak Robert cvičí</b><span>odcvičené tréninky, náročnost, zátěž u cviků</span></div><span class="chev">›</span></div>
+    <div class="navrow" onclick="A.twLibrary()"><span class="ico">${ico('clip')}</span><div class="tx"><b>Uložené tréninky</b><span>${Workouts().length} · vložíš je do kteréhokoli dne</span></div><span class="chev">›</span></div>
+    <div class="navrow" onclick="A.exLibrary()"><span class="ico">${ico('dumbbell')}</span><div class="tx"><b>Knihovna cviků</b><span>${Exercises().length} cviků · upravit nebo přidat</span></div><span class="chev">›</span></div></div></div></div>`;
 };
 
 /* ---- kopírovat den: vybrat cílové dny v kalendáři příštích 8 týdnů ---- */
@@ -311,7 +311,7 @@ A.trInsight = () => {
       (perEx[it.ex] = perEx[it.ex] || []).push({ dt, sets, max: Math.max(...sets.map(x => x.kg || 0)), vol: sets.reduce((a, x) => a + (x.reps || 0) * (x.kg || 0), 0) }); }); }
   const ex = Object.entries(perEx).map(([n, L]) => { L.sort((a, b) => a.dt.localeCompare(b.dt)); const first = L[0], last = L[L.length - 1];
     return `<div class="li static"><div class="tx"><b>${esc(n)}</b><span>${L.length}× · naposledy ${czDateShort(last.dt)}: ${last.sets.map(x => `${x.reps}×${x.kg || 0}`).join(', ')}</span></div><span class="val ${last.vol > first.vol ? 'ok' : ''}">${L.length > 1 ? (last.vol > first.vol ? '↗' : last.vol < first.vol ? '↘' : '→') : ''} ${fmt0(last.max)} kg</span></div>`; }).join('');
-  UI.sheet('📈 Jak Robert cvičí', 'posledních 6 týdnů',
+  UI.sheet('Jak Robert cvičí', 'posledních 6 týdnů',
     sessions.length ? `<div class="list">${sessions.map(x => { const f = FEELS.find(y => y[0] === x.feel); const r = RPES.find(y => y[0] === x.rpe);
       return `<div class="li static"><span class="tm">${czDateShort(x.dt)}</span><div class="tx"><b>${x.done} z ${x.n} cviků</b><span>${r ? `náročnost ${r[0]}/5 (${r[1]})` : 'bez hodnocení'}${f ? ` · ${f[1]} ${f[2]}` : ''}</span></div><span class="pill ${x.done >= x.n ? 'ok' : x.done ? 'warn' : 'bad'}">${x.done >= x.n ? 'celý' : x.done ? 'část' : 'ne'}</span></div>`; }).join('')}</div>
     <div class="lh" style="padding-left:0">Zátěž u cviků · ↗ roste objem</div>${ex ? `<div class="list">${ex}</div>` : '<p class="small muted">Zatím žádné zapsané série – zapisují se, když Robert cvičí přes „Začít cvičit“.</p>'}`
@@ -340,7 +340,7 @@ A.trainSheet = () => openSheet(() => {
     : `<div class="empty"><span class="em">🚶</span>Dnes je v plánu jen chůze.</div>`;
   const foot = !items.length ? '' : (act.doneAll ? (zapsal && !t.finished ? `<button class="btn sec write" onclick="A.trFinish()">Dokončit zápis tréninku</button>` : '')
     : `<button class="btn write" onclick="UI.closeModal();A.trRun(0)">▶︎ Začít cvičit</button><button class="btn sec write" onclick="A.trainDoneAll()">✓ Odcvičeno celé</button>${zapsal && !t.finished ? `<button class="btn ghost write" onclick="A.trFinish()">Dokončit zápis</button>` : ''}`);
-  return UI.sheetHtml('🏋️ Trénink', items.length ? `${items.length} ${sklon(items.length, 'položka', 'položky', 'položek')} · ~${fmt0(act.planKcal || 0)} kcal${act.doneAll ? ' · hotovo' : ''}` : czDate(date), body, foot);
+  return UI.sheetHtml('Trénink', items.length ? `${items.length} ${sklon(items.length, 'položka', 'položky', 'položek')} · ~${fmt0(act.planKcal || 0)} kcal${act.doneAll ? ' · hotovo' : ''}` : czDate(date), body, foot);
 });
 A.trainDone = (i, v) => { const items = (effectiveDay(App.date).act || {}).items || []; Undo.run(v ? `Hotovo: ${items[i] ? items[i].ex : ''}` : 'Cvik vrácen', () => { const day = getDay(App.date); day.training = day.training || { done: {} }; day.training.done[i] = v; saveDay(day); }, () => { const dd = calcDay(S(), Foods(), Recipes(), effectiveDay(App.date), currentWeight()); return `Limit dne je teď ${fmt0(dd.base.maxIntake)} kcal.`; }); render(); };
 A.trainDoneAll = () => { const items = (effectiveDay(App.date).act || {}).items || []; Undo.run('Celý trénink odškrtnutý', () => { const day = getDay(App.date); day.training = { done: Object.fromEntries(items.map((_, i) => [i, true])) }; saveDay(day); }, () => { const dd = calcDay(S(), Foods(), Recipes(), effectiveDay(App.date), currentWeight()); return `+${fmt0(dd.base.doneKcal)} kcal aktivity, limit ${fmt0(dd.base.maxIntake)} kcal.`; }); render(); };

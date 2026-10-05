@@ -97,15 +97,15 @@ holes=sum(r[13] for r in rows)
 print('díry v rozvržení:', holes or 'žádné')
 print('interaction clicks:',clicks,'errors:',errs[:5] or 'none')
 print('výška Dnes na 390 px:', DNES_H, 'px (cíl ≤ 1 800)', 'OK' if DNES_H<=1800 else 'PŘES')
-# trenér: každá obrazovka na desktopu 1440×900 (okno prohlížeče ~1440×800) bez rolování
+# trenér: na desktopu 1440×800 smí rolovat, ale podstatné musí být vidět bez rolování (6. 10. 2026)
 with sync_playwright() as p2:
     b2=p2.chromium.launch(); pg=b2.new_page(viewport={'width':1440,'height':800},locale='cs-CZ',timezone_id='Europe/Prague'); pg.goto(URL); pg.wait_for_timeout(200); pg.evaluate(SETUP); pg.evaluate("localLogin('coach');render()")
     vys=[]
-    for v,tab in [('klient',None),('klient','mesic'),('nastaveni',None),('trenink',None),('ucet',None)]:
-        pg.evaluate(f"go('{v}')"+(";A.perLvl('m')" if tab=='mesic' else '')); pg.wait_for_timeout(150)
-        vys.append((v+('/'+tab if tab else ''), pg.evaluate('document.documentElement.scrollHeight')))
+    for v,sel in [('klient','.wcheck'),('klient','.hgrid svg'),('nastaveni','.ptl'),('trenink','.tmgrid')]:
+        pg.evaluate(f"go('{v}')"); pg.wait_for_timeout(150)
+        vys.append((v+' '+sel, pg.evaluate(f"(()=>{{const e=document.querySelector('#main {sel}');return e?Math.round(e.getBoundingClientRect().top+Math.min(e.getBoundingClientRect().height,240)):9999}})()")))
     b2.close()
-print('trenér na 1440×800:', ' · '.join(f'{v} {h} px' for v,h in vys), 'OK' if all(h<=802 for v,h in vys if v!='ucet') else 'PŘES')
+print('trenér na 1440×800 – podstatné nahoře:', ' · '.join(f'{v} {h} px' for v,h in vys), 'OK' if all(h<=800 for v,h in vys) else 'PŘES')
 print('nápověda ? bez textu:', MAX_I, 'OK' if MAX_I==0 else 'CHYBA', MAX_I_WHERE)
 import re,glob
 inl=sum(len(re.findall(r'style="',open(f).read())) for f in glob.glob(os.path.join(os.path.dirname(__file__),'..','src','*.js')))

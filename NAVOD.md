@@ -176,22 +176,22 @@ Přihlásíš se e-mailem a heslem. Přihlášení drží, podruhé už ho appka
 
 ## B2. Tři obrazovky
 
-- **Dnes** – co teď a kolik ještě můžeš sníst.
+- **Dnes** – kolik ještě můžeš sníst, kolik ujít a co je další krok.
 - **Plán** – co budeš jíst, co koupit a co uvařit dopředu. Tři kroky vedle sebe: Jídla → Nákup → Vaření.
-- **Pokrok** – jak ti to jde: průměr váhy, graf proti plánu, obvody a historie.
+- **Pokrok** – jak ti to jde: kolik kil už je dole, další milník, série, odznaky, tvoje cesta, obvody a historie.
 
 Recepty, suroviny, nastavení a tenhle návod jsou pod kolečkem **R** vpravo nahoře.
 
 ## B3. Den, jak ho appka čeká
 
-Nahoře velké číslo: **kolik ještě můžeš sníst**. Pod ním věta, kolik limit ještě vyroste s chůzí. Pod tím celý den v jednom seznamu podle času – **další krok je zvýrazněný** a tlačítko má přímo pod sebou. U všeho nejasného je **?**.
+Nahoře dva stejně velké kroužky: **Jídlo** (kolik ještě můžeš sníst) a **Pohyb** (kolik minut ještě ujít a odcvičit). Pohyb je stejně důležitý jako jídlo – každá minuta chůze ti přidá jídlo. Pod kroužky modrá karta **Další krok** s tlačítkem a pod ní celý den v jednom seznamu podle času. U všeho nejasného je **?**.
 
 1. **Ráno se zvaž** – číslo zapíšeš rovnou ve zvýrazněném řádku. Nalačno, po WC, pokaždé stejně.
-2. **Po jídle ťukni na kolečko** u jídla. Když ťukneš na řádek, otevře se jídlo celé: suroviny, gramy, domácí míry, výměna, 💡 jiný návrh, 🍽️ mimo dům.
+2. **Po jídle ťukni na kolečko** u jídla. Když ťukneš na řádek, otevře se jídlo celé: suroviny, gramy, domácí míry, výměna, jiný návrh, jedl jsem něco jiného.
 3. **Chůze** – u řádku je tlačítko +15 minut. Ťuknutím na řádek zapíšeš přesně.
 4. **Trénink** (když ho máš v plánu) – ťukni na řádek a dej „Začít cvičit“, nebo jen odškrtni, co jsi udělal.
 5. **Večer zapiš kroky** – celé číslo z telefonu nebo hodinek. Procházku si appka odečte sama.
-6. **Potvrď den** – „Jedl jsi podle plánu?“ Co bylo jinak, oprav ťuknutím na jídlo, zbytek potvrdíš jedním tlačítkem. Pod tím pár otázek, jak šel den (nálada, hlad, chutě, pohyb, spánek, stres) – stačí ťuknout, a když chceš, dopiš pár slov. Trenér tak ví, jak ti to šlo. Bez potvrzení appka neví, co jsi opravdu snědl, a den nehodnotí.
+6. **Potvrď den** – „Jak šel den?“ Velké tlačítko **Jedl jsem podle plánu**. Co bylo jinak, oprav nejdřív ťuknutím na jídlo. Pod tím pár otázek, jak šel den (nálada, hlad, chutě, pohyb, spánek, stres) – stačí ťuknout, a když chceš, dopiš pár slov. Trenér tak ví, jak ti to šlo. Bez potvrzení appka neví, co jsi opravdu snědl, a den nehodnotí.
 7. **Neděle a pondělí** – nahoře na Dnes uvidíš **Tvůj týden**: jak sis vedl, pochvalu a tip. Odtud rovnou zapíšeš váhu a obvody. Shrnutí najdeš kdykoli v Pokroku.
 
 ## B4. Když se den nepovede

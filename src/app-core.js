@@ -12,6 +12,9 @@ function S() {
   const d = { ...SEED.settings, ...(rec ? rec.data : {}) };
   d.courses = (rec && rec.data.courses) || SEED.settings.courses;
   d.met = SEED.met; d.phase_thresholds = SEED.phase_thresholds; d.phases = SEED.phases;
+  /* Start a startovní váha se nezadávají (6. 10. 2026): je to první vážení. Trenér je dřív
+     vyplňoval ručně a mohly se rozejít s daty. */
+  try { const first = Meas().filter(m => m.weight != null && !m.deleted).sort((a, b) => a.date.localeCompare(b.date))[0]; if (first) { d.start_date = first.date; d.start_weight = Number(first.weight); } } catch (e) { }
   return d;
 }
 function saveSettings(data) { const uid = Store.ownerId(); const d = { ...data }; delete d.coach_note; delete d.coach_note_at; Store.put('settings', 'settings:' + uid, d, uid); }
@@ -143,15 +146,25 @@ const MORE_COACH = [['__preview', 'Pohled Roberta', 'appka přesně tak, jak ji 
 /* staré názvy obrazovek (odkazy v úkolech, připomínkách, testech) → nové místo */
 const VIEW_ALIAS = { tyden: ['plan', { planTab: 'jidla' }], jidlo: ['plan', {}], nakup: ['plan', { planTab: 'nakup' }], spiz: ['plan', { planTab: 'nakup' }], vareni: ['plan', { planTab: 'vareni' }],
   mereni: ['pokrok', {}], prehled: ['pokrok', {}], zprava: ['klient', {}], databaze: ['klient', {}] };
-const ICONS = {
-  dnes: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
-  plan: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="15" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>',
-  pokrok: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 19V5"/><path d="M4 19h16"/><path d="M7 15l4-5 3 3 5-7"/></svg>',
-  klient: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>',
-  trenink: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 8v8M18 8v8M3 10v4M21 10v4M6 12h12"/></svg>',
-  nastaveni: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h10M4 17h6M18 7h2M14 17h6"/><circle cx="16" cy="7" r="2"/><circle cx="12" cy="17" r="2"/></svg>',
-  databaze: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg>'
+
+/* Ikony (6. 10. 2026): jedna sada čárových ikon místo emoji. ico('walk') → <svg class="ic"> */
+const ICN = {
+  grid: '<rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/>',
+  sliders: '<path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/>',
+  dumbbell: '<path d="M6 7v10M18 7v10M3 10v4M21 10v4M6 12h12"/>', gear: '<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/>',
+  sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5L19 19M5 19l1.5-1.5M17.5 6.5L19 5"/>',
+  cal: '<rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/>', trend: '<path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/>',
+  scale: '<rect x="4" y="4" width="16" height="16" rx="4"/><path d="M9 10a4 4 0 0 1 6 0M12 10l1.5-1.5"/>', fork: '<path d="M7 3v7a2 2 0 0 0 4 0V3M9 12v9M17 3c-2 2-2 7 0 9v9"/>',
+  walk: '<circle cx="13" cy="4.5" r="2"/><path d="M10 21l2-6 3 3v3M8 12l3-4 4 1 2 3"/>', feet: '<ellipse cx="8" cy="8" rx="2.5" ry="4"/><ellipse cx="16" cy="14" rx="2.5" ry="4"/>',
+  flame: '<path d="M12 3c1 4 5 5 5 10a5 5 0 0 1-10 0c0-3 2-4 2-6 1 1 2 2 3 2 0-2-1-4 0-6z"/>', target: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/>',
+  check: '<path d="M5 12l4 4 10-10"/>', alert: '<path d="M12 4l9 16H3z"/><path d="M12 10v4M12 17v.01"/>', trophy: '<path d="M8 4h8v5a4 4 0 0 1-8 0zM8 6H5a3 3 0 0 0 3 4M16 6h3a3 3 0 0 1-3 4M10 15h4v3h-4zM8 21h8"/>',
+  moon: '<path d="M20 14A8 8 0 1 1 10 4a7 7 0 0 0 10 10z"/>', cup: '<path d="M5 8h12v6a5 5 0 0 1-5 5h-2a5 5 0 0 1-5-5zM17 10h2a2 2 0 0 1 0 4h-2"/>', bolt: '<path d="M13 3L5 13h6l-1 8 8-10h-6z"/>',
+  clip: '<rect x="5" y="4" width="14" height="17" rx="3"/><path d="M9 4h6v3H9zM9 12l2 2 4-4"/>', ruler: '<path d="M4 16L16 4l4 4L8 20z"/><path d="M8 12l2 2M11 9l2 2M14 6l2 2"/>', user: '<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/>',
+  star: '<path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/>', beer: '<path d="M6 8h10v11a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2zM16 10h2a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2h-2M6 8a3 3 0 0 1 5-2 3 3 0 0 1 5 2"/>',
+  cart: '<path d="M3 4h2l2 12h11l2-8H6"/><circle cx="9" cy="20" r="1.5"/><circle cx="17" cy="20" r="1.5"/>', pot: '<path d="M4 10h16v6a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4zM2 10h20M9 6c0-1 1-2 3-2s3 1 3 2"/>', plus: '<path d="M12 5v14M5 12h14"/>',
 };
+const ico = (n, cls) => `<svg class="ic${cls ? ' ' + cls : ''}" viewBox="0 0 24 24">${ICN[n] || ''}</svg>`;
+const ICONS = { dnes: ico('sun'), plan: ico('cal'), pokrok: ico('trend'), klient: ico('grid'), nastaveni: ico('sliders'), trenink: ico('dumbbell') };
 
 /* Co se děje se synchronizací. Dřív se uživatel dozvěděl jen to, že „chyba sync“ –
    bez šance zjistit, co vázne, a bez možnosti s tím cokoli udělat. */
@@ -185,10 +198,10 @@ function go(v) {
 function renderShell() {
   const items = nav();
   const on = v => App.view === v;
-  $('#nav-desk').innerHTML = items.map(([v, l]) => `<button class="${on(v) ? 'on' : ''}" onclick="go('${v}')">${l}</button>`).join('');
+  $('#nav-desk').innerHTML = items.map(([v, l]) => `<button class="${on(v) ? 'on' : ''}" onclick="go('${v}')">${isCoach() ? ICONS[v] || '' : ''}${l}</button>`).join('');
   $('#nav-mob').innerHTML = items.map(([v, l]) => `<button class="${on(v) ? 'on' : ''}" onclick="go('${v}')">${ICONS[v]}${l}</button>`).join('');
   $('#who').textContent = App.preview ? 'náhled' : (isCoach() ? 'trenér' : 'Robert');
-  const av = $('#avatar'); if (av) { av.textContent = isCoach() ? 'T' : 'R'; av.classList.toggle('on', App.view === 'more' || moreItems().some(x => x[0] === App.view)); }
+  const av = $('#avatar'); if (av) { av.innerHTML = isCoach() ? `<span class="avc">T</span><span class="avt">Trenér · více</span>` : 'R'; av.classList.toggle('on', App.view === 'more' || moreItems().some(x => x[0] === App.view)); }
   document.body.classList.toggle('wide', !!isCoach());
   if (!realCoach()) autoClosePast();
   UI.syncBadge();

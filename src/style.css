@@ -650,3 +650,151 @@ details.gdet > summary::after{content:'›';margin-left:auto;color:var(--ink3);t
   body.wide #main{max-width:1440px}
 }
 @media (min-width:1000px) and (max-width:1599px){ .gtbl .g-d{display:none} }
+
+/* ===================================================================
+   VZHLED 2026-10 · čistá bílá (schváleno podle prototypu 6. 10. 2026)
+   Bílé plochy, hodně vzduchu, velká čísla, jedna akcentová barva, ikony
+   místo emoji. Trenér na počítači má boční menu. Pravidla níž přebíjí
+   starší vrstvu výše – výpočty ani struktura dat se nemění.
+   =================================================================== */
+:root{
+  --bg:#f4f5f7;--ink:#0f172a;--ink2:#475569;--ink3:#8492a6;--line:#e6e9ef;--line2:#f1f3f6;
+  --p:#2563eb;--p-ink:#1d4ed8;--p-bg:#eff6ff;--ok:#16a34a;--ok-bg:#ecfdf3;--warn:#b45309;--warn-bg:#fef6e4;--bad:#dc2626;--bad-bg:#fef2f2;
+  --glass:#fff;--glassb:transparent;--hl:none;--blur:none;
+  --sh:0 1px 2px rgba(15,23,42,.04),0 8px 28px -12px rgba(15,23,42,.12);--sh2:0 24px 60px -20px rgba(15,23,42,.28);
+  --gl-p:#eff6ff;--gl-p2:#dbeafe;--gl-b:#fef2f2;--gl-b2:#fee2e2;--gl-o:#fffbeb;--gl-o2:#fef3c7;--gl-ok:#ecfdf3;
+  --r-s:12px;--r:22px;
+}
+body{background:var(--bg);background-image:none}
+h1{font-size:30px;letter-spacing:-.03em}h2{font-size:18px}
+.card{background:#fff;border:0;box-shadow:var(--sh);border-radius:var(--r);padding:20px;backdrop-filter:none;-webkit-backdrop-filter:none}
+.card.tint-p{background:linear-gradient(160deg,#eff6ff,#fff 70%)}.card.tint-o{background:linear-gradient(160deg,#fffbeb,#fff 70%)}.card.tint-b{background:linear-gradient(160deg,#fef2f2,#fff 70%)}.card.tint-ok{background:linear-gradient(160deg,#ecfdf3,#fff 70%)}
+.card.flush{padding:6px 0}
+header.top{background:rgba(255,255,255,.88);border-bottom:1px solid var(--line);box-shadow:none;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+nav.desk button.on,nav.mob button.on{background:var(--p-bg);color:var(--p)}
+nav.mob{background:rgba(255,255,255,.94);border-top:1px solid var(--line);box-shadow:none;backdrop-filter:blur(14px)}
+nav.mob button.on{background:transparent}
+.avatar{background:#fff;box-shadow:none}
+.btn{border-radius:12px;box-shadow:none;background:var(--p)}.btn.sec{background:var(--p-bg);border:0;color:var(--p-ink)}.btn.ghost{color:var(--p-ink)}
+.btn.big{min-height:54px;font-size:16.5px;border-radius:16px;width:100%}
+.chip{background:#fff;border-color:var(--line)}.chip.on{background:var(--p-bg);border-color:#bfdbfe;color:var(--p-ink)}
+.seg{background:#e9ecf1;border-radius:12px}.seg button.on{box-shadow:0 1px 3px rgba(15,23,42,.14)}
+.pill{font-weight:700}
+.li{padding:12px 16px}.li .em{width:34px;height:34px;border-radius:10px;background:var(--line2);display:grid;place-items:center;font-size:17px}
+.li + .li,.navrow + .navrow{border-top:1px solid var(--line2)}
+.li.cur{background:var(--p-bg)}.li.cur::before{background:var(--p)}
+.li .val.k{color:var(--ink2)}
+.navrow .ico{background:var(--line2)}
+.modal{background:rgba(15,23,42,.30)}.modal .box{background:#fff;border-radius:28px 28px 0 0;box-shadow:var(--sh2)}
+input[type=text],input[type=number],input[type=date],input[type=email],input[type=password],input[type=time],select,textarea{background:#fafbfc;border-color:var(--line);border-radius:12px}
+.alert{border-radius:14px}.notice{background:var(--p-bg);border:0;border-radius:14px}
+.toast{background:#0f172a;color:#fff;border:0}.toast .ubtn{background:rgba(255,255,255,.16);color:#fff}
+.lh{color:var(--ink3)}
+.hq{background:var(--p-bg);color:var(--p)}
+svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;vertical-align:-4px}
+.icb{width:36px;height:36px;border-radius:11px;display:grid;place-items:center;flex:none;background:var(--line2);color:var(--ink2)}
+.icb.p{background:var(--p-bg);color:var(--p)}.icb.ok{background:var(--ok-bg);color:var(--ok)}.icb.o{background:var(--warn-bg);color:#d97706}.icb.b{background:var(--bad-bg);color:var(--bad)}.icb.v{background:#f3e8ff;color:#7c3aed}
+/* --- trenér na počítači: boční menu --- */
+@media (min-width:1000px){
+  body.wide header.top{position:fixed;top:0;left:0;bottom:0;width:232px;border-bottom:0;border-right:1px solid var(--line);background:#fff;z-index:40}
+  body.wide header.top .wrap{flex-direction:column;align-items:stretch;height:100%;padding:22px 14px;gap:6px;max-width:none}
+  body.wide .brand{padding:0 8px 16px;font-size:18px}
+  body.wide nav.desk{flex-direction:column;flex:0 0 auto;justify-content:flex-start;gap:4px}
+  body.wide nav.desk button{display:flex;align-items:center;gap:12px;border-radius:12px;padding:11px 12px;text-align:left;font-size:15px}
+  body.wide nav.desk button svg{width:20px;height:20px}
+  body.wide .syncb{margin-top:auto;margin-left:0;padding:8px}
+  body.wide .avatar{width:auto;height:auto;border-radius:14px;padding:12px;background:var(--line2);border:0;justify-content:flex-start;display:flex;gap:10px;font-weight:700}
+  body.wide #app{margin-left:232px}
+  body.wide #main{max-width:1500px;padding:28px 32px 40px;gap:20px}
+}
+/* --- Robert: červenou nevidí nikdy (6. 10. 2026) – co nesedí, je jantarové a klidné --- */
+body:not(.wide) .bad{color:#b45309}body:not(.wide) .pill.bad{background:var(--warn-bg);color:#b45309}body:not(.wide) .alert.a1{background:var(--warn-bg);color:#80400b}
+body:not(.wide) .hero.over .lab,body:not(.wide) .hero.over .big{color:#b45309}
+.avt{display:none}@media (min-width:1000px){body.wide .avt{display:inline}body.wide .avc{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,#93c5fd,#c4b5fd);display:grid;place-items:center;color:#1e3a8a}}
+
+/* Přehled trenéra 2026-10 */
+.chip2{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:7px 13px;font-size:13.5px;font-weight:750;white-space:nowrap}.chip2.bad{background:var(--bad-bg);color:var(--bad)}.chip2.warn{background:var(--warn-bg);color:#b45309}.chip2.ok{background:var(--ok-bg);color:var(--ok)}
+.pill2{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:4px 11px;font-size:12.5px;font-weight:700;background:#e0e7ff;color:#4338ca;align-self:flex-start}
+.wcheck{display:flex;gap:24px;align-items:center;background:linear-gradient(120deg,#eef2ff,#f5f3ff 55%,#fff)}.wcheck .bring{flex:none}
+.wtx{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px}.wtx h2{font-size:20px}
+.decs{display:flex;gap:10px;flex-wrap:wrap;margin-top:4px}.dec{flex:1 1 220px;background:#fff;border:1px solid var(--line);border-radius:16px;padding:12px 14px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.dec b{font-size:14.5px}.dec span{font-size:12.5px;color:var(--ink2)}.dec.done{opacity:.75}
+.hgrid{display:grid;grid-template-columns:minmax(0,1fr);gap:20px}.hstats{display:flex;flex-direction:column;gap:20px}
+.hs{display:flex;flex-direction:column;gap:8px}.hs .lab{display:flex;align-items:center;gap:8px;color:var(--ink2);font-weight:650;font-size:13.5px}
+.hbig{font-size:32px;font-weight:850;letter-spacing:-.025em;line-height:1.05;font-variant-numeric:tabular-nums}.hbig small{font-size:16px;font-weight:700}
+.hbar{height:8px;border-radius:5px;background:var(--line2);overflow:hidden}.hbar i{display:block;height:100%;border-radius:5px}
+.chd{display:flex;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap}
+.todo{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
+.td{border:1px solid var(--line);border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:8px;cursor:pointer;min-width:0}.td:hover{border-color:#cbd5e1}
+.td b{font-size:15.5px}.td p{font-size:13.5px;color:var(--ink2)}.td .ft{margin-top:auto;display:flex;align-items:center;gap:8px;justify-content:space-between}
+.g2b{display:grid;grid-template-columns:minmax(0,1fr);gap:20px}
+.heat{display:grid;grid-template-columns:96px repeat(6,minmax(0,1fr));gap:8px 14px;align-items:center}
+.heat .hl{display:flex;align-items:center;gap:8px;font-size:13.5px;font-weight:650;color:var(--ink2)}.heat .wh{font-size:11px;color:var(--ink3);text-align:center}
+.wk{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}.wk i{display:block;aspect-ratio:1;border-radius:5px;min-width:10px;background:#eef1f5;cursor:pointer}.wk i.n{background:transparent;cursor:default}
+.wk i.g1{background:#bbf7d0}.wk i.g2{background:#4ade80}.wk i.g3{background:#16a34a}.wk i.x{background:#fca5a5}.wk i.m{background:repeating-linear-gradient(135deg,#eef1f5 0 3px,#e2e6ec 3px 6px)}
+.wk i:hover{outline:2px solid #2563eb;outline-offset:1px}
+.mst .m{display:grid;grid-template-columns:70px 1fr auto;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line2);font-size:14px}.mst .m:last-child{border:0}.mst .m b{font-size:15px}
+.mst .dt{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:7px;vertical-align:1px}
+.gtbl-wrap{overflow-x:auto}
+@media (min-width:1000px){ .hgrid{grid-template-columns:minmax(0,2.1fr) minmax(0,1fr)} .g2b{grid-template-columns:minmax(0,1.6fr) minmax(0,1fr)} }
+@media (max-width:640px){ .wcheck{flex-direction:column;align-items:flex-start}.heat{grid-template-columns:62px repeat(6,minmax(0,1fr));gap:4px}.heat .wh{font-size:11px}.heat .hl{font-size:12px} }
+
+/* Plán trenéra 2026-10 */
+.ptl{display:flex;gap:3px;height:34px}.ptl i{flex:1;border-radius:7px;background:#dbeafe;cursor:pointer;min-width:4px}.ptl i:hover{background:#bfdbfe}.ptl i.now{background:#2563eb}.ptl i.br{background:#fde68a}.ptl i.rec{background:repeating-linear-gradient(135deg,#dbeafe 0 4px,#fde68a 4px 8px)}
+.ptlab{display:flex;justify-content:space-between;gap:12px;font-size:12.5px;color:var(--ink2);margin-top:8px;flex-wrap:wrap}
+.pblk{gap:12px}.pblk .chd{margin-bottom:0}
+.res{background:var(--p-bg);border-radius:16px;padding:14px 16px;display:flex;flex-direction:column;gap:2px}.res.g{background:var(--ok-bg)}.res.o{background:#fffbeb}
+.res .rk{font-size:12.5px;color:var(--ink2);font-weight:650;display:flex;align-items:center}.res .rv{font-size:28px;font-weight:850;letter-spacing:-.025em;line-height:1.15;font-variant-numeric:tabular-nums}.res .rs{font-size:13px;color:var(--ink2)}
+.res .btn.ghost{align-self:flex-start;padding:2px 0;min-height:0}
+.prow{display:flex;align-items:center;gap:14px}
+
+/* Trénink 2026-10 */
+.tmd2{position:relative;border:1px solid var(--line);background:#fff;border-radius:14px;min-height:78px;padding:8px;display:flex;flex-direction:column;gap:4px;align-items:flex-start;cursor:pointer;min-width:0;font:inherit;color:var(--ink);text-align:left}
+.tmd2 b{font-size:14px;display:flex;align-items:center;gap:4px}.tmd2 b i{width:6px;height:6px;border-radius:50%;background:var(--p)}
+.tmd2.past{opacity:.5}.tmd2.dnes{border-color:var(--p);box-shadow:0 0 0 2px #dbeafe}.tmd2:hover{border-color:#93c5fd}
+.tg{display:inline-flex;align-items:center;gap:3px;border-radius:8px;padding:1px 7px;font-size:12px;font-weight:750}.tg svg.ic{width:13px;height:13px;vertical-align:0}.tg.w{background:var(--ok-bg);color:#15803d}.tg.s{background:#f3e8ff;color:#6d28d9}
+.tmgrid{gap:8px}
+.sumr{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.sumr div{background:var(--line2);border-radius:14px;padding:12px}.sumr b{display:block;font-size:20px;font-variant-numeric:tabular-nums}.sumr span{font-size:12.5px;color:var(--ink2)}
+@media (max-width:640px){ .tmd2{min-height:56px;padding:5px}.tg{font-size:10.5px;padding:0 4px}.tg svg.ic{display:none} }
+
+/* Robert · Dnes 2026-10 */
+.chip2.acc{background:var(--p-bg);color:var(--p)}
+.rings2{display:flex;flex-direction:column;gap:12px}.rings2 .two{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.rg{display:flex;flex-direction:column;align-items:center;gap:4px;border:0;background:none;cursor:pointer;padding:0;font:inherit;color:var(--ink)}.rg b{display:flex;align-items:center;gap:6px;font-size:14.5px}
+.rg .bring{max-width:100%;height:auto}
+.moves{display:grid;grid-template-columns:1fr 1fr;gap:10px}.moves button{border:0;background:var(--line2);border-radius:16px;padding:11px 13px;text-align:left;cursor:pointer;font:inherit;color:var(--ink)}.moves b{display:block;font-size:16.5px;font-variant-numeric:tabular-nums}.moves span{font-size:12px;color:var(--ink2)}
+.rnote{font-size:12.5px;color:var(--ink3);text-align:center}
+.nextc{background:linear-gradient(135deg,#2563eb,#4f46e5);color:#fff;border-radius:22px;padding:15px 16px;display:flex;flex-direction:column;gap:10px;box-shadow:0 14px 30px -14px rgba(37,99,235,.65)}
+.nextc .t{font-size:12px;font-weight:750;letter-spacing:.08em;text-transform:uppercase;opacity:.8}.nextc b{font-size:19px;line-height:1.3}
+.nextc .btn{background:#fff;color:var(--p-ink)}.nextc .btn.sec{background:rgba(255,255,255,.18);color:#fff}.nextc input{background:#fff;border:0}
+.nextc.done{background:linear-gradient(135deg,#16a34a,#15803d);box-shadow:0 14px 30px -14px rgba(22,163,74,.6)}
+
+/* Pokrok Roberta (2026-10) */
+.pkhero{display:flex;flex-direction:column;gap:6px}.pkhero .lab{font-weight:650;color:var(--ink2);font-size:13px}
+.pkhero .k{font-size:64px;font-weight:850;letter-spacing:-.04em;line-height:1;color:#15803d}.pkhero .s{color:var(--ink2);font-weight:550}
+.tipg{margin-top:6px;border-radius:16px;padding:12px 14px;background:#f0fdf4;color:#14532d;font-size:14px;display:flex;gap:10px;align-items:flex-start}.tipg svg.ic{color:#16a34a;flex:none}
+.mile{display:flex;flex-direction:column;gap:8px}.mile .bar{height:12px}.mile .bar i{background:linear-gradient(90deg,#4ade80,#16a34a)}
+.streaks{display:grid;grid-template-columns:1fr 1fr;gap:12px}.sk{background:#fff;border-radius:20px;box-shadow:var(--sh,0 1px 3px rgba(15,23,42,.06));padding:14px;display:flex;flex-direction:column;gap:4px}
+.sk b{font-size:28px;font-weight:800;line-height:1}.sk span{font-size:12.5px;color:var(--ink2)}.sk:first-child svg.ic{color:#f59e0b}.sk:last-child svg.ic{color:#2563eb}
+.badges{display:flex;flex-wrap:wrap;gap:12px 6px}.badges::-webkit-scrollbar{display:none}
+.bd{flex:none;width:84px;display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;font-size:11.5px;font-weight:650;color:var(--ink2)}
+.bd i{width:62px;height:62px;border-radius:50%;display:grid;place-items:center;font-style:normal}.bd.on i{background:linear-gradient(135deg,#fde68a,#f59e0b);color:#7c2d12;box-shadow:0 6px 16px -6px rgba(245,158,11,.7)}.bd.off i{background:#eef1f5;color:#cbd5e1}
+.bd i svg.ic{width:28px;height:28px}
+svg.pchart{width:100%;height:auto;display:block}
+.secl{font-size:13px;font-weight:750;color:var(--ink3);letter-spacing:.06em;text-transform:uppercase;padding:2px 4px 0}
+
+/* Plán · Jídla (2026-10) */
+.pdays{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+.pdays .dy{border:0;background:#fff;border-radius:16px;padding:8px 0 9px;display:flex;flex-direction:column;align-items:center;gap:2px;box-shadow:var(--sh,0 1px 3px rgba(15,23,42,.06));cursor:pointer;font:inherit;color:var(--ink)}
+.pdays .dy span{font-size:11.5px;color:var(--ink3);font-weight:650}.pdays .dy b{font-size:17px;font-weight:750}
+.pdays .dy i{width:6px;height:6px;border-radius:50%;background:transparent}.pdays .dy i.g{background:#16a34a}.pdays .dy i.w{background:#f59e0b}
+.pdays .dy.on{background:#2563eb;color:#fff}.pdays .dy.on span{color:#dbeafe}.pdays .dy.on i.g,.pdays .dy.on i.w{background:#fff}.pdays .dy.past:not(.on){opacity:.6}
+.li .tm{font-size:12px;color:var(--ink3);width:38px;flex:none}
+.tipb{border-radius:18px;padding:13px 15px;background:#eff6ff;color:#1e3a8a;font-size:14px;display:flex;gap:10px;align-items:flex-start}.tipb svg.ic{color:#2563eb;flex:none}
+
+/* listy Roberta (2026-10) */
+.bigin{display:flex;align-items:baseline;justify-content:center;gap:8px}.bigin input{font-size:56px;font-weight:850;letter-spacing:-.04em;text-align:center;width:220px;border:0;border-bottom:2px solid var(--line);border-radius:0;background:transparent;padding:4px 0}.bigin input:focus{outline:0;border-color:#2563eb}.bigin small{font-size:18px;color:var(--ink3);font-weight:650}
+.btn.big{min-height:54px;font-size:16.5px;justify-content:center;width:100%}
+/* trenér na telefonu: heatmapa se vejde, akce v hlavičce se zalomí */
+@media (max-width:640px){ .wk{gap:1px}.wk i{min-width:0;border-radius:2px}.heat{grid-template-columns:58px repeat(6,minmax(0,1fr));gap:4px 4px}.heat .hl{font-size:11px;gap:3px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;min-width:0}.heat .hl svg.ic{display:none}
+  body.wide .ph{flex-wrap:wrap}body.wide .ph .act{flex-wrap:wrap;margin-left:0;flex:1 1 100%} }
