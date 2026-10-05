@@ -377,6 +377,15 @@ function trend21() {
   const slope = r.reduce((t, x) => t + (x.idx - mx) * (x.weight - my), 0) / sxx;
   return { perWeek: -slope * 7, slope, at: last.idx, y: my + slope * (last.idx - mx), from: r[0].idx, n: r.length };
 }
+/* Kdy dosáhne cíle – jedna prognóza pro Roberta i trenéra: trend posledních 3 týdnů.
+   Dřív Pokrok počítal z průměru od startu (včetně vody z prvních týdnů) a trenér z trendu –
+   každý viděl jiné datum. Výpočet ze sešitu (calcOverview.forecast) zůstává pro kontrolní čísla. */
+function goalForecast(s, ov) {
+  if (ov.cur <= s.goal_weight) return { text: 'cíl dosažen' };
+  const tr = trend21(); if (!tr) return { text: 'zatím málo dat' };
+  if (tr.perWeek <= 0.02) return { text: 'tímto tempem ne', tr };
+  const date = addDays(todayISO(), Math.round((ov.cur - s.goal_weight) / tr.perWeek * 7)); return { date, text: czDate(date), tr };
+}
 /* Týdenní průměry Po–Ne */
 function weekAvgs() {
   const by = {}; calcMeasurements(S(), Meas()).forEach(r => { const m = mondayOf(r.date); (by[m] = by[m] || []).push(r.weight); });

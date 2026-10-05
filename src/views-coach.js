@@ -29,7 +29,7 @@ VIEWS.klient = function () {
 /* tři čísla proti plánu: tempo · cíl · data */
 function stripTiles(s, ov) {
   const t = todayISO(), tr = trend21(), planW = ov.cur * effSettings(s, t).rate_pct / 100;
-  const goalPlan = planGoalDate(s); const prog = tr && tr.perWeek > 0.02 && ov.cur > s.goal_weight ? addDays(t, Math.round((ov.cur - s.goal_weight) / tr.perWeek * 7)) : null;
+  const goalPlan = planGoalDate(s); const prog = goalForecast(s, ov).date || null;
   let conf = 0, weigh = 0, steps = 0; const by = Object.fromEntries(Store.rows('days', Store.ownerId()).map(x => [x.data.date, x.data])); const mb = new Set(Meas().filter(m => m.weight != null).map(m => m.date));
   for (let k = 1; k <= 7; k++) { const dt = addDays(t, -k); if (evaluateDay(dt).confirmed) conf++; if (mb.has(dt)) weigh++; if (by[dt] && by[dt].steps != null) steps++; }
   const pct = tr && planW ? Math.round(tr.perWeek / planW * 100) : null;

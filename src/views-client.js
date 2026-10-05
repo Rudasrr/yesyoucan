@@ -21,7 +21,7 @@ VIEWS.pokrok = function () {
     <div class="lab small b" style="letter-spacing:.09em;text-transform:uppercase;font-size:11.5px;color:var(--p-ink)">Průměr 7 vážení</div>
     <div class="row" style="align-items:baseline;gap:10px"><span class="num" style="font-size:54px;font-weight:850;letter-spacing:-.045em;line-height:1">${fmt1(ov.cur)}</span><span class="b ${ov.lost > 0 ? 'ok' : ''}" style="font-size:18px">${ov.lost > 0 ? '−' : ''}${fmt1(Math.abs(ov.lost))} kg</span></div>
     <div class="bar"><i style="width:${clamp(ov.progress * 100, 0, 100)}%"></i></div>
-    <div class="row between small muted"><span>start ${fmt1(s.start_weight)}</span><span>zbývá ${fmt1(Math.max(0, ov.cur - s.goal_weight))} kg</span><span>cíl ${s.goal_weight}${ov.forecast ? ' · ' + ov.forecast : ''}</span></div>
+    <div class="row between small muted"><span>start ${fmt1(s.start_weight)}</span><span>zbývá ${fmt1(Math.max(0, ov.cur - s.goal_weight))} kg</span><span>cíl ${s.goal_weight}${' · ' + goalForecast(s, ov).text}</span></div>
     ${ov.weekBack ? `<div class="status st${ov.weekBack.state}">${esc(ov.weekBack.text)}</div>` : ''}
   </div>
   <div class="card"><div class="ch"><h2>Váha proti plánu</h2>${ov.avgWeekLoss != null ? `<span class="pill ${ov.avgWeekLoss >= planW * 0.9 ? 'ok' : 'warn'}">−${fmt2(ov.avgWeekLoss)} kg/týden</span>` : ''}</div>
@@ -132,7 +132,7 @@ A.planVsRealSheet = () => {
     <tr><td>Váha</td><td class="n">${fmt1(planWeightAt(s, ov.daysSinceStart || 0))} kg</td><td class="n b">${fmt1(ov.cur)} kg</td></tr>
     <tr><td>Shozeno od startu</td><td class="n">${fmt1(Math.max(0, s.start_weight - planWeightAt(s, ov.daysSinceStart || 0)))} kg</td><td class="n b ${ov.dev != null && ov.dev >= 0 ? 'ok' : 'bad'}">${fmt1(Math.max(0, s.start_weight - ov.cur))} kg</td></tr>
     <tr><td>Úbytek za týden</td><td class="n">${fmt2(ov.cur * s.rate_pct / 100)} kg</td><td class="n b">${ov.avgWeekLoss != null ? fmt2(ov.avgWeekLoss) + ' kg' : 'málo dat'}</td></tr>
-    <tr><td>Cíl dosažen</td><td class="n">${(() => { for (let i = 0; i < 1500; i++) if (planWeightAt(s, i) <= s.goal_weight) return czDate(addDays(s.start_date, i)); return '–'; })()}</td><td class="n b">${ov.forecast || '–'}</td></tr>
+    <tr><td>Cíl dosažen</td><td class="n">${planGoalDate(s) ? czDate(planGoalDate(s)) : '–'}</td><td class="n b">${goalForecast(s, ov).text}</td></tr>
     <tr><td>Pas dělený výškou</td><td class="n">pod 0,50</td><td class="n b">${ov.waistRatio != null ? fmt2(ov.waistRatio) : '–'}</td></tr></table>
     <p class="small muted">${esc(T.plan_vs_reality_intro.replace('0,70', String(s.rate_pct).replace('.', ',')))}</p>
     <table class="small"><tr><th>Za jak dlouho</th><th class="n">Teoreticky</th><th class="n">Reálně čekej</th><th class="n">Skutečnost</th></tr>
