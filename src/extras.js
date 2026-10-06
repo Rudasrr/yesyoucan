@@ -207,7 +207,7 @@ function signaly() {
     for (let k = 1; k <= 7; k++) { const d2 = effectiveDay(addDays(t, -k)); const bk = daySteps(d2); if (bk == null) continue; zapsano++; if (bk < cil) { pod++; podD.push(addDays(t, -k)); kcal += (cil - bk) * kcalPerStep(w2); } }
     if (pod >= 3 && stepsBaseFor(t) != null) push(2, `${pod} ${DEN(pod)} pod cílem ${fmt0(cil)} běžných kroků. Limit už počítá s jeho skutečnými kroky – deficit drží, jen má méně jídla. Chceš cíl snížit, nebo ho podpořit?`, { key: 'kroky', em: '👣', kde: podD, head: `${pod} ${DEN(pod)} pod cílem kroků`, go: "go('nastaveni')", label: 'Cíl kroků' });
     else if (pod >= 3) push(1, `${pod} ${DEN(pod)} pod cílem ${fmt0(cil)} kroků – ${fmt0(kcal)} kcal, to je ${fmt2(kcal / KG_KCAL)} kg úbytku, který nebude. Zvaž nižší cíl kroků.`, { key: 'kroky', em: '👣', kde: podD, head: `${pod} ${DEN(pod)} pod cílem kroků.` });
-    else if (zapsano <= 2 && daysBetween(s.start_date, t) >= 7) push(2, `Kroky za poslední týden zapsal jen ${zapsano}×. Bez nich nevíš, jestli faktor běžného výdeje sedí.`, { key: 'krokyzap', em: '👣', head: `Kroky zapsané jen ${zapsano}× za týden.` }); }
+    else if (zapsano <= 2 && daysBetween(s.start_date, t) >= 7) push(stepsHistFor(t) ? 3 : 2, stepsHistFor(t) ? `Kroky za poslední týden zapsal jen ${zapsano}× – výdej se počítá z průměru z Apple Health. Doplň ho vždy po měsíci.` : `Kroky za poslední týden zapsal jen ${zapsano}×. Bez nich nevíš, jestli faktor běžného výdeje sedí.`, { key: 'krokyzap', em: '👣', head: `Kroky zapsané jen ${zapsano}× za týden.` }); }
   // hlad
   let vlk = 0; const vlkD = []; for (let k = 0; k <= 7; k++) if (effectiveDay(addDays(t, -k)).hunger === 'vlk') { vlk++; vlkD.push(addDays(t, -k)); }
   if (vlk >= 3) push(1, `${vlk}× vlčí hlad za týden. Tempo je nejspíš moc rychlé – zpomal dřív, než to vzdá.`, { key: 'hlad', em: '🐺', kde: vlkD, head: 'Opakovaně vlčí hlad.', go: "go('nastaveni')", label: 'Tempo' });
@@ -327,7 +327,7 @@ function weightWhy(from, to) {
     const fix = Math.abs(rec - s.activity) >= 0.05 ? { apply: `A.applyAdvice(${JSON.stringify(JSON.stringify({ activity: rec })).replace(/"/g, '&quot;')})`, label: `Faktor ${String(rec).replace('.', ',')}` } : {};
     if (state !== 'rychle' && k >= 0.04) add({ key: 'kroky', lv: lvK(k), em: '👣', kg: k, kde: D.steps, title: `Kroky Ø ${fmt0(avg)} z ${fmt0(cil)}`, sub: `Výdej je o ~${fmt0(k * KG_KCAL / 7)} kcal/den nižší, než počítá limit – a limit to nevidí. Sniž faktor, nebo ať chodí víc.`, ...fix });
     if (state === 'rychle' && k <= -0.04) add({ key: 'kroky', lv: 2, em: '👣', kg: -k, title: `Chodí víc, než počítá faktor: Ø ${fmt0(avg)} kroků`, sub: 'Výdej je vyšší, než si appka myslí, deficit vychází větší. Zvedni faktor.', ...fix }); }
-  else if (n >= 5 && X.stepsN < 3) add({ key: 'krokyzap', lv: 2, em: '👣', data: true, title: `Kroky zapsané jen ${X.stepsN}× z ${n}`, sub: 'Bez nich nejde ověřit odhad výdeje – největší skrytá chyba plánu.' });
+  else if (n >= 5 && X.stepsN < 3) add(stepsHistFor(to) ? { key: 'krokyzap', lv: 3, em: '👣', data: true, title: `Kroky denně nezapsané – počítá se průměr z Apple Health`, sub: 'Výdej vychází z průměru za období. Denní zápis by ukázal i jednotlivé dny.' } : { key: 'krokyzap', lv: 2, em: '👣', data: true, title: `Kroky zapsané jen ${X.stepsN}× z ${n}`, sub: 'Bez nich nejde ověřit odhad výdeje – největší skrytá chyba plánu.' });
   if (state === 'rychle') {
     const kU = perW(X.under, X.conf);
     if (kU >= 0.04) add({ key: 'podlimit', lv: 1, em: '🥗', kg: kU, kde: D.under, title: `Jí pod limit: ${D.under.length}× o víc než 300 kcal`, sub: 'Rychlé hubnutí bere sval a končí hladem. Ať dojídá do limitu, hlavně bílkoviny.' });
@@ -499,8 +499,26 @@ function stepsBaseFor(date) {
   const c = App._sbc || (App._sbc = {}); if (date in c) return c[date];
   const by = stepsDays(); const vals = [];
   for (let k = 1; k <= 14; k++) { const d = by[addDays(date, -k)]; if (d && d.steps != null) vals.push(bezneKroky(d, s.walk_kmh)); }
-  return (c[date] = vals.length >= 5 ? Math.round(vals.reduce((a, b) => a + b, 0) / vals.length) : null);
+  if (vals.length >= 5) return (c[date] = Math.round(vals.reduce((a, b) => a + b, 0) / vals.length));
+  const h = stepsHistFor(date); return (c[date] = h ? h.bezne : null);
 }
+/* Průměry kroků z Apple Health za období (6. 10. 2026, settings.steps_hist: {from, to, avg, walk}).
+   Robert zapisoval kroky jen výjimečně, ale trenér vidí v Health denní průměr po týdnech
+   a měsících. Když za posledních 14 dní chybí denní zápisy, platí průměr z období, které
+   den před datem pokrývá (nebo skončilo nejvýš 28 dní předtím). walk: 'plan' = průměr
+   obsahuje plánovanou chůzi – odečte se plán chůze (minuty × kroky za minutu), 'none' = ne. */
+function stepsHistFor(date) {
+  const L = (S().steps_hist || []).filter(h => h && h.avg > 0 && h.from && h.to); if (!L.length) return null;
+  const d1 = addDays(date, -1);
+  const h = L.find(x => x.from <= d1 && d1 <= x.to) || L.filter(x => x.to < date && x.to >= addDays(date, -28)).sort((a, b) => b.to.localeCompare(a.to))[0];
+  if (!h) return null;
+  const ws = h.walk === 'plan' ? histWalkSteps(h) : 0;
+  return { ...h, walkSteps: ws, bezne: Math.max(0, Math.round(h.avg - ws)) };
+}
+/* plánovaná chůze v krocích za den, průměr přes dny období */
+function histWalkSteps(h) { let k = 0, n = 0; for (let d = h.from; d <= h.to && n < 400; d = addDays(d, 1)) { const ap = dayActivityPlan(d); k += (Number(ap.walk_min) || 0) * stepsPerMin(ap.walk_kmh || S().walk_kmh); n++; } return n ? Math.round(k / n) : 0; }
+/* celkové kroky dne: zapsané, jinak průměr z Health za období */
+function stepsTotalFor(date) { const d = stepsDays()[date]; if (d && d.steps != null) return { v: Number(d.steps), src: 'den' }; const h = stepsHistFor(addDays(date, 1)); return h ? { v: h.avg, src: 'health', h } : null; }
 function stepsDays() { return App._sbd || (App._sbd = Object.fromEntries(Store.rows('days', Store.ownerId()).filter(r => r.data.steps != null).map(r => [r.data.date, r.data]))); }
 /* Robertova délka kroku z Apple Health: km ÷ kroky za posledních 28 dní (aspoň 3 dny). */
 function strideM() {
@@ -573,6 +591,7 @@ function adviceBox(field) { const list = settingsAdvice().filter(a => a.field ==
    U každého prvku, jehož význam není jasný z názvu, je „?“. Ťuknutí ukáže 2–4 věty:
    co to dělá · kdy to použít · doporučení. Texty jsou jen tady – Návod z nich vychází. */
 const HELP = {
+  krokyAH: { t: 'Kroky z Apple Health', co: 'Když Robert kroky nezapisuje denně, zadej průměr z Health za období (Health → Kroky → M nebo 6 M, ťukni na období). Appka z něj spočítá běžný výdej a v Rozboru cíle skutečnou bilanci. Označ, jestli průměr obsahuje plánovanou chůzi – odečte se.' },
   terminCile: { t: 'Termín cíle', co: 'Do kdy má Robert cílové váhy dosáhnout. Appka podle něj spočítá nejnižší tempo, které termín stihne (s přestávkou po 8 týdnech deficitu), a hlídá, jestli ho Robert plní. Bez termínu se bere datum z plánu.' },
   dVaha: { t: 'Váha za období', co: 'Kolik Robert shodil za vybrané období (průměr 7 vážení na začátku proti konci) a kolik měl podle tempa za stejné dny. Cíl se počítá z jeho váhy na začátku období, takže měsíc se porovnává s měsíčním cílem. Přestávka v deficitu má cíl nula.' },
   dKDnesku: { t: 'Od startu k datu', co: 'Kolik má Robert od startu shozeno k poslednímu vážení v období a kolik měl mít podle plánové křivky. Rozdíl v kilech je to, co Robertovi k plánu chybí nebo co má navíc.' },
@@ -654,19 +673,31 @@ function goalCheck() {
   const recRate = req == null ? 1 : Math.max(0.5, req);
   const R = periodStats(from, to);
   const b = calcBase(s, w, s.walk_min, 0, s.walk_kmh, 0, 0);
-  return { w, tr, planWk, planNow, adh, target, hasDate: !!s.goal_date, req, recRate, R,
-    gapKcal: Math.max(0, (planWk - tr.perWeek) * KG_KCAL / 7),
+  // Energetická bilance za dny trendu: výdej z celkových kroků (zapsané nebo průměr z Health) –
+  // nezáleží na tom, kolik z nich byla plánovaná chůze. Skutečný deficit z úbytku váhy.
+  // Odhad příjmu = výdej − deficit; proti limitu, který appka ty dny ukazovala.
+  let En = 0, Ln = 0, St = 0, Pl = 0, nE = 0;
+  for (let d = from; d < to; d = addDays(d, 1)) { const st = stepsTotalFor(d); if (!st) continue; const wd = currentWeight();
+    const bmr = calcBase(s, wd, 0, 0, s.walk_kmh, 0, 0).bmr; En += bmr * SED + st.v * kcalPerStep(wd); St += st.v;
+    const ev = evaluateDay(d); Ln += ev.d.base.planLimit; const ap = dayActivityPlan(d); Pl += Math.min(WALK_PLAN_MAX, Number(ap.walk_min) || 0) * stepsPerMin(ap.walk_kmh || s.walk_kmh) + stepsTarget(s); nE++; }
+  const realDef = tr.perWeek * KG_KCAL / 7;
+  const energy = nE >= len * 0.6 ? { out: En / nE, steps: St / nE, stepsPlan: Pl / nE, limit: Ln / nE, intake: En / nE - realDef, over: En / nE - realDef - Ln / nE, realDef, src: (S().steps_hist || []).length && R.stepsN < 5 ? 'Apple Health' : 'zápisy' } : null;
+  // s bilancí z kroků je plán = výdej − limit (celý pohyb, ne odhad faktoru) – jedno číslo všude
+  const planWkE = energy ? Math.max(0.05, (energy.out - energy.limit) * 7 / KG_KCAL) : planWk;
+  const adhE = energy ? Math.max(0, tr.perWeek / planWkE) : adh;
+  return { w, tr, planWk: planWkE, planNow, adh: adhE, target, hasDate: !!s.goal_date, req, recRate, R,
+    gapKcal: energy ? Math.max(0, energy.over) : Math.max(0, (planWk - tr.perWeek) * KG_KCAL / 7),
     dCur: simGoal(s.rate_pct, 1, false, w, t), dCurAdh: simGoal(s.rate_pct, Math.min(1, adh), false, w, t),
     dRec: simGoal(recRate, 1, true, w, t), dRec80: simGoal(recRate, 0.8, true, w, t), dTrend: goalForecast(s, ov).date || null,
-    factorRisk: R.stepsN < 5 && !b.autoSteps ? Math.round(b.bmr * (s.activity - 1.2)) : 0, bmr: b.bmr };
+    factorRisk: R.stepsN < 5 && !b.autoSteps && !energy ? Math.round(b.bmr * (s.activity - 1.2)) : 0, bmr: b.bmr, energy };
 }
 /* signál pro trenéra: neplní plán → co změnit a proč (jeden řádek, detail v listu) */
 function goalSignal() {
   const g = goalCheck(); if (!g || g.tr.n < 10) return null;
   const late = g.dTrend && g.target ? daysBetween(g.target, g.dTrend) : 0;
   if (g.adh >= 0.8 && late <= 28) return null;
-  const blind = g.R.conf < g.R.n * 0.5;
-  const why = blind ? `Příčinu appka neurčí – za poslední 3 týdny ${g.R.conf} potvrzených dnů a ${g.R.stepsN}× kroky, neví, jestli jí víc, nebo se hýbe míň.` : 'Rozbor příčin je v Průběhu a v Co řešit.';
+  const blind = g.R.conf < g.R.n * 0.5; const E = g.energy;
+  const why = E ? (E.over > 150 ? `Pohyb sedí (${fmt0(E.steps)} kroků denně podle ${E.src}, plán ${fmt0(E.stepsPlan)}), potíž je jídlo: z výdeje a úbytku vychází příjem ~${fmt0(E.intake)} kcal denně, limit byl ${fmt0(E.limit)} – o ~${fmt0(E.over)} kcal víc.` : `Příjem podle výdeje a úbytku sedí s limitem (~${fmt0(E.intake)} kcal) – rozdíl je spíš voda nebo výdej, počkej na další týden vážení.`) : blind ? `Příčinu appka neurčí – za poslední 3 týdny ${g.R.conf} potvrzených dnů a ${g.R.stepsN}× kroky, neví, jestli jí víc, nebo se hýbe míň.` : 'Rozbor příčin je v Průběhu a v Co řešit.';
   const rec = !g.hasDate ? `Zadej v Plánu termín cíle – appka spočítá, jaké tempo na něj stačí.` : g.req == null ? `Termín ${czDate(g.target)} je i s tempem 1 % nereálný – posuň ho.` : g.adh < 0.8 ? `Zvyšovat tempo nepomůže, dokud plní ${Math.round(g.adh * 100)} % plánu. Tempo ${String(g.recRate).replace('.', ',')} % s přestávkou po 8 týdnech stihne ${czDate(g.target)}, když plán dodrží.` : `Na termín ${czDate(g.target)} stačí tempo ${String(g.recRate).replace('.', ',')} % s přestávkami.`;
   return { lv: g.adh < 0.6 || late > 60 ? 1 : 2, key: 'cilcheck', em: '🎯', head: `Hubne ${fmt2(g.tr.perWeek)} kg/týden místo ${fmt2(g.planWk)} – plní plán na ${Math.round(g.adh * 100)} %.`,
     text: `Chybí ~${fmt0(g.gapKcal)} kcal deficitu denně, cíl se tímhle tempem posouvá na ${g.dTrend ? czDate(g.dTrend) : 'neurčito'}${late > 0 ? ` (${ymd(g.target, g.dTrend).short} po termínu)` : ''}. ${why} ${rec}`,

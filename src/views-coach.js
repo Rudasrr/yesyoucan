@@ -394,6 +394,7 @@ VIEWS.nastaveni = function () {
   const pohyb = `<div class="card pblk">${head('walk', 'ok', 'Pohyb')}
     <div class="res g"><div class="rk">Z toho vyjde</div><div class="rv">+${fmt0(s.walk_min * b.walkPerMin)} kcal/den</div><div class="rs">${s.walk_min} min chůze · ${b.autoSteps ? `běžný výdej z jeho Ø ${fmt0(b.stepsBase)} kroků` : 'běžný výdej podle faktoru'}</div></div>
     ${frow('Chůze denně', 'chuze', numf(s, 'walk_min', 'min'), 'dny bez plánu v Tréninku')}
+    ${frow('Kroky z Apple Health', 'krokyAH', `<button class="btn sec sm" onclick="A.stepsHistSheet()">${(s.steps_hist || []).length ? 'Upravit' : 'Zadat průměr'}</button>`, (() => { const h = stepsHistFor(todayISO()); return h ? `Ø ${fmt0(h.avg)} (${czDateShort(h.from)}–${czDateShort(h.to)}) → běžné ${fmt0(h.bezne)}` : 'Robert kroky denně nezapisuje'; })())}
     ${frow('Tempo chůze', 'tempoChuze', `<select class="sel" onchange="A.setSetting('walk_kmh',this.value)">${SEED.met.map(([k]) => `<option value="${k}" ${k === s.walk_kmh ? 'selected' : ''}>${fmt1(k)} km/h</option>`).join('')}</select>`, `fáze ${esc(calcOverview(s, Meas()).phase.split(' – ')[0])}${ph ? ` · doporučeno ${fmt1(ph.rec)} km/h` : ''}`)}
     ${frow('Cíl běžných kroků', 'kroky', numf(s, 'steps_goal', 'kroků', true), b.autoSteps ? `Robert Ø ${fmt0(b.stepsBase)} za 14 dní` : 'Robert zatím nezapisuje')}
     ${ph ? `<div class="alert a2"><div>${esc(ph.text)}</div><button class="btn sm" onclick="A.applyPhase(${ph.rec})">Přepnout</button></div>` : ''}
@@ -556,8 +557,8 @@ A.editFood = (id, mode, after, fromId) => {
 
 /* ---------- HISTORIE ZMĚN (6. 10. 2026) ----------
    Každá akce trenéra s tím, co změnila, a tlačítkem Vrátit. Zdroj: histAdd v Undo.run. */
-const HIST_KEYS = { ...SET_POP, courses: 'rozdělení jídla mezi chody', maint_weeks: 'přestávky v deficitu', start_date: 'start', start_weight: 'startovní váha' };
-function histVal(k, v) { if (v == null || v === '') return '–'; if (k === 'walk_kmh') return paceTxt(v) + ' /km'; if (k === 'maint_weeks') return v.length ? v.map(czDateShort).join(', ') : 'žádné';
+const HIST_KEYS = { ...SET_POP, steps_hist: 'kroky z Apple Health', courses: 'rozdělení jídla mezi chody', maint_weeks: 'přestávky v deficitu', start_date: 'start', start_weight: 'startovní váha' };
+function histVal(k, v) { if (v == null || v === '') return '–'; if (k === 'walk_kmh') return paceTxt(v) + ' /km'; if (k === 'maint_weeks') return v.length ? v.map(czDateShort).join(', ') : 'žádné'; if (k === 'steps_hist') return v.length ? v.map(h => `${czDateShort(h.from)}–${czDateShort(h.to)} Ø ${fmt0(h.avg)}`).join(', ') : 'žádné';
   if (typeof v === 'boolean') return v ? 'zapnuto' : 'vypnuto'; if (typeof v === 'object') return '…'; return String(v).replace('.', ','); }
 function histDesc(c) {
   const a = (c.prev && !c.prev.deleted && c.prev.data) || null, b = (c.next && !c.next.deleted && c.next.data) || null;
@@ -755,6 +756,11 @@ A.goalCheckSheet = () => openSheet(() => {
   return UI.sheetHtml('Rozbor cíle', `cíl ${fmt1(s.goal_weight)} kg · termín ${czDate(T)}${s.goal_date ? '' : ' (podle plánu)'}`,
     `<div class="stats3"><div><b class="${g.adh >= 0.8 ? 'ok' : 'bad'}">−${fmt2(g.tr.perWeek)}</b><span>kg/týden · trend 3 týdnů</span></div><div><b>−${fmt2(g.planWk)}</b><span>kg/týden · plán za ty dny</span></div><div><b class="${g.adh >= 0.8 ? 'ok' : 'bad'}">${Math.round(g.adh * 100)} %</b><span>plnění · chybí ~${fmt0(g.gapKcal)} kcal/den</span></div></div>
     ${verdict}
+    ${g.energy ? (() => { const E = g.energy, okP = E.steps >= E.stepsPlan * 0.95, okJ = E.over <= 150;
+      return `<h3>Kde je potíž</h3><div class="list">
+        <div class="li static"><span class="em">${ico('walk')}</span><div class="tx"><b>Pohyb: ${fmt0(E.steps)} kroků denně</b><span>plán ${fmt0(E.stepsPlan)} (chůze + běžné kroky) · zdroj ${esc(E.src)} · výdej ~${fmt0(E.out)} kcal</span></div><span class="val ${okP ? 'ok' : 'bad'}">${okP ? '✓' : Math.round(E.steps / E.stepsPlan * 100) + ' %'}</span></div>
+        <div class="li static"><span class="em">${ico('fork')}</span><div class="tx"><b>Jídlo: ~${fmt0(E.intake)} kcal denně</b><span>limit ${fmt0(E.limit)} · odhad = výdej ${fmt0(E.out)} − skutečný deficit ${fmt0(E.realDef)} (úbytek ${fmt2(g.tr.perWeek)} kg/týden)</span></div><span class="val ${okJ ? 'ok' : 'bad'}">${okJ ? '✓' : '+' + fmt0(E.over)}</span></div></div>
+        <div class="alert ${okJ ? 'a3' : 'a1'}"><div>${okJ ? 'Bilance sedí – příjem odpovídá limitu. Rozdíl v úbytku je voda nebo výkyv, počkej týden.' : `<b>Potíž je jídlo, ne pohyb.</b> Robert se hýbe ${okP ? 'dokonce víc, než má' : 'méně, než má, ale to vysvětlí jen část'} – a přesto mu chybí ~${fmt0(g.gapKcal)} kcal deficitu. Odhadem jí o ~${fmt0(E.over)} kcal denně víc, než má limit (to je zhruba ${E.over > 700 ? 'jedno hlavní jídlo' : E.over > 350 ? 'svačina nebo dvě piva' : 'jedna sladkost'} navíc každý den). Nižší tempo ani víc chůze to nevyřeší – je potřeba vidět, co jí: potvrzené dny ukážou, který chod nebo cheat to je.`}</div></div>`; })() : ''}
     <h3>Kdy dosáhne cíle</h3><div class="tbl"><table class="small"><tr><th>Varianta</th><th class="n">Cíl</th><th class="n">Proti termínu</th></tr>${sc.map(([l, d]) => `<tr><td>${l}</td><td class="n">${dd(d)}</td><td class="n">${vsT(d)}</td></tr>`).join('')}</table></div>
     <h3>Co změnit a proč</h3><ol class="gcl">${steps.join('')}</ol>
     <p class="hint">Simulace týden po týdnu od dnešního průměru ${fmt1(g.w)} kg: deficit = tempo × váha, nejvýš do spodní hranice jídla (85 % klidového výdeje); přestávka = týden na nule. Plnění = skutečný úbytek ÷ plánovaný za stejné dny.</p>`);
@@ -768,3 +774,18 @@ A.planBreaks = () => { const s = S(), t = todayISO(), g = goalCheck(); const end
   UI.confirm(`Naplánovat ${add.length} ${sklon(add.length, 'přestávku', 'přestávky', 'přestávek')} v deficitu (${add.map(czDateShort).join(', ')})? Ten týden bude deficit nula a cíl se posune o ${add.length} ${sklon(add.length, 'týden', 'týdny', 'týdnů')}.`,
     () => commitSettings({ ...s, maint_weeks: mw.concat(add).sort() }, 'Přestávky v deficitu', `${add.length} ${sklon(add.length, 'přestávka naplánována', 'přestávky naplánovány', 'přestávek naplánováno')}.`), 'Naplánovat', true); };
 A.setGoalDate = v => { if (v && v <= todayISO()) { UI.toast('Termín cíle musí být v budoucnu.'); render(); return; } commitSettings({ ...S(), goal_date: v || null }, v ? 'Termín cíle' : 'Termín cíle zrušen', v ? `Termín cíle ${czDate(v)}.` : 'Termín se bere z plánu.'); };
+
+/* průměry kroků z Apple Health za období */
+A.stepsHistSheet = () => openSheet(() => { const s = S(), L = (s.steps_hist || []).slice().sort((a, b) => b.from.localeCompare(a.from)); const t = todayISO();
+  return UI.sheetHtml('Kroky z Apple Health', 'denní průměr za období · Health → Kroky → M / 6 M',
+    `${L.length ? `<div class="list">${L.map(h => { const x = stepsHistFor(addDays(h.to, 1)) || {}; return `<div class="li static"><div class="tx"><b>${czDateShort(h.from)}–${czDate(h.to)} · Ø ${fmt0(h.avg)} kroků</b><span>${h.walk === 'plan' ? `včetně plánované chůze (−${fmt0(x.walkSteps || histWalkSteps(h))}) → běžné ${fmt0(h.avg - (x.walkSteps || histWalkSteps(h)))}` : 'bez plánované chůze'}</span></div><button class="xbtn sm" onclick="A.stepsHistDel('${h.from}','${h.to}')" aria-label="smazat">×</button></div>`; }).join('')}</div>` : '<p class="muted small">Zatím nic. Zadej průměr kroků z Health za týden, měsíc nebo delší období.</p>'}
+     <div class="grid g2"><div class="field"><label class="f">Od</label><input type="date" id="sh_from" class="dinp" max="${t}"></div><div class="field"><label class="f">Do</label><input type="date" id="sh_to" class="dinp" max="${t}"></div></div>
+     <div class="field"><label class="f">Denní průměr kroků</label><input type="text" inputmode="numeric" id="sh_avg" placeholder="např. 14170"></div>
+     <div class="field"><label class="f">Obsahuje plánovanou chůzi?</label><select id="sh_walk"><option value="plan">Ano – odečti plán chůze (od startu plánu)</option><option value="none">Ne – před startem nebo bez chůze</option></select></div>`,
+    `<button class="btn" onclick="A.stepsHistAdd()">Přidat</button>`); });
+A.stepsHistAdd = () => { const f = $('#sh_from').value, to = $('#sh_to').value, r = omez($('#sh_avg').value, 0, 60000), wk = $('#sh_walk').value;
+  if (!f || !to || f > to) { UI.toast('Vyplň období od–do.'); return; } if (r.n == null || r.n < 100) { UI.toast('Vyplň denní průměr kroků.'); return; }
+  const s = S(); const L = (s.steps_hist || []).filter(h => h.to < f || h.from > to);   // překrývající se období nahradit
+  commitSettings({ ...s, steps_hist: L.concat([{ from: f, to, avg: Math.round(r.n), walk: wk, src: 'Apple Health' }]).sort((a, b) => a.from.localeCompare(b.from)) }, 'Kroky z Apple Health', `Ø ${fmt0(r.n)} kroků za ${czDateShort(f)}–${czDateShort(to)} – výdej se přepočítal.`);
+  App._sbc = null; UI.closeModal(); A.stepsHistSheet(); };
+A.stepsHistDel = (f, to) => UI.confirm(`Smazat průměr kroků ${czDateShort(f)}–${czDateShort(to)}?`, () => { const s = S(); commitSettings({ ...s, steps_hist: (s.steps_hist || []).filter(h => !(h.from === f && h.to === to)) }, 'Kroky z Health smazány'); App._sbc = null; UI.closeModal(); A.stepsHistSheet(); }, 'Smazat');
