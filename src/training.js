@@ -63,7 +63,7 @@ function activePlanFor(date) { const c = trainingPlans().filter(p => p.active_fr
 function dayActivityPlan(date) {
   const ov = trainingOverride(date); if (ov) return { ...ov, source: 'override' };
   const pl = activePlanFor(date); if (pl) return { ...pl.days[dayIndex(date)], source: 'plan', planName: pl.name };
-  return { walk_min: S().walk_min, walk_kmh: S().walk_kmh, items: [], source: 'default' };
+  const sd = settingsAt(S(), date); return { walk_min: sd.walk_min, walk_kmh: sd.walk_kmh, items: [], source: 'default' };
 }
 function planActFor(date, weight) { const ap = dayActivityPlan(date); return { planWalk: ap.walk_min != null ? Number(ap.walk_min) : S().walk_min, planKcal: sessionKcal(ap.items || [], weight), items: ap.items || [], stepsBase: stepsBaseFor(date) }; }
 function weekActs(monday, weight) { return Array.from({ length: 7 }, (_, i) => planActFor(addDays(monday, i), weight)); }
@@ -105,17 +105,28 @@ function paceMessageForClient() { const s = S(), ov = calcOverview(s, Meas()); i
 /* šablona, která platí dnes (nejnovější verze s active_from ≤ dnes) */
 function trTemplate() { return activePlanFor(todayISO()); }
 /* změna šablony týdne od dneška; minulé dny zůstanou na staré verzi */
-function editTemplate(fn) {
-  const t = todayISO(); const cur = trTemplate();
+function editTemplate(fn, from) {
+  /* „každé X“ platí od dne, který trenér upravuje (6. 10. 2026) – dřív od dneška, takže
+     úprava úterý 13. 10. změnila i dnešní úterý a první šablona platila zpětně od pondělí.
+     Den, který už začal a Robert v něm něco zapsal, se nemění – nejdřív od zítřka. */
+  const t = todayISO(); from = trFirstEditable(from && from > t ? from : t);
+  const base = activePlanFor(from);
   let pl;
-  if (!cur) { const vse = trainingPlans(); const last = vse[vse.length - 1];
-    pl = last ? { ...JSON.parse(JSON.stringify(last)), id: oid('tp', Date.now()) } : newPlan('Robertův týden');
-    pl.active_from = mondayOf(t); }                 // první šablona platí od pondělí, historie ještě není
-  else if (cur.active_from >= t) pl = JSON.parse(JSON.stringify(cur));   // dnešní verze – upravit na místě
-  else pl = { ...JSON.parse(JSON.stringify(cur)), id: oid('tp', Date.now()), active_from: t, created: new Date().toISOString() };
+  if (base && base.active_from === from) pl = JSON.parse(JSON.stringify(base));
+  else { const src = base || trainingPlans().slice(-1)[0];
+    pl = src ? { ...JSON.parse(JSON.stringify(src)), id: oid('tp', Date.now()), created: new Date().toISOString() } : newPlan('Robertův týden');
+    pl.active_from = from; }
   pl.name = 'Robertův týden';
   fn(pl); saveTrainingPlan(pl);
+  // novější verze (naplánované dál dopředu) dostanou stejnou změnu – „každé X od …“ platí i v nich
+  trainingPlans().filter(p => p.active_from > from && p.id !== pl.id).forEach(p => { const c = JSON.parse(JSON.stringify(p)); fn(c); c.active_from = p.active_from; saveTrainingPlan(c); });
+  return from;
 }
+/* dnešek jen když v něm Robert ještě nic nezapsal (chůze, trénink) */
+function trFirstEditable(d) { const t = todayISO(); if (d > t) return d;
+  const day = Store.rows('days', Store.ownerId()).map(r => r.data).find(x => x.date === t);
+  const started = day && ((day.walk_min || 0) > 0 || Object.values((day.training || {}).done || {}).some(Boolean) || ((day.training || {}).log || []).length);
+  return started ? addDays(t, 1) : t; }
 /* Staré plány bez „Platí od“ (před 29. 9.) – převzít poslední jako Robertův týden */
 function adoptLegacyPlan() {
   if (trTemplate()) return; const vse = trainingPlans().filter(p => !p.active_from || p.active_from > todayISO()); if (!vse.length) return;
@@ -265,22 +276,46 @@ function trDaySheetHtml() {
       <div class="row"><button class="btn sec sm" onclick="A.trPickEx()">+ cvik</button><button class="btn sec sm" onclick="A.trInsertWorkout()">+ uložený trénink</button></div></div>
     ${pozn.map(x => `<div class="alert a2"><div>${esc(x)}</div></div>`).join('')}`,
     `<div class="ftl"><span class="n">3</span>Platí${hq('trPlati')}</div><div class="seg" style="flex:1 1 100%"><button class="${D.scope === 'every' ? 'on' : ''}" onclick="A.trScope('every')">${KAZDE[dayIndex(D.date)].replace('k', 'K')}</button><button class="${D.scope === 'day' ? 'on' : ''}" onclick="A.trScope('day')">Jen ${czDateShort(D.date)}</button></div>
-     <div class="hint" style="flex:1 1 100%">${D.scope === 'every' ? `Změní šablonu od dneška – ${KAZDE[dayIndex(D.date)]} bude takhle. Dny, které už Robert má za sebou, zůstanou.` : `Jen ${czDateShort(D.date)} – ostatní dny jedou dál podle šablony.`}</div>
-     <button class="btn" onclick="A.trSave()">Uložit</button>`,
+     <div class="hint" style="flex:1 1 100%">${D.scope === 'every' ? `Od ${czDateShort(trFirstEditable(D.date > todayISO() ? D.date : todayISO()))} bude ${KAZDE[dayIndex(D.date)]} takhle. Dny předtím zůstanou.` : `Jen ${czDateShort(D.date)} – ostatní dny jedou dál podle šablony.`}</div>
+     <button class="btn" onclick="A.trSave()">Uložit</button>${D.items.length ? `<button class="btn sec" onclick="A.twEdit(null,{name:'${DAY_NAMES[dayIndex(D.date)]} – trénink',items:JSON.parse(JSON.stringify(App.trDraft.items))})">${ico('plus')} Uložit jako trénink</button>` : ''}`,
     `<button class="iconbtn" onclick="A.trDayMenu()" aria-label="další akce">⋯</button>`);
 }
 /* méně časté akce se dnem – každá s větou, co udělá */
 A.trDayMenu = () => { const D = App.trDraft; if (!D) return;
   UI.menu('Další akce', [
     [`📑 ${HELP.trKopie.t}`, D.dirty ? `UI.toast('Nejdřív ulož změny, pak kopíruj.')` : `A.trCopyDaySheet('${D.date}')`, D.dirty ? 'nejdřív ulož změny' : HELP.trKopie.co],
-    D.items.length ? [`💾 ${HELP.trUlozit.t}`, `A.twEdit(null,{name:'${DAY_NAMES[dayIndex(D.date)]} – trénink',items:JSON.parse(JSON.stringify(App.trDraft.items))})`, HELP.trUlozit.co] : null,
     D.items.length ? [`🧹 ${HELP.trVyprazdnit.t}`, 'A.trClear()', HELP.trVyprazdnit.co] : null,
     D.wasOverride ? [`↺ ${HELP.trVratit.t}`, 'A.trDropOverride()', HELP.trVratit.co] : null,
   ]); };
 const KAZDE = ['každé pondělí', 'každé úterý', 'každou středu', 'každý čtvrtek', 'každý pátek', 'každou sobotu', 'každou neděli'];
 const trDirty = () => { App.trDraft.dirty = true; if (window._sheetRedraw) window._sheetRedraw(); };
-A.trDraftField = (f, v) => { const r = f === 'walk_min' ? omez(v, 0, 600) : { n: cislo(v) }; if (r.mimo) UI.toast('Chůze se plánuje v rozmezí 0 až 600 minut.'); App.trDraft[f] = r.n ?? 0; trDirty(); };
-A.trItem = (j, f, v) => { const it = App.trDraft.items[j]; it[f] = f === 'intensity' ? v : (v === '' ? null : cislo(v)); trDirty(); };
+A.trDraftField = (f, v) => {
+  if (f !== 'walk_min') { App.trDraft[f] = cislo(v) ?? 0; return trDirty(); }
+  const r = omez(v, 0, WALK_PLAN_MAX); if (r.n == null) { UI.toast('Tohle není číslo – nechávám původní hodnotu.'); return trDirty(); }
+  if (r.mimo) UI.toast(`Chůze se plánuje v rozmezí 0 až ${WALK_PLAN_MAX} minut – uložil jsem ${r.n}.`);
+  const prev = App.trDraft.walk_min; App.trDraft.walk_min = r.n; trDirty();
+  if (r.n > WALK_PLAN_WARN && r.n > (prev || 0)) walkGuard(r.n, () => { App.trDraft.walk_min = prev; trDirty(); });
+};
+/* Chůze nad 2 hodiny denně u člověka kolem 130 kg už není plán, který jde dojít –
+   přetížení kloubů a únava. Dovolit, ale říct co to znamená. */
+const WALK_PLAN_MAX = 240, WALK_PLAN_WARN = 120, WALK_LOG_WARN = 240;
+function walkGuard(n, onNo, robert) {
+  const w = currentWeight(), b = calcBase(S(), w, n, 0, S().walk_kmh, 0, 0); const kc = Math.round(n * b.walkPerMin);
+  UI.confirm(robert ? `Opravdu ${n} minut chůze? To je ${Math.floor(n / 60)} h ${n % 60} min a ~${fmt0(kc)} kcal – limit jídla o tolik vyroste.`
+    : `${n} minut chůze denně (${Math.floor(n / 60)} h ${n % 60} min, ~${fmt0(kc)} kcal) je u ${fmt0(w)} kg velká zátěž na klouby a těžko se dá dodržet. Doporučuju do ${WALK_PLAN_WARN} minut a zbytek dorovnat tempem nebo kroky. Nechat ${n} minut?`,
+    () => {}, robert ? 'Ano, ušel jsem to' : `Nechat ${n} min`, true);
+  // „Zpět“ v potvrzení = vrátit předchozí hodnotu
+  const m = [...document.querySelectorAll('.modal')].pop(); const back = m && m.querySelector('.btn.sec'); if (back) back.onclick = () => { UI.closeModal(); onNo(); };
+}
+/* meze cviku: série 1–10, opakování 1–100, sekundy 5–600, váha 0–300 kg, minuty 1–180, pauza 15–600 s */
+const TR_MEZ = { sets: [1, 10], reps: [1, 100], weight: [0, 300], min: [1, 180], rest: [15, 600] };
+A.trItem = (j, f, v) => { const it = App.trDraft.items[j];
+  if (f === 'intensity' || v === '') { it[f] = f === 'intensity' ? v : null; return trDirty(); }
+  const timed = f === 'reps' && EX_LIB.find(e => e.ex === it.ex && e.timed); const m = timed ? [5, 600] : TR_MEZ[f];
+  const r = m ? omez(v, m[0], m[1]) : { n: cislo(v) };
+  if (r.n == null) { UI.toast('Tohle není číslo – nechávám původní hodnotu.'); return trDirty(); }
+  if (r.mimo) UI.toast(`${{ sets: 'Série', reps: timed ? 'Výdrž' : 'Opakování', weight: 'Váha', min: 'Minuty', rest: 'Pauza' }[f]} v rozmezí ${m[0]}–${m[1]} – uložil jsem ${String(r.n).replace('.', ',')}.`);
+  it[f] = r.n; trDirty(); };
 A.trItemDel = j => { App.trDraft.items.splice(j, 1); trDirty(); };
 A.trClear = () => { App.trDraft.items = []; trDirty(); };
 A.trScope = sc => { App.trDraft.scope = sc; if (window._sheetRedraw) window._sheetRedraw(); };
@@ -291,14 +326,20 @@ A.trPickEx = () => openExPicker(e => { if (e) A.trAdd(e.slug); });
 A.trInsertWorkout = () => openWorkoutPicker(wo => { if (!wo || !App.trDraft) return; App.trDraft.items = JSON.parse(JSON.stringify(wo.items || [])); trDirty(); UI.toast(`Vloženo: ${wo.name}. Ulož, ať to platí.`); });
 A.trSave = () => { const D = App.trDraft; if (!D) return; const idx = dayIndex(D.date);
   const day = { walk_min: Number(D.walk_min) || 0, walk_kmh: Number(D.walk_kmh) || S().walk_kmh, items: D.items };
-  const den = DAY_NAMES[idx].toLowerCase();
-  Undo.run(D.scope === 'every' ? `${KAZDE[dayIndex(D.date)].replace('k', 'K')} od dneška` : `Jen ${czDateShort(D.date)}`, () => {
-    if (D.scope === 'every') { editTemplate(pl => { pl.days[idx] = day; });
-      // den, který měl výjimku, má po uložení „každé X“ platit podle šablony
-      if (D.wasOverride && D.date >= todayISO()) Store.remove('training', oid('to', D.date)); }
-    else Store.put('training', oid('to', D.date), day);
-  }, D.scope === 'every' ? `Robert to uvidí ${KAZDE[dayIndex(D.date)]} od dneška. Limit i recepty se přepočítaly.` : `Platí jen ${czDateShort(D.date)}.`);
-  D.dirty = false; App.trDraft = null; UI.closeModal(); render(); };
+  const kaz = KAZDE[idx], od = trFirstEditable(D.date > todayISO() ? D.date : todayISO());
+  const save = () => {
+    Undo.run(D.scope === 'every' ? `${kaz.replace('k', 'K')} od ${czDateShort(od)}` : `Jen ${czDateShort(D.date)}`, () => {
+      if (D.scope === 'every') { editTemplate(pl => { pl.days[idx] = day; }, D.date);
+        // den, který měl výjimku, má po uložení „každé X“ platit podle šablony
+        if (D.wasOverride && D.date >= od) Store.remove('training', oid('to', D.date)); }
+      else Store.put('training', oid('to', D.date), day);
+    }, D.scope === 'every' ? `Robert to uvidí ${kaz} od ${czDateShort(od)}. Dny předtím zůstaly.` : `Platí jen ${czDateShort(D.date)}.`);
+    D.dirty = false; App.trDraft = null; UI.closeModal(); render(); };
+  if (D.scope !== 'every') return save();
+  // „každé X“ mění mnoho dní dopředu – zeptat se a říct, co zůstane
+  const vyj = TrainingRows().filter(r => r.id.startsWith(oid('to', '')) && r.data && !r.deleted).map(r => r.id.slice(-10)).filter(d => d > od && dayIndex(d) === idx).length;
+  UI.confirm(`Změnit ${kaz} od ${czDateShort(od)}? Dny před tím zůstanou, jak byly.${vyj ? ` ${vyj} ${sklon(vyj, 'den má', 'dny mají', 'dní má')} vlastní plán a nezmění se.` : ''}`, save, 'Změnit od ' + czDateShort(od), true);
+};
 A.trDropOverride = () => { const D = App.trDraft; Undo.run('Výjimka zrušena', () => Store.remove('training', oid('to', D.date)), 'Den se vrátil na šablonu týdne.'); D.dirty = false; App.trDraft = null; UI.closeModal(); render(); };
 /* Co Robert opravdu odcvičil: série, zátěž, náročnost a pocit zapisuje při běhu tréninku.
    Trenér to dřív neviděl – jen „trénink 2 ze 3“. */

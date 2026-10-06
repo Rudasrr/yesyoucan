@@ -75,8 +75,8 @@ function renderRings(d, day, s) {
   const wt = d.base.planWalk, wm = day.walk_min || 0; const mPlan = wt + trMin, mDone = Math.min(wm, wt) + trDone, mLeft = Math.max(0, mPlan - mDone);
   const isToday = App.date === todayISO();
   return `<div class="card rings2" id="hero">
-    <div class="two"><button class="rg" onclick="A.dayCheck()">${ringSvg(prog.eaten / (lim || 1), 138, left < 0 ? '#d97706' : '#2563eb', '#e0eaff', left < 0 ? '+' + fmt0(-left) : fmt0(left), left < 0 ? 'kcal nad limit' : 'kcal zbývá')}<b>${ico('fork')} Jídlo</b></button>
-      <button class="rg" onclick="A.walkSheet()">${ringSvg(mDone / (mPlan || 1), 138, '#16a34a', '#dcfce7', mLeft ? fmt0(mLeft) : ico('check').replace('class="ic"', 'class="ic" x="51" y="46" width="36" height="36"'), mLeft ? 'min zbývá' : 'pohyb splněný')}<b>${ico('walk')} Pohyb</b></button></div>
+    <div class="two"><button class="rg" onclick="A.dayCheck()">${ringSvg(prog.eaten / (lim || 1), 128, left < 0 ? '#d97706' : '#2563eb', '#e0eaff', left < 0 ? '+' + fmt0(-left) : fmt0(left), left < 0 ? 'kcal nad limit' : 'kcal zbývá')}<b>${ico('fork')} Jídlo</b></button>
+      <button class="rg" onclick="A.walkSheet()">${ringSvg(mDone / (mPlan || 1), 128, '#16a34a', '#dcfce7', mLeft ? fmt0(mLeft) : ico('check').replace('class="ic"', 'class="ic" x="46" y="41" width="36" height="36"'), mLeft ? 'min zbývá' : 'pohyb splněný')}<b>${ico('walk')} Pohyb</b></button></div>
     <div class="moves"><button onclick="A.walkSheet()"><b>${wm} / ${wt} min</b><span>chůze · ${paceTxt(d.base.kmh)} /km</span></button>
       ${trMin ? `<button onclick="A.trainSheet()"><b>${trDone} / ${trMin} min</b><span>trénink · ${items.length} ${sklon(items.length, 'cvik', 'cviky', 'cviků')}</span></button>` : `<button onclick="A.dayCheck()"><b>${fmt0(prog.eatenP)} / ${d.protTarget || s.protein_min} g</b><span>bílkoviny</span></button>`}</div>
     ${left < 0 && isToday ? `<div class="rnote">Dnes víc – nevadí. Chůze navíc to srovná: ${Math.ceil(-left / d.base.walkPerMin)} min.</div>` : ''}</div>`;
@@ -302,7 +302,9 @@ A.dayField = (f, v, label) => {
   if (m && r.mimo) UI.toast(`${fmt0(r.n)} ${m[2]} je maximum, které dává smysl – zapsal jsem tolik.`);
   return Undo.run(label || 'Změna dne', () => { const day = effectiveDay(App.date); day[f] = r.n; saveDay(day); render(); }, dayMsg(label || 'Uloženo.'));
 };
-A.setWalk = v => { const r = omez(v, 0, 600); if (r.mimo) UI.toast('Chůze se zapisuje v rozmezí 0 až 600 minut.'); return Undo.run('Chůze', () => { const day = effectiveDay(App.date); day.walk_min = r.n; saveDay(day); render(); }, () => { const day = effectiveDay(App.date); const s = S(); const left = s.walk_min - (day.walk_min || 0); return left > 0 ? `Chůze ${day.walk_min || 0} min. Zbývá ${left} min do cíle.` : `Chůze ${day.walk_min} min – cíl splněn.`; }); };
+A.setWalk = (v, ok) => { const r = omez(v, 0, 600); if (r.mimo) UI.toast('Chůze se zapisuje v rozmezí 0 až 600 minut.');
+  const prev = effectiveDay(App.date).walk_min || 0; if (!ok && r.n > WALK_LOG_WARN && r.n > prev) { UI.confirm(`Opravdu ${r.n} minut chůze? To je ${Math.floor(r.n / 60)} h ${r.n % 60} min – limit jídla o to vyroste.`, () => A.setWalk(r.n, true), 'Ano, ušel jsem to', true); render(); return; }
+  return Undo.run('Chůze', () => { const day = effectiveDay(App.date); day.walk_min = r.n; saveDay(day); render(); }, () => { const day = effectiveDay(App.date); const s = S(); const left = s.walk_min - (day.walk_min || 0); return left > 0 ? `Chůze ${day.walk_min || 0} min. Zbývá ${left} min do cíle.` : `Chůze ${day.walk_min} min – cíl splněn.`; }); };
 A.addWalk = n => { const day = effectiveDay(App.date); A.setWalk((day.walk_min || 0) + n); };
 A.selMeal = (key, v) => Undo.run('Změna jídla', () => { const day = effectiveDay(App.date); day.meals[key] = { sel: v || null, planned: day.meals[key].planned, eaten: false }; saveDay(day); noteRecent(v); render(); }, dayMsg(`${S().courses.find(c => c.key === key).name}: ${v === SITUACE ? 'vyřešíš podle situace' : (v === VYNECHAT ? 'vynecháno' : v)}.`));
 A.eaten = (key, v) => { if (v) { buzz(30); setTimeout(() => { const dd = calcDay(S(), Foods(), Recipes(), effectiveDay(App.date), currentWeight()); const tk = dayTasks(App.date); if (tk.filter(t => t.meal).every(t => t.done) && dd.ok) celebrate('day'); }, 50); } return A.eaten0(key, v); };

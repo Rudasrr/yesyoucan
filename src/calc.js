@@ -234,7 +234,17 @@ function cheatItemsKcal(day, foods) {
 function isMaintWeek(s, date) { return !!(s.maint_weeks || []).includes(mondayOf(date)); }
 /* Udržování (30. 9. 2026): u cílové váhy trenér zapne udržování natrvalo – deficit
    nula jako v udržovacím týdnu. Dřív plán u cíle jen zastavil křivku a deficit běžel dál. */
-function effSettings(s, date) { return isMaintWeek(s, date) || s.maintain ? { ...s, rate_pct: 0 } : s; }
+/* Nastavení platné v daný den (6. 10. 2026). Minulý den se počítá s tím, co tehdy platilo –
+   změna tempa nebo cíle chůze dřív tiše přepočítala i dny, které Robert už má za sebou.
+   Vrací se po záznamech settings.log (at, k, from) od nejnovějšího. */
+function settingsAt(s, date) {
+  if (!date || !s || !(s.log || []).length || date >= todayISO()) return s;
+  const later = s.log.filter(l => l.at > date); if (!later.length) return s;
+  const r = { ...s }; for (let i = later.length - 1; i >= 0; i--) if (later[i].k in SETTINGS_AT_KEYS) r[later[i].k] = later[i].from;
+  return r;
+}
+const SETTINGS_AT_KEYS = { factor_lock: 1, maintain: 1, rate_pct: 1, walk_min: 1, protein_min: 1, activity: 1, walk_kmh: 1, steps_goal: 1, height: 1, age: 1 };
+function effSettings(s0, date) { const s = settingsAt(s0, date); return isMaintWeek(s, date) || s.maintain ? { ...s, rate_pct: 0 } : s; }
 function calcDay(s0, foods, recipes, day, weight) {
   const s = effSettings(s0, day.date);
   const base = calcBase(s, weight, day.walk_min, day.exercise_min, day.walk_kmh, day.beers, day.fried_g, day.act, cheatItemsKcal(day, foods), cheatPopis(day));

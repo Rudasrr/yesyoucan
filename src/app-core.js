@@ -69,15 +69,28 @@ function effectiveDay(date) {
 
 /* ---- Zpet (jedna uroven) ---- */
 const Undo = { cap: null, last: null,
-  run(label, fn, after) { this.cap = []; try { fn(); } finally { const ch = this.cap; this.cap = null; if (ch.length) this.last = { label, ch }; }
+  run(label, fn, after) { this.cap = []; try { fn(); } finally { const ch = this.cap; this.cap = null; if (ch.length) this.last = { label, ch, hist: histAdd(label, ch) }; }
     const msg = typeof after === 'function' ? after() : (after || label);
     UI.toast(msg, this.last && this.last.label === label ? () => Undo.undo() : null); },
   record(t, id) { if (!this.cap) return; if (this.cap.some(c => c.t === t && c.id === id)) return; const r = Store.db[t].find(x => x.id === id); this.cap.push({ t, id, prev: r ? JSON.parse(JSON.stringify(r)) : null }); },
   undo() { if (!this.last) return; const ch = this.last; this.last = null;
     ch.ch.forEach(c => { if (c.prev) Store.put(c.t, c.id, c.prev.data, c.prev.user_id, c.prev.deleted); else Store.remove(c.t, c.id); });
+    if (ch.hist) histMark(ch.hist, { undone: new Date().toISOString() });
     render(); UI.toast('Vráceno: ' + ch.label); }
 };
 const _put = Store.put.bind(Store), _rm = Store.remove.bind(Store);
+/* Historie změn trenéra (6. 10. 2026): každá jeho akce se uloží i s tím, jak data vypadala
+   před a po – v Historii změn jde kdykoli vrátit, ne jen do 9 s v hlášce. Ukládá se do
+   trenérových předvoleb (prefs, id h:<uid>:<čas>), Robert je nevidí. */
+function histAdd(label, ch) {
+  if (!isCoach() || !Store.uid()) return null;
+  const snap = r => r ? { data: r.data, user_id: r.user_id, deleted: !!r.deleted } : null;
+  const id = `h:${Store.uid()}:${Date.now()}`;
+  _put('prefs', id, { at: new Date().toISOString(), label, ch: ch.map(c => ({ t: c.t, id: c.id, prev: snap(c.prev), next: snap(Store.db[c.t].find(x => x.id === c.id)) })) }, Store.uid());
+  return id;
+}
+function histMark(id, patch) { const r = Store.db.prefs.find(x => x.id === id); if (r) _put('prefs', id, { ...r.data, ...patch }, r.user_id); }
+function histRows() { const me = Store.uid(); return Store.rows('prefs', me).filter(r => r.id.startsWith('h:')).sort((a, b) => b.data.at.localeCompare(a.data.at)); }
 Store.put = function (t, id, data, userId, deleted) { Undo.record(t, id); const r = _put(t, id, data, userId); if (deleted) { r.deleted = true; this.save(t); this.queue(t, r); } return r; };
 Store.remove = function (t, id) { Undo.record(t, id); return _rm(t, id); };
 
@@ -126,7 +139,7 @@ const UI = {
     m.remove();
   },
   closeModal() { window._redraw = null; const all = document.querySelectorAll('.modal'); UI.tryClose(all[all.length - 1]); },
-  confirm(text, onYes, yesLabel) { const m = this.modal(`<p style="font-size:16px;font-weight:600">${esc(text)}</p><div class="row"><button class="btn danger" id="cy">${esc(yesLabel || 'Ano')}</button><button class="btn sec" onclick="UI.closeModal()">Zpět</button></div>`, { center: 1 }); m.querySelector('#cy').onclick = () => { m.remove(); if (!document.querySelector('.modal')) document.body.classList.remove('has-modal'); onYes(); }; },
+  confirm(text, onYes, yesLabel, safe) { const m = this.modal(`<p style="font-size:16px;font-weight:600">${esc(text)}</p><div class="row"><button class="btn ${safe ? '' : 'danger'}" id="cy">${esc(yesLabel || 'Ano')}</button><button class="btn sec" onclick="UI.closeModal()">Zpět</button></div>`, { center: 1 }); m.querySelector('#cy').onclick = () => { m.remove(); if (!document.querySelector('.modal')) document.body.classList.remove('has-modal'); onYes(); }; },
   /* nabídka akcí pod ⋯ – [[popisek, onclick, varianta]] */
   menu(title, items) {
     return this.sheet(title, '', `<div class="list">${items.filter(Boolean).map(([l, act, sub]) => `<div class="navrow" onclick="UI.closeModal();${act}"><div class="tx"><b>${l}</b>${sub ? `<span>${sub}</span>` : ''}</div><span class="chev">›</span></div>`).join('')}</div>`);
@@ -142,7 +155,7 @@ const MORE_CLIENT = [['recepty', 'Recepty', 'všech 200 jídel a tvoje vlastní'
 /* Trenér plánuje cíle a trénink, ne jídlo (1. 10. 2026) – databáze potravin ani
    plánování jídel za Roberta v jeho menu nejsou. */
 const NAV_COACH = [['klient', 'Přehled'], ['nastaveni', 'Plán'], ['trenink', 'Trénink']];
-const MORE_COACH = [['__preview', 'Pohled Roberta', 'appka přesně tak, jak ji vidí on', '👁️'], ['ucet', 'Nastavení', 'účet, výchozí data, odhlášení', '⚙️'], ['navod', 'Návod', 'pravidla, slovníček, jak appka počítá', '📘']];
+const MORE_COACH = [['historie', 'Historie změn', 'co jsi změnil a kdy · jde vrátit', '🕓'], ['ucet', 'Nastavení', 'účet, výchozí data, odhlášení', '⚙️'], ['navod', 'Návod', 'pravidla, slovníček, jak appka počítá', '📘']];
 /* staré názvy obrazovek (odkazy v úkolech, připomínkách, testech) → nové místo */
 const VIEW_ALIAS = { tyden: ['plan', { planTab: 'jidla' }], jidlo: ['plan', {}], nakup: ['plan', { planTab: 'nakup' }], spiz: ['plan', { planTab: 'nakup' }], vareni: ['plan', { planTab: 'vareni' }],
   mereni: ['pokrok', {}], prehled: ['pokrok', {}], zprava: ['klient', {}], databaze: ['klient', {}] };

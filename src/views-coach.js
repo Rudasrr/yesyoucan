@@ -400,7 +400,7 @@ VIEWS.nastaveni = function () {
     <div class="cbar">${s.courses.map((c, i) => `<i style="flex:${pct[i].toFixed(2)};background:${CC[i % 5]}" title="${esc(c.name)} ${fmt0(pct[i])} %"></i>`).join('')}</div>
     <div class="cgrid">${s.courses.map((c, i) => `<label class="cpi"><span><i style="background:${CC[i % 5]}"></i>${esc(c.name)}</span><div class="numf s"><input type="text" inputmode="decimal" id="st_c${i}" value="${fmt0(pct[i])}" onchange="A.setCoursePct(${i},this.value)"><span>%</span></div><em>≈ ${fmt0(L * pct[i] / 100)}</em></label>`).join('')}</div>
     ${adviceBox('courses')}</div>`;
-  return `<div class="ph"><div class="pt"><h1>Plán</h1><span class="sub">co má Robert dělat · ukládá se hned</span></div><div class="act"><button class="btn ghost sm" onclick="A.logSheet()">${ico('clip')} Historie změn (${(s.log || []).length})</button></div></div>
+  return `<div class="ph"><div class="pt"><h1>Plán</h1><span class="sub">co má Robert dělat · ukládá se hned</span></div><div class="act"><button class="btn ghost sm" onclick="go('historie')">${ico('clip')} Historie změn</button></div></div>
   ${path}
   <div class="pgrid p3">${cil}${pohyb}${jidlo}</div>
   ${profileRow(s)}`;
@@ -417,7 +417,7 @@ A.profileEdit = () => openSheet(() => { const s = S(); const sb = stepsBaseFor(t
     <p class="small muted">Start (${czDate(s.start_date)}, ${fmt1(s.start_weight)} kg) se bere z prvního vážení. Délka kroku ${String(Math.round(strideM() * 100) / 100).replace('.', ',')} m${strideM() !== 0.75 ? ' z jeho km' : ''}.</p>`); });
 /* meze, aby překlep nerozbil výpočet */
 const SET_MEZ = { height: [120, 230], age: [15, 100], activity: [1.1, 2], start_weight: [40, 400], goal_weight: [40, 400],
-  goal_waist: [50, 200], rate_pct: [0.3, 1.2], walk_kmh: [2, 9], walk_min: [0, 600], rest_sec: [15, 600], protein_min: [60, 400], steps_goal: [0, 30000] };
+  goal_waist: [50, 200], rate_pct: [0.3, 1.2], walk_kmh: [2, 9], walk_min: [0, 240], rest_sec: [15, 600], protein_min: [60, 400], steps_goal: [0, 30000] };
 const SET_POP = { factor_lock: 'pevný faktor výdeje', maintain: 'udržování (cíl dosažen)', rate_pct: 'tempo hubnutí (%)', walk_min: 'cíl chůze (min)', protein_min: 'bílkoviny (g)', goal_weight: 'cílová váha (kg)', activity: 'faktor běžného výdeje', walk_kmh: 'tempo chůze (min/km)', goal_waist: 'cíl pasu (cm)', steps_goal: 'cíl kroků/den', height: 'výška (cm)', age: 'věk', start_weight: 'startovní váha (kg)' };
 /* Jedno místo, kudy jde každá změna nastavení – ruční, z doporučení i z fáze chůze.
    Dřív se změny z doporučení nelogovaly a v grafu po nich nezůstala značka. */
@@ -440,6 +440,7 @@ A.setSetting = (k, v) => {
      počítá s faktorem. Když trenér změní cíl kroků, faktor se dopočítá sám. */
   let msg;
   if (k === 'steps_goal') { const rec = factorForSteps(r.n); if (rec !== s.activity) { d.activity = rec; msg = `Cíl ${fmt0(r.n)} kroků – faktor běžného výdeje srovnán na ${String(rec).replace('.', ',')}.`; } }
+  if (k === 'walk_min' && r.n > WALK_PLAN_WARN && r.n > (s.walk_min || 0)) { UI.confirm(`Cíl ${r.n} minut chůze denně je u ${fmt0(currentWeight())} kg velká zátěž na klouby a těžko se dá dodržet. Doporučuju do ${WALK_PLAN_WARN} minut. Nastavit ${r.n} minut?`, () => commitSettings(d, (SET_POP[k] || k) + ' změněno', msg), `Nastavit ${r.n} min`, true); render(); return; }
   commitSettings(d, (SET_POP[k] || k) + ' změněno', msg);
 };
 A.setMaintain = on => commitSettings({ ...S(), maintain: !!on }, on ? 'Udržování zapnuto' : 'Udržování vypnuto', on ? 'Deficit je nula – Robertův limit sedí na celkovém výdeji.' : `Zpátky na tempo ${String(S().rate_pct).replace('.', ',')} %.`);
@@ -545,3 +546,38 @@ A.editFood = (id, mode, after, fromId) => {
   const del = m.querySelector('#fdel'); if (del && over) del.onclick = () => { if (!src.ovId) { m.remove(); return; } UI.confirm('Zahodit svoji verzi suroviny a vrátit se k trenérově?', () => { Undo.run('Vrátit původní', () => { Store.remove('foods', src.ovId); }, `${f.name}: vrácena původní hodnota trenéra.`); m.remove(); render(); }, 'Vrátit původní'); };
   else if (del) del.onclick = () => { const used = Recipes().filter(r => r.items.some(it => it.food === f.name)); if (used.length) { UI.toast(`Nelze smazat – používá ji ${used.length} ${sklon(used.length, 'recept', 'recepty', 'receptů')}`); return; } UI.confirm('Smazat surovinu?', () => { if (!own) Store.put('foods', f.id, { ...f }, null); Store.remove('foods', f.id); m.remove(); render(); }, 'Smazat'); };
 };
+
+/* ---------- HISTORIE ZMĚN (6. 10. 2026) ----------
+   Každá akce trenéra s tím, co změnila, a tlačítkem Vrátit. Zdroj: histAdd v Undo.run. */
+const HIST_KEYS = { ...SET_POP, courses: 'rozdělení jídla mezi chody', maint_weeks: 'přestávky v deficitu', start_date: 'start', start_weight: 'startovní váha' };
+function histVal(k, v) { if (v == null || v === '') return '–'; if (k === 'walk_kmh') return paceTxt(v) + ' /km'; if (k === 'maint_weeks') return v.length ? v.map(czDateShort).join(', ') : 'žádné';
+  if (typeof v === 'boolean') return v ? 'zapnuto' : 'vypnuto'; if (typeof v === 'object') return '…'; return String(v).replace('.', ','); }
+function histDesc(c) {
+  const a = (c.prev && !c.prev.deleted && c.prev.data) || null, b = (c.next && !c.next.deleted && c.next.data) || null;
+  if (c.t === 'settings') { const out = [];
+    const nz = v => v == null || (Array.isArray(v) && !v.length) ? null : v;
+    Object.keys(HIST_KEYS).forEach(k => { const x = nz(a ? a[k] : undefined), y = nz(b ? b[k] : undefined); if (JSON.stringify(x) !== JSON.stringify(y)) out.push(`${HIST_KEYS[k]}: ${histVal(k, x)} → ${histVal(k, y)}`); });
+    return out.length ? out : ['nastavení']; }
+  if (c.t === 'training') { const parts = c.id.split(':'); const kind = parts[0], key = parts.slice(2).join(':');
+    if (kind === 'to') return [`${b ? (a ? 'upraven' : 'naplánován') : 'zrušen'} den ${czDateShort(key)}${b ? ' · ' + trDaySummary(b).replace(/[🚶🏋️]\uFE0F?/gu, '').trim() : ''}`];
+    if (kind === 'tp') { const d = b || a || {}; const dny = (d.days || []).map((x, i) => { const p = a && a.days ? a.days[i] : null; return JSON.stringify(p) !== JSON.stringify(x) ? DAY_SHORT[i] : null; }).filter(Boolean);
+      return [`šablona týdne od ${d.active_from ? czDateShort(d.active_from) : '–'}${dny.length && a ? ' · změněno ' + dny.join(', ') : ''}`]; }
+    const d = b || a || {}; return [`${b ? (a ? 'upraveno' : 'přidáno') : 'smazáno'}: ${esc(d.name || d.ex || 'trénink')}`]; }
+  const d = b || a || {}; return [`${{ days: 'den', measurements: 'zápis váhy', week_plans: 'plán jídel' }[c.t] || c.t}${d.date ? ' ' + czDateShort(d.date) : ''}`];
+}
+VIEWS.historie = function () {
+  const rows = histRows().slice(0, 150);
+  const den = iso => { const d = iso.slice(0, 10); return d === todayISO() ? 'Dnes' : d === addDays(todayISO(), -1) ? 'Včera' : `${DAY_NAMES[dayIndex(d)]} ${czDateShort(d)}`; };
+  let last = '';
+  return `<div class="ph"><div class="pt"><h1>Historie změn</h1><span class="sub">co jsi změnil · každá změna jde vrátit</span></div></div>
+  ${rows.length ? `<div class="card flush">${rows.map(r => { const h = r.data, dd = den(h.at); const head = dd !== last ? `<div class="lh">${dd}</div>` : ''; last = dd;
+    const st = h.reverted ? '<span class="pill">vráceno</span>' : h.undone ? '<span class="pill">vráceno hned</span>' : `<button class="btn sec sm" onclick="A.histRevert('${r.id}')">Vrátit</button>`;
+    return `${head}<div class="li static ${h.reverted || h.undone ? 'past' : ''}"><span class="tm">${h.at.slice(11, 16)}</span><div class="tx"><b>${esc(paceFix(h.label))}</b><span>${h.ch.flatMap(histDesc).slice(0, 4).map(x => esc(paceFix(x))).join(' · ')}</span></div>${st}</div>`; }).join('')}</div>`
+    : `<div class="card"><p class="muted">Zatím žádná změna. Každá úprava plánu, tréninku nebo nastavení se tu objeví a půjde vrátit.</p></div>`}`;
+};
+A.histRevert = id => { const r = Store.db.prefs.find(x => x.id === id); if (!r) return; const h = r.data;
+  const cur = c => { const x = Store.db[c.t].find(y => y.id === c.id); return x ? JSON.stringify({ d: x.deleted ? null : x.data }) : JSON.stringify({ d: null }); };
+  const changed = h.ch.some(c => cur(c) !== JSON.stringify({ d: c.next && !c.next.deleted ? c.next.data : null }));
+  UI.confirm(`Vrátit „${paceFix(h.label)}“ (${czDateShort(h.at.slice(0, 10))} ${h.at.slice(11, 16)})?${changed ? ' Od té doby se to změnilo znovu – vrácení přepíše i pozdější úpravu těchto dat.' : ''}`, () => {
+    Undo.run('Vráceno: ' + h.label, () => h.ch.forEach(c => { if (c.prev && !c.prev.deleted) Store.put(c.t, c.id, c.prev.data, c.prev.user_id); else Store.remove(c.t, c.id); }), 'Vráceno: ' + paceFix(h.label));
+    histMark(id, { reverted: new Date().toISOString() }); render(); }, 'Vrátit', !changed); };

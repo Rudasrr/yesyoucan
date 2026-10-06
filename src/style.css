@@ -759,10 +759,10 @@ body:not(.wide) .hero.over .lab,body:not(.wide) .hero.over .big{color:#b45309}
 
 /* Robert · Dnes 2026-10 */
 .chip2.acc{background:var(--p-bg);color:var(--p)}
-.rings2{display:flex;flex-direction:column;gap:12px}.rings2 .two{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.rings2{display:flex;flex-direction:column;gap:10px}.rings2 .two{display:grid;grid-template-columns:1fr 1fr;gap:6px}
 .rg{display:flex;flex-direction:column;align-items:center;gap:4px;border:0;background:none;cursor:pointer;padding:0;font:inherit;color:var(--ink)}.rg b{display:flex;align-items:center;gap:6px;font-size:14.5px}
 .rg .bring{max-width:100%;height:auto}
-.moves{display:grid;grid-template-columns:1fr 1fr;gap:10px}.moves button{border:0;background:var(--line2);border-radius:16px;padding:11px 13px;text-align:left;cursor:pointer;font:inherit;color:var(--ink)}.moves b{display:block;font-size:16.5px;font-variant-numeric:tabular-nums}.moves span{font-size:12px;color:var(--ink2)}
+.moves{display:grid;grid-template-columns:1fr 1fr;gap:10px}.moves button{border:0;background:var(--line2);border-radius:16px;padding:9px 13px;text-align:left;cursor:pointer;font:inherit;color:var(--ink)}.moves b{display:block;font-size:16.5px;font-variant-numeric:tabular-nums}.moves span{font-size:12px;color:var(--ink2)}
 .rnote{font-size:12.5px;color:var(--ink3);text-align:center}
 .nextc{background:linear-gradient(135deg,#2563eb,#4f46e5);color:#fff;border-radius:22px;padding:15px 16px;display:flex;flex-direction:column;gap:10px;box-shadow:0 14px 30px -14px rgba(37,99,235,.65)}
 .nextc .t{font-size:12px;font-weight:750;letter-spacing:.08em;text-transform:uppercase;opacity:.8}.nextc b{font-size:19px;line-height:1.3}
