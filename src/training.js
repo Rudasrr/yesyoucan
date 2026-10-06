@@ -904,6 +904,10 @@ function trAdvice(dates) {
   const P = trPeriod(fut); const rej = LS.get('trrej', {});
   const add = a => { if (!rej[a.key]) out.push(a); };
   P.weeks.forEach(W => { const days = P.L.filter(x => mondayOf(x.d) === W.mon); const wl = `týden od ${czDateShort(W.mon)}`;
+    // skoro prázdný týden: jeden návrh místo karty za každou partii
+    const miss = PARTIE.filter(([k]) => (W.mus[k] || 0) < MUS_MIN * 0.5);
+    if (miss.length >= 3) { if (!out.some(o => o.key.startsWith('slaby:'))) add({ key: `slaby:${W.mon}`, lv: 2, title: `${wl}: chybí ${miss.length} ${sklon(miss.length, 'partie', 'partie', 'partií')} (${miss.map(m => m[1].toLowerCase()).join(', ')})`,
+      why: `Plán je skoro bez silového cvičení. Doporučeno ${S().tr_per_week ?? 3}× týdně a každá partie ${MUS_MIN}–${MUS_MAX} sérií – jinak tělo s hubnutím ztrácí i svaly.`, fix: 'Navrhnout měsíc: vyvážené tréninky A/B/C, každý týden o kousek těžší', date: W.mon < todayISO() ? todayISO() : W.mon, apply: { propose: true } }); return; }
     // rámec týdne: méně cvičení, než chce trenér
     const goalN = S().tr_per_week ?? 3; if (days.length >= 5 && W.days < goalN) { const has = new Set(days.filter(x => x.st.exN).map(x => dayIndex(x.d)));
       const free = [0, 2, 4, 1, 3, 5].map(i => days.find(x => dayIndex(x.d) === i)).filter(x => x && !x.st.exN && !has.has(dayIndex(x.d) - 1) && !has.has(dayIndex(x.d) + 1))[0] || days.find(x => !x.st.exN);
@@ -939,9 +943,9 @@ function trAdviceHtml(list) {
   if (!list.length) return `<div class="card"><div class="chd"><h2>Kontrola plánu</h2></div><p class="small muted">${ico('check')} Plán je vyvážený – partie, dny volna i pohyb sedí.</p></div>`;
   App._trAdv = list;
   return `<div class="card stack s8"><div class="chd"><h2>Kontrola plánu</h2><span class="muted small">${list.length} ${sklon(list.length, 'návrh', 'návrhy', 'návrhů')} · přijmi, uprav, nebo zamítni${hq('trNavrh')}</span></div>
-    ${list.map((a, i) => `<div class="tadv"><b>${esc(a.title)}</b><span>${esc(a.why)}</span><em>→ ${esc(a.fix)}</em><div class="row"><button class="btn sm" onclick="A.trAdvOk(${i})">Přijmout</button><button class="btn sm sec" onclick="A.trDaySheet('${a.date}','day')">Upravit</button><button class="btn sm ghost" onclick="A.trAdvNo(${i})">Zamítnout</button></div></div>`).join('')}</div>`;
+    ${list.map((a, i) => `<div class="tadv"><b>${esc(a.title)}</b><span>${esc(a.why)}</span><em>→ ${esc(a.fix)}</em><div class="row"><button class="btn sm" onclick="A.trAdvOk(${i})">${a.apply.propose ? 'Navrhnout měsíc' : 'Přijmout'}</button><button class="btn sm sec" onclick="A.trDaySheet('${a.date}','day')">Upravit</button><button class="btn sm ghost" onclick="A.trAdvNo(${i})">Zamítnout</button></div></div>`).join('')}</div>`;
 }
-A.trAdvOk = i => { const a = (App._trAdv || [])[i]; if (!a) return; const day = trDayData(a.date); const it = day.items = JSON.parse(JSON.stringify(day.items || []));
+A.trAdvOk = i => { const a = (App._trAdv || [])[i]; if (!a) return; if (a.apply.propose) { App.trMonth = monthStart(a.date); A.trProposeSheet(); return; } const day = trDayData(a.date); const it = day.items = JSON.parse(JSON.stringify(day.items || []));
   Undo.run('Návrh plánu přijat', () => {
     if (a.apply.add) a.apply.add.forEach(f => it.push(trNewItem({ ex: f.ex, type: 'strength', sets: f.sets, reps: f.reps })));
     if (a.apply.sets) a.apply.sets.forEach(([j, n]) => { if (it[j]) it[j].sets = n; });
