@@ -618,7 +618,7 @@ const HELP = {
   trIntenzita: { t: 'Intenzita', co: 'Jak náročně má cvičit. Podle ní appka odhadne kalorie tréninku a o ně zvedne limit dne.' },
   trPauza: { t: 'Pauza', co: 'Odpočinek mezi sériemi v sekundách. Při cvičení Robertovi běží odpočet.', tip: 'Prázdné = výchozí z Nastavení.' },
   // trenér · Přehled
-  pSkore: { t: 'Skóre plnění', co: 'Jedno číslo za minulý týden: potvrzené dny 30 % · dny v limitu 30 % · chůze proti plánu 20 % · vážení 20 %.', tip: 'Nad 70 jde Robert podle plánu. Pod 40 nejde o plán, ale o zapisování a kázeň – nejdřív to.' },
+  pSkore: { t: 'Skóre plnění', co: 'Jedno číslo za minulý týden: potvrzené dny 30 % · dny v limitu 30 % · chůze proti plánu 20 % · vážení 20 %.', tip: 'Nad 70 jde Robert podle plánu. Pod 40 nejde o plán, ale o zapisování a kázeň – nejdřív to. Tlačítko „Vím o tom“ jen schová upozornění ze seznamu (na tomto zařízení, pro tento týden) – v plánu ani u Roberta nic nezmění; „Vrátit“ ho ukáže znovu.' },
   pTempo: { t: 'Tempo hubnutí', co: 'Trend = sklon ranních vážení za poslední 3 týdny, v kg za týden. Srovnává se s tempem z plánu.', tip: 'Pod 80 % plánu dva týdny po sobě = je co řešit.' },
   pCil: { t: 'Kdy dosáhne cíle', co: 'Podle plánu = při nastaveném tempu od startu. Prognóza = při současném trendu. Rozdíl ukazuje, kolik se cíl posouvá.' },
   pData: { t: 'Data od Roberta', co: 'Bez potvrzených dnů, vážení a kroků appka nepozná, co ujelo. Rozbor stojí jen na tom, co Robert zapíše.' },
