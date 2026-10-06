@@ -21,9 +21,9 @@ VIEWS.klient = function () {
   return `<div class="ph"><div class="pt"><h1>${esc(name)}</h1><span class="sub">${DAY_NAMES[dayIndex(t)].toLowerCase()} ${czDate(t)} · týden ${tyden}</span></div>
       <div class="act">${ch.items.length ? `<button class="btn ghost sm" onclick="A.sinceSheet()">${ico('bolt')} ${ch.items.length} ${sklon(ch.items.length, 'novinka', 'novinky', 'novinek')}</button>` : ''}<button class="btn ghost sm" onclick="A.numbersSheet()">${ico('clip')} Čísla</button>${chip}</div></div>
     ${weekCheckCard(s, App._shown = [])}
-    <div class="hgrid"><div class="card kchart">${chartCard(s, ov, { w: 900, h: 420 })}</div><div class="hstats">${heroStats(s, ov)}</div></div>
+    ${drillCard()}
     ${todoCard(now, App._shown)}
-    <div class="g2b"><div class="card">${heatCard(s)}</div><div class="card">${milestonesCard(s, ov)}</div></div>`;
+    <div class="g2b"><div class="card">${milestonesCard(s, ov)}</div><div class="card kchart">${chartCard(s, ov, { w: 640, h: 260 })}</div></div>`;
 };
 /* Týdenní kontrola: skóre plnění 0–100 za minulý týden a 1–3 rozhodnutí na klik.
    Skóre: potvrzené dny 30 % · dny v limitu 30 % · chůze proti plánu 20 % · vážení 20 %. */
@@ -311,17 +311,19 @@ A.coachDaySheet = date => openSheet(() => {
   const nav = `<div class="row between nowrap"><button class="btn ghost sm" onclick="UI.closeModal();A.coachDaySheet('${addDays(date, -1)}')">‹ ${czDateShort(addDays(date, -1))}</button>${date < t ? `<button class="btn ghost sm" onclick="UI.closeModal();A.coachDaySheet('${addDays(date, 1)}')">${czDateShort(addDays(date, 1))} ›</button>` : ''}</div>`;
   const verdict = `<div class="card ${ev.stav === 'ok' ? 'tint-ok' : ev.stav === 'bad' ? 'tint-b' : 'tint-o'} stack s8">${out.map(([c, x]) => `<div class="small"><span class="${c}">${c === 'ok' ? '✓' : c === 'bad' ? '✗' : '!'}</span> ${esc(x)}</div>`).join('')}${rec ? `<div class="b">→ ${esc(rec)}</div>` : ''}</div>`;
   const stats = `<div class="stats3"><div><b class="${ev.cheats.over ? 'bad' : ''}">${d.tot.kcal ? fmt0(d.intake) : '–'} <small>/ ${fmt0(B.maxIntake)}</small></b><span>snědeno / limit</span></div><div><b class="${ev.confirmed && B.totalOut - d.intake < B.deficit * 0.6 ? 'bad' : ''}">${ev.confirmed ? fmt0(B.totalOut - d.intake) : '–'} <small>/ ${fmt0(B.deficit)}</small></b><span>deficit / plán</span></div><div><b class="${d.tot.kcal && d.tot.p >= d.protTarget ? 'ok' : ''}">${d.tot.kcal ? fmt0(d.tot.p) : '–'} <small>/ ${fmt0(d.protTarget || S().protein_min)} g</small></b><span>bílkoviny</span></div></div>`;
-  const meals = `<div class="list">${d.courses.map((c, ci) => { const mm = day.meals[c.key] || {}; return `<div class="li static"><span class="g-k ${mm.eaten ? 'on' : ''}">${mm.eaten ? '✓' : ''}</span><span class="em">${COURSE_EMOJI[c.key]}</span><div class="tx"><b>${esc(c.sel || 'nevybráno')}</b><span>${esc(s.courses[ci].name)} · cíl ${fmt0(c.target)} kcal${c.edited ? ' · upraveno' : ''}${c.skipped ? ' · vynechal' : ''}</span></div><span class="val k ${c.kcal > c.target * 1.15 ? 'bad' : ''}">${c.kcal ? fmt0(c.kcal) : ''}</span></div>`; }).join('')}
-    ${B.cheatKcal ? `<div class="li static cheat"><span class="g-k na"></span><span class="em">🍻</span><div class="tx"><b>Cheat · ${esc(cheatPopis(day))}</b><span>${B.cheatCoverable ? `pokrýt ${B.cheatWalk} min chůze navíc` : 'větší, než jde uchodit'}</span></div><span class="val">${fmt0(B.cheatKcal)}</span></div>` : ''}</div>`;
-  const move = `<div class="list"><div class="li static"><span class="em">🚶</span><div class="tx"><b>Chůze ${day.walk_min || 0} z ${B.planWalk} min</b><span>${B.cheatWalk ? `z toho ${B.cheatWalk} min za cheat` : 'cíl dne'}</span></div><span class="val ${(day.walk_min || 0) >= B.planWalk - 5 ? 'ok' : 'bad'}">${(day.walk_min || 0) >= B.planWalk - 5 ? '✓' : '−' + (B.planWalk - (day.walk_min || 0))}</span></div>
-    <div class="li static"><span class="em">👣</span><div class="tx"><b>Kroky ${bk == null ? 'nezapsané' : fmt0(bk)}</b><span>běžná chůze · cíl ${fmt0(cil)}</span></div><span class="val ${bk != null && bk >= cil * 0.9 ? 'ok' : 'bad'}">${bk == null ? '–' : bk >= cil * 0.9 ? '✓' : Math.round(bk / cil * 100) + ' %'}</span></div>
-    ${items.map((it, i) => { const sets = ((log[i] || {}).sets || []).length; return `<div class="li static"><span class="em">🏋️</span><div class="tx"><b>${esc(itemLabel(it))}</b><span>${sets ? `odcvičeno ${sets} ${sklon(sets, 'série', 'série', 'sérií')}${it.sets ? ` z ${it.sets}` : ''}` : done[i] ? 'odškrtnuto' : 'neodcvičeno'}</span></div><span class="val ${done[i] || sets ? 'ok' : 'bad'}">${done[i] || sets ? '✓' : '✗'}</span></div>`; }).join('')}
+  const meals = `<div class="list">${d.courses.map((c, ci) => { const mm = day.meals[c.key] || {}; return `<div class="li static"><span class="g-k ${mm.eaten ? 'on' : ''}">${mm.eaten ? '✓' : ''}</span><span class="em">${ico(c.key === 'vecere2' ? 'cup' : 'fork')}</span><div class="tx"><b>${esc(c.sel || 'nevybráno')}</b><span>${esc(s.courses[ci].name)} · cíl ${fmt0(c.target)} kcal${c.edited ? ' · upraveno' : ''}${c.skipped ? ' · vynechal' : ''}</span></div><span class="val k ${c.kcal > c.target * 1.15 ? 'bad' : ''}">${c.kcal ? fmt0(c.kcal) : ''}</span></div>`; }).join('')}
+    ${B.cheatKcal ? `<div class="li static cheat"><span class="g-k na"></span><span class="em">${ico('beer')}</span><div class="tx"><b>Cheat · ${esc(cheatPopis(day))}</b><span>${B.cheatCoverable ? `pokrýt ${B.cheatWalk} min chůze navíc` : 'větší, než jde uchodit'}</span></div><span class="val">${fmt0(B.cheatKcal)}</span></div>` : ''}</div>`;
+  const move = `<div class="list"><div class="li static"><span class="em">${ico('walk')}</span><div class="tx"><b>Chůze ${day.walk_min || 0} z ${B.planWalk} min</b><span>${B.cheatWalk ? `z toho ${B.cheatWalk} min za cheat` : 'cíl dne'}</span></div><span class="val ${(day.walk_min || 0) >= B.planWalk - 5 ? 'ok' : 'bad'}">${(day.walk_min || 0) >= B.planWalk - 5 ? '✓' : '−' + (B.planWalk - (day.walk_min || 0))}</span></div>
+    <div class="li static"><span class="em">${ico('feet')}</span><div class="tx"><b>Kroky ${bk == null ? 'nezapsané' : fmt0(bk)}</b><span>běžná chůze · cíl ${fmt0(cil)}</span></div><span class="val ${bk != null && bk >= cil * 0.9 ? 'ok' : 'bad'}">${bk == null ? '–' : bk >= cil * 0.9 ? '✓' : Math.round(bk / cil * 100) + ' %'}</span></div>
+    ${items.map((it, i) => { const sets = ((log[i] || {}).sets || []).length; return `<div class="li static"><span class="em">${ico('dumbbell')}</span><div class="tx"><b>${esc(itemLabel(it))}</b><span>${sets ? `odcvičeno ${sets} ${sklon(sets, 'série', 'série', 'sérií')}${it.sets ? ` z ${it.sets}` : ''}` : done[i] ? 'odškrtnuto' : 'neodcvičeno'}</span></div><span class="val ${done[i] || sets ? 'ok' : 'bad'}">${done[i] || sets ? '✓' : '✗'}</span></div>`; }).join('')}
     ${tr.rpe ? `<div class="small muted">náročnost ${tr.rpe}/5${tr.feel ? ' · ' + esc(tr.feel) : ''}</div>` : ''}</div>`;
   const rest = `<div class="small muted">Váha ráno ${m && m.weight != null ? fmt1(m.weight) + ' kg' : '–'} · druhý den ${mNext && mNext.weight != null ? fmt1(mNext.weight) + ' kg' : '–'}</div>
     <div class="card stack s8"><b>Jak šel den</b>${checkinSummary(day) ? `<div>${esc(checkinSummary(day))}</div>` : '<div class="small muted">Nevyplnil.</div>'}${(day.checkin || {}).note ? `<div class="bubble" style="background:var(--p-bg)"><div>„${esc(day.checkin.note)}“</div></div>` : ''}</div>`;
+  const row7 = calcMeasurements(s, Meas()).filter(x => x.date <= date).pop(), pd = planAt(date), wk = day.walk_min || 0;
+  const stats2 = `<div class="stats3"><div><b>${m && m.weight != null ? fmt1(m.weight) : '–'} <small>kg</small></b><span>váha ráno${row7 ? ` · Ø ${fmt1(row7.avg)} · plán ${fmt1(pd)}` : ''}</span></div><div><b class="${wk >= B.planWalk - 5 ? 'ok' : 'bad'}">${wk} <small>/ ${B.planWalk} min</small></b><span>chůze</span></div><div><b class="${bk != null && bk >= cil * 0.9 ? 'ok' : bk == null ? '' : 'bad'}">${bk == null ? '–' : fmt0(bk)}</b><span>běžné kroky · cíl ${fmt0(cil)}</span></div></div>`;
   return UI.sheetHtml(`${DAY_NAMES[dayIndex(date)]} ${czDateShort(date)}`, ev.stav === 'ok' ? 'potvrzený · den seděl' : ev.stav === 'bad' ? 'potvrzený · den neseděl' : ev.stav === 'dnes' ? 'probíhá' : 'nepotvrzený – níž je jen plán',
-    `${nav}${verdict}${stats}<h3>Jídla – plán a skutečnost</h3>${meals}<h3>Pohyb</h3>${move}${rest}`,
-    `<button class="btn sec" onclick="A.trDaySheet('${date}')">🏋️ Upravit trénink dne</button>`);
+    `${nav}${verdict}${stats}${stats2}<h3>Jídla – plán a skutečnost</h3>${meals}<h3>Pohyb</h3>${move}${rest}`,
+    `<button class="btn sec" onclick="A.trDaySheet('${date}')">${ico('dumbbell')} Upravit trénink dne</button>`);
 });
 /* novinky od minulé návštěvy */
 A.sinceSheet = () => { const ch = sinceLast();
@@ -581,3 +583,142 @@ A.histRevert = id => { const r = Store.db.prefs.find(x => x.id === id); if (!r) 
   UI.confirm(`Vrátit „${paceFix(h.label)}“ (${czDateShort(h.at.slice(0, 10))} ${h.at.slice(11, 16)})?${changed ? ' Od té doby se to změnilo znovu – vrácení přepíše i pozdější úpravu těchto dat.' : ''}`, () => {
     Undo.run('Vráceno: ' + h.label, () => h.ch.forEach(c => { if (c.prev && !c.prev.deleted) Store.put(c.t, c.id, c.prev.data, c.prev.user_id); else Store.remove(c.t, c.id); }), 'Vráceno: ' + paceFix(h.label));
     histMark(id, { reverted: new Date().toISOString() }); render(); }, 'Vrátit', !changed); };
+
+/* ---------- PRŮBĚH: Cesta → Měsíc → Týden → Den (6. 10. 2026) ----------
+   Shora celá cesta po měsících, pod ní měsíc po týdnech, týden po dnech a den v listu.
+   Graf, souhrny i tabulka patří k vybranému období a cíle se přepočítají na ně –
+   měsíc se porovnává s měsíčním cílem, ne s celou cestou. */
+const MES3 = ['led', 'úno', 'bře', 'dub', 'kvě', 'čvn', 'čvc', 'srp', 'zář', 'říj', 'lis', 'pro'];
+function drState() { if (!App.dr) App.dr = LS.get('dr', null) || { lvl: 'c' }; return App.dr; }
+function drRange(dr) { const s = S(), t = todayISO();
+  if (dr.lvl === 'm') { const d = monthDays(dr.start); return { from: dr.start, to: d[d.length - 1], lab: monthName(dr.start) }; }
+  if (dr.lvl === 'w') return { from: dr.start, to: addDays(dr.start, 6), lab: `${czDateShort(dr.start)}–${czDateShort(addDays(dr.start, 6))}` };
+  return { from: s.start_date, to: t, lab: 'Celá cesta' }; }
+A.drGo = (lvl, start) => { App.dr = lvl === 'c' ? { lvl } : { lvl, start }; LS.set('dr', App.dr); render(); };
+A.drMove = dir => { const d = drState(); if (d.lvl === 'm') A.drGo('m', addMonths(d.start, dir)); else if (d.lvl === 'w') A.drGo('w', addDays(d.start, 7 * dir)); };
+/* Plánovaná váha den po dni od startu: tempo platné v ten den (přestávka = 0), nejníž cíl */
+function planPath() { const s = S(); const k = [s.start_date, s.start_weight, s.goal_weight, s.rate_pct, (s.maint_weeks || []).join(), (s.log || []).length, s.maintain].join('|');
+  if (App._pp && App._pp.k === k) return App._pp.p;
+  const p = [s.start_weight]; let w = s.start_weight;
+  for (let i = 1; i <= 365 * 4 && w > s.goal_weight; i++) { w = Math.max(s.goal_weight, w * Math.pow(1 - effSettings(s, addDays(s.start_date, i - 1)).rate_pct / 100, 1 / 7)); p.push(w); }
+  App._pp = { k, p }; return p; }
+function planAt(date) { const p = planPath(), i = daysBetween(S().start_date, date); return i < 0 ? S().start_weight : p[Math.min(i, p.length - 1)]; }
+function planEnd() { return addDays(S().start_date, planPath().length - 1); }
+/* váha za období: průměr 7 vážení na začátku a na konci proti plánu za stejné dny */
+function drWeight(from, to) {
+  const s = S(), t = todayISO(), end = to < t ? to : t; const rows = calcMeasurements(s, Meas());
+  const before = rows.filter(r => r.date < from), inP = rows.filter(r => r.date >= from && r.date <= end);
+  const a = before.length ? before[before.length - 1] : inP[0] || null, b = inP.length ? inP[inP.length - 1] : null;
+  const w0 = a ? a.avg : currentWeight();
+  const planBetween = (x, y) => { let k = 0; for (let d = x; d <= y; d = addDays(d, 1)) k += w0 * effSettings(s, d).rate_pct / 100 / 7; return k; };
+  const real = a && b && b.date > a.date ? a.avg - b.avg : null;
+  const plan = a && b && b.date > a.date ? planBetween(addDays(a.date, 1), b.date) : null;
+  return { a, b, real, plan, planFull: planBetween(from < s.start_date ? s.start_date : from, to), diff: real != null ? real - plan : null, pct: real != null && plan > 0.05 ? Math.round(real / plan * 100) : null,
+    lostEnd: b ? s.start_weight - b.avg : null, planLostEnd: b ? s.start_weight - planAt(b.date) : null };
+}
+const kgS = v => v == null ? '–' : (v > 0.005 ? '−' : v < -0.005 ? '+' : '') + fmt1(Math.abs(v)).replace('-', '');   // úbytek kladný = „−“
+const dkg = v => v == null ? '' : `${v >= 0 ? '+' : '−'}${fmt1(Math.abs(v))} kg`;
+/* rozdíl proti cíli slovy: kladný = náskok (shodil víc), záporný = chybí */
+const dGap = (v, u) => v == null ? '' : Math.abs(v) < 0.05 ? 'přesně podle cíle' : v < 0 ? `chybí ${fmt1(-v)}${u || ' kg'}` : `náskok ${fmt1(v)}${u || ' kg'}`;
+const dGap2 = (v, u) => v == null ? '' : Math.abs(v) < 0.005 ? 'přesně' : v < 0 ? `chybí ${fmt2(-v)}${u || ' kg'}` : `náskok ${fmt2(v)}${u || ' kg'}`;
+function drillCard() {
+  const s = S(), t = todayISO(), dr = drState(), r = drRange(dr);
+  const crumb = [`<button class="${dr.lvl === 'c' ? 'on' : ''}" onclick="A.drGo('c')">Celá cesta</button>`];
+  if (dr.lvl !== 'c') crumb.push(`<button class="${dr.lvl === 'm' ? 'on' : ''}" onclick="A.drGo('m','${monthStart(dr.start)}')">${monthName(monthStart(dr.start))}</button>`);
+  if (dr.lvl === 'w') crumb.push(`<button class="on">${r.lab}</button>`);
+  const nav = dr.lvl === 'c' ? '' : `<div class="row nowrap"><button class="btn ghost sm" onclick="A.drMove(-1)" aria-label="předchozí">‹</button><button class="btn ghost sm" onclick="A.drMove(1)" ${r.from > t ? 'disabled' : ''} aria-label="další">›</button></div>`;
+  const lvlSeg = `<div class="seg sm">${[['c', 'Cesta'], ['m', 'Měsíc'], ['w', 'Týden']].map(([l, n]) => `<button class="${dr.lvl === l ? 'on' : ''}" onclick="A.drGo('${l}','${l === 'm' ? monthStart(dr.start || t) : mondayOf(dr.lvl === 'm' && dr.start.slice(0, 7) !== t.slice(0, 7) ? dr.start : t)}')">${n}</button>`).join('')}</div>`;
+  return `<div class="card drill"><div class="drh"><div class="crumb">${crumb.join('<span>›</span>')}</div>${nav}<div class="sp"></div>${lvlSeg}</div>
+    ${drChart(dr, r)}${drTiles(dr, r)}${drTable(dr, r)}</div>`;
+}
+/* podobdobí vybraného období: měsíce · týdny (oříznuté na měsíc) · dny */
+function drKids(dr, r) { const s = S(), t = todayISO(), out = [];
+  if (dr.lvl === 'c') { const endM = monthStart([planEnd(), goalForecast(s, calcOverview(s, Meas())).date || t, t].sort().pop()); let m = monthStart(s.start_date);
+    for (let k = 0; k < 36 && m <= endM; k++, m = addMonths(m, 1)) { const d = monthDays(m); out.push({ from: m < s.start_date ? s.start_date : m, to: d[d.length - 1], lab: MES3[+m.slice(5, 7) - 1] + (m.slice(5, 7) === '01' || k === 0 ? ' ' + m.slice(2, 4) : ''), full: monthName(m), go: `A.drGo('m','${m}')`, fut: m > t }); } }
+  else if (dr.lvl === 'm') { const days = monthDays(r.from); for (let w = mondayOf(r.from); w <= r.to; w = addDays(w, 7)) { const a = w < r.from ? r.from : w, b = addDays(w, 6) > r.to ? r.to : addDays(w, 6);
+      out.push({ from: a, to: b, lab: `${parseISO(a).getDate()}.–${czDateShort(b)}`, full: `týden ${czDateShort(a)}–${czDateShort(b)}`, go: `A.drGo('w','${w}')`, fut: a > t }); } }
+  else for (let k = 0; k < 7; k++) { const d = addDays(r.from, k); out.push({ from: d, to: d, lab: `${DAY_SHORT[k]} ${parseISO(d).getDate()}.`, full: `${DAY_NAMES[k]} ${czDateShort(d)}`, go: `A.coachDaySheet('${d}')`, fut: d > t, day: true }); }
+  return out; }
+function drChart(dr, r) {
+  const s = S(), t = todayISO(), kids = drKids(dr, r), rows = calcMeasurements(s, Meas());
+  const pts = kids.map(k => { const end = k.to < t ? k.to : t; const inK = rows.filter(x => x.date >= k.from && x.date <= end);
+    const last = inK[inK.length - 1]; const m = k.day ? Meas().find(x => x.date === k.from && x.weight != null) : null;
+    return { ...k, real: last ? last.avg : null, raw: m ? m.weight : null, plan: planAt(k.to < s.start_date ? s.start_date : k.to) }; });
+  const W = 900, H = 260, L = 44, R_ = 16, T = 18, B = 26; const n = pts.length, cw = (W - L - R_) / n;
+  const ys = pts.flatMap(p => [p.real, p.raw, p.plan]).filter(v => v != null); if (dr.lvl === 'c') ys.push(s.goal_weight);
+  if (!ys.length) return '<p class="muted small">Zatím žádné vážení.</p>';
+  const y0 = Math.min(...ys) - 0.6, y1 = Math.max(...ys) + 0.6; const X = i => L + cw * (i + 0.5), Y = v => T + (y1 - v) / (y1 - y0) * (H - T - B);
+  let g = `<svg class="chart" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">`;
+  const st = niceStep((y1 - y0) / 4); for (let v = Math.ceil(y0 / st) * st; v <= y1; v += st) g += `<line x1="${L}" x2="${W - R_}" y1="${Y(v)}" y2="${Y(v)}" stroke="#eef1f5"/><text x="${L - 6}" y="${Y(v) + 4}" font-size="11" fill="#7a878c" text-anchor="end">${fmtTick(v)}</text>`;
+  pts.forEach((p, i) => { const cur = p.from <= t && t <= p.to;
+    g += `<rect x="${L + cw * i + 2}" y="${T}" width="${cw - 4}" height="${H - T - B}" rx="8" fill="${cur ? 'rgba(37,99,235,.06)' : 'transparent'}" class="drcol" ${p.fut && !p.day ? '' : `onclick="${p.go}" style="cursor:pointer"`}/>
+      <text x="${X(i)}" y="${H - 8}" font-size="11.5" fill="${cur ? '#2563eb' : '#7a878c'}" font-weight="${cur ? 700 : 500}" text-anchor="middle">${p.lab}</text>`; });
+  if (dr.lvl === 'c' && s.goal_weight >= y0) g += `<line x1="${L}" x2="${W - R_}" y1="${Y(s.goal_weight)}" y2="${Y(s.goal_weight)}" stroke="#15803d" stroke-width="1.5" stroke-dasharray="4 4"/><text x="${L + 4}" y="${Y(s.goal_weight) - 6}" font-size="11.5" font-weight="700" fill="#15803d">cíl ${fmt1(s.goal_weight)} kg</text>`;
+  g += `<path d="M${pts.map((p, i) => `${X(i).toFixed(1)},${Y(p.plan).toFixed(1)}`).join('L')}" fill="none" stroke="#9aa3b8" stroke-width="1.8" stroke-dasharray="6 5"/>`;
+  const rp = pts.map((p, i) => [i, p.real]).filter(x => x[1] != null);
+  if (rp.length) g += `<path d="M${rp.map(([i, v]) => `${X(i).toFixed(1)},${Y(v).toFixed(1)}`).join('L')}" fill="none" stroke="#2563eb" stroke-width="3" stroke-linejoin="round"/>` + rp.map(([i, v]) => `<circle cx="${X(i)}" cy="${Y(v)}" r="4.5" fill="#fff" stroke="#2563eb" stroke-width="2.5"/>${cw > 60 ? `<text x="${X(i)}" y="${Y(v) - 9}" font-size="11.5" font-weight="700" fill="#1e40af" text-anchor="middle">${fmt1(v)}</text>` : ''}`).join('');
+  if (dr.lvl === 'w') pts.forEach((p, i) => { if (p.raw != null) g += `<circle cx="${X(i)}" cy="${Y(p.raw)}" r="3" fill="#93c5fd"/>`; });
+  // Cesta: pokračování trendu k cíli
+  if (dr.lvl === 'c') { const fc = goalForecast(s, calcOverview(s, Meas())); const li = rp.length ? rp[rp.length - 1] : null;
+    if (li && fc.date) { const fi = pts.findIndex(p => p.from <= fc.date && fc.date <= p.to); if (fi > li[0]) g += `<line x1="${X(li[0])}" y1="${Y(li[1])}" x2="${X(fi)}" y2="${Y(s.goal_weight)}" stroke="#d97706" stroke-width="2" stroke-dasharray="4 4"/><circle cx="${X(fi)}" cy="${Y(s.goal_weight)}" r="5" fill="#fff" stroke="#d97706" stroke-width="2.5"/><text x="${Math.min(X(fi), W - R_ - 50)}" y="${Y(s.goal_weight) - 12}" font-size="11" font-weight="700" fill="#d97706" text-anchor="middle">trend ${czDateShort(fc.date)}${String(parseISO(fc.date).getFullYear()).slice(2)}</text>`; } }
+  const id = 'ct' + (++lineChart.n);
+  lineChart.reg[id] = pts.map((p, i) => ({ sx: X(i), sy: Y(p.real != null ? p.real : p.plan), html: `<b>${esc(p.full)}</b><br>${p.real != null ? `<span class="w">${fmt1(p.real)} kg</span> průměr 7 vážení<br>` : ''}${p.raw != null ? `ráno ${fmt1(p.raw)} kg<br>` : ''}plán ${fmt1(p.plan)} kg${p.real != null ? ` · <b>${dkg(p.real - p.plan)}</b>` : ''}${p.fut && !p.day ? '' : '<br><span class="muted">ťukni pro detail</span>'}` }));
+  g += `<g class="tipg" style="display:none"><line y1="${T}" y2="${H - B}" stroke="#2563eb" stroke-width="1" stroke-dasharray="2 3"/><circle r="5.5" fill="#fff" stroke="#2563eb" stroke-width="2.5"/></g></svg>`;
+  return `<div class="legend kleg"><span><i style="background:#2563eb"></i>průměr 7 vážení</span><span><i style="background:#9aa3b8"></i>plán</span>${dr.lvl === 'c' ? '<span><i style="background:#d97706"></i>trend k cíli</span>' : ''}${dr.lvl === 'w' ? '<span><i style="background:#93c5fd"></i>ranní váha</span>' : ''}</div><div class="chartw" data-tip="${id}">${g}<div class="ctip" hidden></div></div>`;
+}
+/* souhrn období ve skupinách, vždy proti cíli přepočtenému na období */
+function drTiles(dr, r) {
+  const s = S(), t = todayISO(), R = periodStats(r.from, r.to); if (R.empty) return `<p class="muted small">Období je před startem nebo v budoucnu – je v něm jen plán: ${kgS(drWeight(r.from, r.to).planFull)} kg.</p>`;
+  const Wt = drWeight(r.from, r.to); const tr = trend21(); const ov = calcOverview(s, Meas());
+  const cl = (ok, warn) => ok ? 'ok' : warn ? 'warn' : 'bad';
+  const m = (lab, big, sub, c, help) => `<div class="dm"><span>${lab}${help ? hq(help) : ''}</span><b class="${c || ''}">${big}</b>${sub ? `<em>${sub}</em>` : ''}</div>`;
+  const per = dr.lvl === 'c' ? 'od startu' : dr.lvl === 'm' ? 'za měsíc' : 'za týden';
+  const vys = [
+    m(`Váha ${per}`, Wt.real != null ? `${kgS(Wt.real)} kg` : '–', `cíl ${kgS(Wt.plan != null ? Wt.plan : Wt.planFull)} kg${Wt.diff != null ? ` · <b>${dGap(Wt.diff)}</b>` : ''}${Wt.pct != null ? ` · plní na ${Wt.pct} %` : ''}`, Wt.pct == null ? '' : cl(Wt.pct >= 90, Wt.pct >= 60), 'dVaha'),
+    Wt.b ? m(`K ${czDateShort(Wt.b.date)} od startu`, `${kgS(Wt.lostEnd)} kg`, `měl ${kgS(Wt.planLostEnd)} kg · <b>${dGap(Wt.lostEnd - Wt.planLostEnd)}</b>`, cl(Wt.lostEnd >= Wt.planLostEnd - 0.3, Wt.lostEnd >= Wt.planLostEnd - 1.5), 'dKDnesku') : '',
+    dr.lvl === 'c' ? m('Tempo · trend 3 týdnů', tr ? `${kgTyd(tr.perWeek)} kg/t` : '–', tr ? `plán −${fmt2(ov.cur * effSettings(s, t).rate_pct / 100)} · <b>${dGap2(tr.perWeek - ov.cur * effSettings(s, t).rate_pct / 100, ' kg/týden')}</b>` : 'málo vážení', tr ? cl(tr.perWeek >= ov.cur * effSettings(s, t).rate_pct / 100 * 0.9, tr.perWeek > 0) : '', 'pTempo') : '',
+    dr.lvl === 'c' ? (() => { const gp = planGoalDate(s), fc = goalForecast(s, ov), d = gp && fc.date ? ymd(gp, fc.date) : null; return m(`Cíl ${fmt1(s.goal_weight)} kg`, fc.date ? czDate(fc.date) : esc(fc.text), `plán ${gp ? czDate(gp) : '–'}${d ? ` · <b>${d.sign > 0 ? '+' : '−'}${d.short}</b>` : ''}`, d ? cl(d.sign <= 0 || daysBetween(gp, fc.date) <= 7, daysBetween(gp, fc.date) <= 30) : '', 'pCil'); })() : '',
+    R.waist != null ? m('Pas', `${fmt1(R.waist)} cm`, R.waistDelta != null ? `${signed1(R.waistDelta)} cm ${per}` : `cíl ${s.goal_waist} cm`, R.waistDelta != null ? cl(R.waistDelta < 0, R.waistDelta <= 0.5) : '') : ''];
+  const jid = [
+    m('Dny v limitu', `${R.inLimit}<small>/${R.conf}</small>`, `potvrzených ${R.conf} z ${R.n}`, R.conf ? cl(R.inLimit >= R.conf * 0.85, R.inLimit >= R.conf * 0.6) : 'bad'),
+    m('Deficit', R.conf ? `${fmt0(R.def)} kcal` : '–', R.conf ? `plán ${fmt0(R.defPlan)} · ≈ ${fmt2(R.def / KG_KCAL)} z ${fmt2(R.defPlan / KG_KCAL)} kg` : 'jen z potvrzených dnů', R.conf ? cl(R.def >= R.defPlan * 0.9, R.def >= R.defPlan * 0.6) : '', 'dDeficit'),
+    m('Příjem Ø', R.conf ? `${fmt0(R.intake / R.conf)} kcal` : '–', R.conf ? `limit Ø ${fmt0(R.lim / R.conf)} · ${signed0((R.intake - R.lim) / R.conf)}/den` : '', R.conf ? cl(R.intake <= R.lim + 50 * R.conf, R.intake <= R.lim + 200 * R.conf) : ''),
+    m('Bílkoviny', `${R.protOk}<small>/${R.conf}</small>`, 'dnů s cílem bílkovin', R.conf ? cl(R.protOk >= R.conf * 0.8, R.protOk >= R.conf * 0.5) : ''),
+    R.cheat ? m('Cheaty', `${fmt0(R.cheat)} kcal`, `≈ ${fmt2(R.cheat / KG_KCAL)} kg`, '') : ''];
+  const poh = [
+    m('Chůze', R.walkPlan ? `${Math.round(R.walk / R.walkPlan * 100)} %` : '–', `${fmt0(R.walk)} z ${fmt0(R.walkPlan)} min`, R.walkPlan ? cl(R.walk >= R.walkPlan * 0.9, R.walk >= R.walkPlan * 0.6) : ''),
+    m('Kroky Ø', R.stepsAvg != null ? fmt0(R.stepsAvg) : '–', `běžné · cíl ${fmt0(stepsTarget(s))}`, R.stepsAvg != null ? cl(R.stepsAvg >= stepsTarget(s) * 0.9, R.stepsAvg >= stepsTarget(s) * 0.6) : ''),
+    m('Trénink', R.trPlan ? `${R.trDone}<small>/${R.trPlan}</small>` : '–', R.trPlan ? 'odcvičeno z plánovaných' : 'žádný v plánu', R.trPlan ? cl(R.trDone >= R.trPlan * 0.8, R.trDone >= R.trPlan * 0.5) : '')];
+  const zap = [
+    m('Potvrzené dny', `${R.conf}<small>/${R.n}</small>`, '', cl(R.conf >= R.n * 0.85, R.conf >= R.n * 0.5)),
+    m('Vážení', `${R.weigh}<small>/${R.wDays}</small>`, '', cl(R.weigh >= R.wDays * 0.85, R.weigh >= R.wDays * 0.5)),
+    m('Kroky zapsané', `${R.stepsN}<small>/${R.n}</small>`, '', cl(R.stepsN >= R.n * 0.85, R.stepsN >= R.n * 0.5))];
+  const pc = pocitSouhrn(r.from, r.to);
+  const grp = (ic, n, list) => `<div class="dg"><h4>${ico(ic)} ${n}</h4>${list.filter(Boolean).join('')}</div>`;
+  return `<div class="dgrid">${grp('target', 'Výsledek', vys)}${grp('fork', 'Jídlo', jid)}${grp('walk', 'Pohyb', poh)}${grp('clip', 'Zapisování', zap)}${grp('moon', 'Jak se cítí', [m('Hlášení', esc(pc), '', 'txt ' + (pc === 'v pořádku' ? 'ok' : pc === 'nevyplnil' ? '' : 'warn'))])}</div>`;
+}
+/* tabulka podobdobí – řádek = měsíc / týden / den, klik jde hlouběji */
+function drTable(dr, r) {
+  const s = S(), t = todayISO(); const kids = drKids(dr, r).filter(k => k.from <= t);
+  if (!kids.length) return '';
+  const c = (v, ok, warn) => v == null ? '' : ok ? 'ok' : warn ? 'warn' : 'bad';
+  const head = dr.lvl === 'w' ? ['Den', 'Váha ráno', 'Ø 7', 'Plán', 'Příjem / limit', 'Deficit', 'Chůze', 'Kroky', 'Trénink', 'Den']
+    : [dr.lvl === 'c' ? 'Měsíc' : 'Týden', 'Ø váha', 'Změna', 'Cíl', 'Rozdíl', 'V limitu', 'Deficit ≈ kg', 'Chůze', 'Kroky Ø', 'Trénink', 'Zápisy'];
+  const body = kids.slice().reverse().map(k => {
+    if (k.day) { const ev = evaluateDay(k.from), B = ev.d.base, day = ev.day, mm = Meas().find(x => x.date === k.from && x.weight != null), row = calcMeasurements(s, Meas()).filter(x => x.date <= k.from).pop();
+      const bk = daySteps(day), wk = day.walk_min || 0, pd = planAt(k.from);
+      return `<tr onclick="${k.go}"><td class="b">${k.lab}</td><td class="n">${mm ? fmt1(mm.weight) : '–'}</td><td class="n">${row ? fmt1(row.avg) : '–'}</td><td class="n muted">${fmt1(pd)}</td>
+        <td class="n ${ev.confirmed ? c(1, !ev.cheats.over) : ''}">${ev.confirmed ? `${fmt0(ev.d.intake)} / ${fmt0(B.maxIntake)}` : `<span class="muted">${k.from === t ? 'dnes' : 'nepotvrzený'}</span>`}</td>
+        <td class="n">${ev.confirmed ? fmt0(B.totalOut - ev.d.intake) : '–'}</td><td class="n ${c(B.planWalk ? 1 : null, wk >= B.planWalk - 5, wk >= B.planWalk * 0.5)}">${wk} / ${B.planWalk}</td>
+        <td class="n ${c(bk, bk >= stepsTarget(s) * 0.9, bk >= stepsTarget(s) * 0.6)}">${bk == null ? '–' : fmt0(bk)}</td><td class="n">${B.planKcal > 0 ? (B.doneKcal >= B.planKcal * 0.5 ? '<span class="ok">✓</span>' : '<span class="bad">✗</span>') : '–'}</td>
+        <td>${ev.confirmed ? (ev.ok ? '<span class="pill ok">sedí</span>' : '<span class="pill warn">ujelo</span>') : '<span class="pill">–</span>'}</td></tr>`; }
+    const R = periodStats(k.from, k.to), W = drWeight(k.from, k.to);
+    return `<tr onclick="${k.go}"><td class="b">${esc(k.full)}</td><td class="n">${W.b ? fmt1(W.b.avg) : '–'}</td><td class="n">${W.real != null ? kgS(W.real) : '–'}</td><td class="n muted">${kgS(W.plan != null ? W.plan : W.planFull)}</td>
+      <td class="n ${c(W.diff, W.diff >= -0.2, W.diff >= -0.8)}">${W.diff != null ? dGap(W.diff) : '–'}</td>
+      <td class="n ${R.empty ? '' : c(R.conf ? 1 : null, R.inLimit >= R.conf * 0.85, R.inLimit >= R.conf * 0.6)}">${R.empty ? '–' : `${R.inLimit}/${R.conf}`}</td>
+      <td class="n ${R.empty || !R.conf ? '' : c(1, R.def >= R.defPlan * 0.9, R.def >= R.defPlan * 0.6)}">${R.empty || !R.conf ? '–' : `${fmt2(R.def / KG_KCAL)} / ${fmt2(R.defPlan / KG_KCAL)}`}</td>
+      <td class="n ${R.empty || !R.walkPlan ? '' : c(1, R.walk >= R.walkPlan * 0.9, R.walk >= R.walkPlan * 0.6)}">${R.empty || !R.walkPlan ? '–' : Math.round(R.walk / R.walkPlan * 100) + ' %'}</td>
+      <td class="n">${R.empty || R.stepsAvg == null ? '–' : fmt0(R.stepsAvg)}</td><td class="n">${R.empty || !R.trPlan ? '–' : `${R.trDone}/${R.trPlan}`}</td>
+      <td class="n ${R.empty ? '' : c(1, R.conf >= R.n * 0.85, R.conf >= R.n * 0.5)}">${R.empty ? '–' : `${R.conf}/${R.n}`}</td></tr>`; }).join('');
+  return `<div class="tbl drt"><table class="small"><tr>${head.map((h, i) => `<th class="${i ? 'n' : ''}">${h}</th>`).join('')}</tr>${body}</table></div>`;
+}

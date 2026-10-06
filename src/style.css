@@ -798,3 +798,21 @@ svg.pchart{width:100%;height:auto;display:block}
 /* trenér na telefonu: heatmapa se vejde, akce v hlavičce se zalomí */
 @media (max-width:640px){ .wk{gap:1px}.wk i{min-width:0;border-radius:2px}.heat{grid-template-columns:58px repeat(6,minmax(0,1fr));gap:4px 4px}.heat .hl{font-size:11px;gap:3px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;min-width:0}.heat .hl svg.ic{display:none}
   body.wide .ph{flex-wrap:wrap}body.wide .ph .act{flex-wrap:wrap;margin-left:0;flex:1 1 100%} }
+
+/* Průběh: Cesta → Měsíc → Týden → Den (2026-10) */
+.drill{display:flex;flex-direction:column;gap:14px}
+.drh{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.drh .sp{flex:1}
+.crumb{display:flex;align-items:center;gap:6px;flex-wrap:wrap}.crumb span{color:var(--ink3)}
+.crumb button{border:0;background:none;font:inherit;font-size:20px;font-weight:750;color:var(--ink3);cursor:pointer;padding:2px 4px;border-radius:8px;letter-spacing:-.01em}.crumb button.on{color:var(--ink)}.crumb button:hover{background:var(--line2)}
+.drcol:hover{fill:rgba(37,99,235,.08)}
+.dgrid{display:grid;grid-template-columns:1.25fr 1.25fr 1fr 1fr .9fr;gap:12px}
+.dg{background:#f8fafc;border-radius:16px;padding:12px 14px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.dg h4{margin:0;font-size:12.5px;font-weight:750;color:var(--ink2);display:flex;gap:6px;align-items:center;text-transform:uppercase;letter-spacing:.05em}
+.dm{display:flex;flex-direction:column;gap:1px;min-width:0}.dm>span{font-size:12px;color:var(--ink2);font-weight:600}.dm b{font-size:20px;font-weight:800;letter-spacing:-.02em;font-variant-numeric:tabular-nums}.dm b small{font-size:13px;color:var(--ink3);font-weight:650}
+.dm em{font-style:normal;font-size:12px;color:var(--ink2);line-height:1.35}.dm b.ok{color:#15803d}.dm b.warn{color:#b45309}.dm b.bad{color:#dc2626}
+.drt tr{cursor:pointer}.drt tr:hover td{background:#f1f5f9}.drt td.ok{color:#15803d;font-weight:700}.drt td.warn{color:#b45309;font-weight:700}.drt td.bad{color:#dc2626;font-weight:700}
+@media (max-width:1100px){ .dgrid{grid-template-columns:1fr 1fr} }
+@media (max-width:640px){ .dgrid{grid-template-columns:1fr} .crumb button{font-size:17px} }
+.dm em b{font-size:inherit;font-weight:750;letter-spacing:0;color:var(--ink)}.dm b.txt{font-size:15px;line-height:1.3}
+.drh .seg{flex:none}.drh .seg button{flex:none;padding-left:14px;padding-right:14px}
+@media (max-width:640px){ .drt th:nth-child(n+6),.drt td:nth-child(n+6){display:none} .drt td,.drt th{padding-left:4px;padding-right:4px} }

@@ -101,7 +101,7 @@ print('výška Dnes na 390 px:', DNES_H, 'px (cíl ≤ 1 800)', 'OK' if DNES_H<=
 with sync_playwright() as p2:
     b2=p2.chromium.launch(); pg=b2.new_page(viewport={'width':1440,'height':800},locale='cs-CZ',timezone_id='Europe/Prague'); pg.goto(URL); pg.wait_for_timeout(200); pg.evaluate(SETUP); pg.evaluate("localLogin('coach');render()")
     vys=[]
-    for v,sel in [('klient','.wcheck'),('klient','.hgrid svg'),('nastaveni','.ptl'),('trenink','.tmgrid')]:
+    for v,sel in [('klient','.wcheck'),('klient','.drill svg'),('nastaveni','.ptl'),('trenink','.tmgrid')]:
         pg.evaluate(f"go('{v}')"); pg.wait_for_timeout(150)
         vys.append((v+' '+sel, pg.evaluate(f"(()=>{{const e=document.querySelector('#main {sel}');return e?Math.round(e.getBoundingClientRect().top+Math.min(e.getBoundingClientRect().height,240)):9999}})()")))
     b2.close()

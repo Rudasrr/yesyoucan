@@ -353,14 +353,16 @@ function periodStats(from, to) {
   const s = S(), t = todayISO(); if (from < s.start_date) from = s.start_date;
   if (from > to) return { empty: true };
   const end = to < t ? to : addDays(t, -1); const uid = Store.ownerId(); const by = Object.fromEntries(Store.rows('days', uid).map(r => [r.data.date, r.data]));
-  const R = { from, to, n: 0, conf: 0, inLimit: 0, over: 0, def: 0, defPlan: 0, walk: 0, walkPlan: 0, steps: 0, stepsN: 0, trPlan: 0, trDone: 0, weigh: 0, wDays: 0 };
+  const R = { from, to, n: 0, conf: 0, inLimit: 0, over: 0, def: 0, defPlan: 0, walk: 0, walkPlan: 0, steps: 0, stepsN: 0, trPlan: 0, trDone: 0, weigh: 0, wDays: 0, intake: 0, lim: 0, cheat: 0, protOk: 0, logged: 0 };
   for (let dt = from; dt <= end; dt = addDays(dt, 1)) { R.n++;
     const ap = dayActivityPlan(dt); if ((ap.items || []).length) R.trPlan++;
     if (!by[dt]) continue;   // nezapsaný den: chůze se neví, ne „neušel“
     const ev = evaluateDay(dt), B = ev.d.base; if (ev.logged) { R.walkPlan += B.planWalk; R.walk += ev.day.walk_min || 0; }
     if (B.planKcal > 0 && B.doneKcal >= B.planKcal * 0.5) R.trDone++;
     const bk = daySteps(ev.day); if (bk != null) { R.stepsN++; R.steps += bk; }
-    if (ev.confirmed) { R.conf++; if (ev.cheats.over) R.over++; else R.inLimit++; R.def += B.totalOut - ev.d.intake; R.defPlan += B.deficit; } }
+    if (ev.logged) R.logged++;
+    if (ev.confirmed) { R.conf++; if (ev.cheats.over) R.over++; else R.inLimit++; R.def += B.totalOut - ev.d.intake; R.defPlan += B.deficit;
+      R.intake += ev.d.intake; R.lim += B.maxIntake; R.cheat += B.cheatKcal || 0; if (ev.d.tot.p >= (ev.d.protTarget || 0)) R.protOk++; } }
   const ms = calcMeasurements(s, Meas()); const inP = ms.filter(r => r.date >= from && r.date <= (to < t ? to : t)); R.wDays = daysBetween(from, to < t ? to : t) + 1; R.weigh = inP.length;
   const len = daysBetween(from, to) + 1; const prev = ms.filter(r => r.date >= addDays(from, -len) && r.date < from);
   const avg = a => a.length ? a.reduce((x, r) => x + r.weight, 0) / a.length : null;
@@ -570,6 +572,9 @@ function adviceBox(field) { const list = settingsAdvice().filter(a => a.field ==
    U každého prvku, jehož význam není jasný z názvu, je „?“. Ťuknutí ukáže 2–4 věty:
    co to dělá · kdy to použít · doporučení. Texty jsou jen tady – Návod z nich vychází. */
 const HELP = {
+  dVaha: { t: 'Váha za období', co: 'Kolik Robert shodil za vybrané období (průměr 7 vážení na začátku proti konci) a kolik měl podle tempa za stejné dny. Cíl se počítá z jeho váhy na začátku období, takže měsíc se porovnává s měsíčním cílem. Přestávka v deficitu má cíl nula.' },
+  dKDnesku: { t: 'Od startu k datu', co: 'Kolik má Robert od startu shozeno k poslednímu vážení v období a kolik měl mít podle plánové křivky. Rozdíl v kilech je to, co Robertovi k plánu chybí nebo co má navíc.' },
+  dDeficit: { t: 'Deficit za období', co: 'Součet skutečného deficitu z potvrzených dnů proti plánovanému. 7 700 kcal ≈ 1 kg tuku. Nepotvrzené dny se nepočítají – appka u nich neví, co snědl.' },
   // trenér · Plán
   cilVaha: { t: 'Cílová váha', co: 'Kam Robert míří. Z ní a z tempa appka počítá, kdy cíle dosáhne podle plánu.', tip: 'Cíl nad BMI 30 je mezikrok – po dosažení nastav další.' },
   cilPas: { t: 'Cílový pas', co: 'Obvod pasu, ke kterému Robert míří.', tip: 'Zdravotní hranice je polovina výšky.' },
