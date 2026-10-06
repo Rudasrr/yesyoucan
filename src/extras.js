@@ -236,6 +236,7 @@ function signaly() {
   if (tydnu >= 8) push(2, `${tydnu} týdnů bez udržovacího týdne. Po osmi týdnech deficitu se vyplatí jeden týden na nule.`, { key: 'udrz', em: '⏸️', go: "go('nastaveni')", label: 'Zařadit' });
   const apl = activePlanFor(t); const naDatum = Array.from({ length: 14 }, (_, i) => addDays(t, i)).some(d => trainingOverride(d));
   if (!apl && !naDatum) push(3, `Žádný tréninkový plán – Robert jede na výchozích ${s.walk_min} min chůze.`, { key: 'trenink', em: '🏋️', go: "go('trenink')", label: 'Trénink' });
+  const gs = goalSignal(); if (gs) push(gs.lv, gs.text, gs);
   return out.sort((a, b) => a.lv - b.lv);
 }
 
@@ -572,6 +573,7 @@ function adviceBox(field) { const list = settingsAdvice().filter(a => a.field ==
    U každého prvku, jehož význam není jasný z názvu, je „?“. Ťuknutí ukáže 2–4 věty:
    co to dělá · kdy to použít · doporučení. Texty jsou jen tady – Návod z nich vychází. */
 const HELP = {
+  terminCile: { t: 'Termín cíle', co: 'Do kdy má Robert cílové váhy dosáhnout. Appka podle něj spočítá nejnižší tempo, které termín stihne (s přestávkou po 8 týdnech deficitu), a hlídá, jestli ho Robert plní. Bez termínu se bere datum z plánu.' },
   dVaha: { t: 'Váha za období', co: 'Kolik Robert shodil za vybrané období (průměr 7 vážení na začátku proti konci) a kolik měl podle tempa za stejné dny. Cíl se počítá z jeho váhy na začátku období, takže měsíc se porovnává s měsíčním cílem. Přestávka v deficitu má cíl nula.' },
   dKDnesku: { t: 'Od startu k datu', co: 'Kolik má Robert od startu shozeno k poslednímu vážení v období a kolik měl mít podle plánové křivky. Rozdíl v kilech je to, co Robertovi k plánu chybí nebo co má navíc.' },
   dDeficit: { t: 'Deficit za období', co: 'Součet skutečného deficitu z potvrzených dnů proti plánovanému. 7 700 kcal ≈ 1 kg tuku. Nepotvrzené dny se nepočítají – appka u nich neví, co snědl.' },
@@ -620,3 +622,53 @@ const HELP = {
 function hq(key) { return HELP[key] ? `<button class="hq" type="button" onclick="event.stopPropagation();A.help(this,'${key}')" aria-label="nápověda: ${esc(HELP[key].t)}">?</button>` : ''; }
 A.help = (el, key) => { const h = HELP[key]; if (!h) return;
   UI.popHtml(el, `<b>${esc(h.t)}</b><div>${esc(h.co)}</div>${h.kdy ? `<div><b class="hk">Kdy:</b> ${esc(h.kdy)}</div>` : ''}${h.tip ? `<div><b class="hk">Doporučení:</b> ${esc(h.tip)}</div>` : ''}`); };
+
+/* ===== Dosažitelnost cíle (6. 10. 2026) =====
+   Trenér potřebuje vědět dvě věci: jde cíl v termínu stihnout, a když Robert neplní, co
+   změnit. Simulace týden po týdnu od dnešního průměru: deficit = tempo × váha, nejvýš
+   tolik, aby jídlo nekleslo pod spodní hranici; volitelně přestávka (týden na nule) po
+   každých 8 týdnech deficitu; „plnění“ = jaká část plánovaného deficitu se opravdu stane. */
+function simGoal(rate, adh, brk, w0, from) {
+  const s = S(); let w = w0, d = from, dw = 0, pause = false;
+  for (let k = 0; k < 520; k++) {
+    if (w <= s.goal_weight) return d;
+    if (brk && dw > 0 && dw % 8 === 0 && !pause) { pause = true; d = addDays(d, 7); continue; }
+    pause = false;
+    const b = calcBase(s, w, s.walk_min, 0, s.walk_kmh, 0, 0);
+    const def = Math.min(rate / 100 * w * KG_KCAL / 7, Math.max(0, b.totalOut - b.floor));
+    w -= def * 7 / KG_KCAL * adh; dw++; d = addDays(d, 7);
+  }
+  return null;
+}
+function goalCheck() {
+  const s = S(), t = todayISO(), ov = calcOverview(s, Meas()), tr = trend21();
+  if (!tr || s.maintain || ov.cur <= s.goal_weight) return null;
+  const w = ov.cur, from = addDays(s.start_date, tr.from), to = addDays(s.start_date, tr.at), len = Math.max(1, daysBetween(from, to));
+  // plán za stejné dny jako trend – s tempem, které tehdy platilo (přestávka = 0)
+  let pk = 0; for (let d = from; d < to; d = addDays(d, 1)) pk += w * effSettings(s, d).rate_pct / 100 / 7;
+  const planWk = pk / len * 7, planNow = w * effSettings(s, t).rate_pct / 100;
+  const adh = planWk > 0.05 ? Math.max(0, tr.perWeek / planWk) : 1;
+  const target = s.goal_date || planEnd();
+  // nejnižší tempo do 1 % (bezpečné maximum), které termín stihne s přestávkami po 8 týdnech
+  let req = null; for (let r = 0.4; r <= 1.0001; r += 0.05) { const dd = simGoal(r, 1, true, w, t); if (dd && dd <= target) { req = Math.round(r * 100) / 100; break; } }
+  const recRate = req == null ? 1 : Math.max(0.5, req);
+  const R = periodStats(from, to);
+  const b = calcBase(s, w, s.walk_min, 0, s.walk_kmh, 0, 0);
+  return { w, tr, planWk, planNow, adh, target, hasDate: !!s.goal_date, req, recRate, R,
+    gapKcal: Math.max(0, (planWk - tr.perWeek) * KG_KCAL / 7),
+    dCur: simGoal(s.rate_pct, 1, false, w, t), dCurAdh: simGoal(s.rate_pct, Math.min(1, adh), false, w, t),
+    dRec: simGoal(recRate, 1, true, w, t), dRec80: simGoal(recRate, 0.8, true, w, t), dTrend: goalForecast(s, ov).date || null,
+    factorRisk: R.stepsN < 5 && !b.autoSteps ? Math.round(b.bmr * (s.activity - 1.2)) : 0, bmr: b.bmr };
+}
+/* signál pro trenéra: neplní plán → co změnit a proč (jeden řádek, detail v listu) */
+function goalSignal() {
+  const g = goalCheck(); if (!g || g.tr.n < 10) return null;
+  const late = g.dTrend && g.target ? daysBetween(g.target, g.dTrend) : 0;
+  if (g.adh >= 0.8 && late <= 28) return null;
+  const blind = g.R.conf < g.R.n * 0.5;
+  const why = blind ? `Příčinu appka neurčí – za poslední 3 týdny ${g.R.conf} potvrzených dnů a ${g.R.stepsN}× kroky, neví, jestli jí víc, nebo se hýbe míň.` : 'Rozbor příčin je v Průběhu a v Co řešit.';
+  const rec = !g.hasDate ? `Zadej v Plánu termín cíle – appka spočítá, jaké tempo na něj stačí.` : g.req == null ? `Termín ${czDate(g.target)} je i s tempem 1 % nereálný – posuň ho.` : g.adh < 0.8 ? `Zvyšovat tempo nepomůže, dokud plní ${Math.round(g.adh * 100)} % plánu. Tempo ${String(g.recRate).replace('.', ',')} % s přestávkou po 8 týdnech stihne ${czDate(g.target)}, když plán dodrží.` : `Na termín ${czDate(g.target)} stačí tempo ${String(g.recRate).replace('.', ',')} % s přestávkami.`;
+  return { lv: g.adh < 0.6 || late > 60 ? 1 : 2, key: 'cilcheck', em: '🎯', head: `Hubne ${fmt2(g.tr.perWeek)} kg/týden místo ${fmt2(g.planWk)} – plní plán na ${Math.round(g.adh * 100)} %.`,
+    text: `Chybí ~${fmt0(g.gapKcal)} kcal deficitu denně, cíl se tímhle tempem posouvá na ${g.dTrend ? czDate(g.dTrend) : 'neurčito'}${late > 0 ? ` (${ymd(g.target, g.dTrend).short} po termínu)` : ''}. ${why} ${rec}`,
+    go: 'A.goalCheckSheet()', label: 'Co změnit' };
+}

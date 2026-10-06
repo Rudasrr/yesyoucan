@@ -816,3 +816,5 @@ svg.pchart{width:100%;height:auto;display:block}
 .dm em b{font-size:inherit;font-weight:750;letter-spacing:0;color:var(--ink)}.dm b.txt{font-size:15px;line-height:1.3}
 .drh .seg{flex:none}.drh .seg button{flex:none;padding-left:14px;padding-right:14px}
 @media (max-width:640px){ .drt th:nth-child(n+6),.drt td:nth-child(n+6){display:none} .drt td,.drt th{padding-left:4px;padding-right:4px} }
+.gcl{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:10px;font-size:14px;line-height:1.45}.gcl li .btn{margin-top:6px}
+.dinp{font:inherit;font-size:14px;padding:6px 8px;border:1px solid var(--line);border-radius:10px;background:#fff}
