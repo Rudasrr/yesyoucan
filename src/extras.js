@@ -594,6 +594,9 @@ function adviceBox(field) { const list = settingsAdvice().filter(a => a.field ==
    U každého prvku, jehož význam není jasný z názvu, je „?“. Ťuknutí ukáže 2–4 věty:
    co to dělá · kdy to použít · doporučení. Texty jsou jen tady – Návod z nich vychází. */
 const HELP = {
+  trPrumer: { t: 'Průměrný den', co: 'Jak vypadá Robertův běžný den v zobrazeném období: kolik minut se hýbe, kolik kcal spálí navíc a jaký má limit jídla. Pro plánování je užitečnější než součty – den musí jít vydržet.' },
+  trPartie: { t: 'Partie těla', co: 'Kolik sérií týdně dostane každá partie (hlavní partie cviku celá série, vedlejší polovina). Pro začátečníka 6–12 sérií týdně. Pod 3 se partie nerozvíjí, nad 14 roste únava a riziko přetížení.' },
+  trNavrh: { t: 'Kontrola plánu', co: 'Appka projde naplánované dny a navrhne konkrétní úpravu: chybějící nebo přetíženou partii, stejnou partii dva dny po sobě, týden bez volna, den s málo pohybem. Přijmout = uloží se, Upravit = otevře den, Zamítnout = už se neukáže. Vše jde vrátit v Historii změn.' },
   krokyAH: { t: 'Kroky z Apple Health', co: 'Když Robert kroky nezapisuje denně, zadej průměr z Health za období (Health → Kroky → M nebo 6 M, ťukni na období). Appka z něj spočítá běžný výdej a v Rozboru cíle skutečnou bilanci. Označ, jestli průměr obsahuje plánovanou chůzi – odečte se.' },
   terminCile: { t: 'Termín cíle', co: 'Do kdy má Robert cílové váhy dosáhnout. Appka podle něj spočítá nejnižší tempo, které termín stihne (s přestávkou po 8 týdnech deficitu), a hlídá, jestli ho Robert plní. Bez termínu se bere datum z plánu.' },
   dVaha: { t: 'Váha za období', co: 'Kolik Robert shodil za vybrané období (průměr 7 vážení na začátku proti konci) a kolik měl podle tempa za stejné dny. Cíl se počítá z jeho váhy na začátku období, takže měsíc se porovnává s měsíčním cílem. Přestávka v deficitu má cíl nula.' },

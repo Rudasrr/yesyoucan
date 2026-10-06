@@ -1,3 +1,4 @@
+MUS_MIN_PY=6
 from playwright.sync_api import sync_playwright
 import os; URL='file://'+os.path.abspath(os.path.join(os.path.dirname(__file__),'..','out','index.html'))
 with sync_playwright() as p:
@@ -228,5 +229,16 @@ with sync_playwright() as p:
     l0=q.evaluate("Math.round(limitToday(S()).planLimit)"); q.evaluate("A.applyOutAdj(-150)"); q.click('#cy'); q.wait_for_timeout(100); l1=q.evaluate("Math.round(limitToday(S()).planLimit)")
     print('korekce výdeje −150:', l0, '→', l1)
     if l0-l1 != 150: errs.append('preplan: korekce výdeje nesedí')
+    # trénink do hloubky: souhrn dne, návrh měsíce vyvážený, kontrola plánu najde dvě stejné partie po sobě
+    tr=q.evaluate("""(()=>{const m=monthStart(addDays(todayISO(),35)); App.trMonth=m; const p=trProposeMonth(m); const ds=Object.keys(p.days).sort();
+      const wk=ds.filter(d=>mondayOf(d)===mondayOf(ds[7])); const mus={}; wk.forEach(d=>Object.entries(trStats(p.days[d],130,d).mus).forEach(([k,v])=>mus[k]=(mus[k]||0)+v));
+      const st=trStats({walk_min:60,items:[trNewItem({ex:'Dřep',type:'strength',sets:3,reps:10})]},130);
+      ds.forEach(d=>Store.put('training',oid('to',d),p.days[d])); const d1=ds.find(d=>dayIndex(d)===1); [d1,addDays(d1,1)].forEach(d=>{const x=trDayData(d);x.items=[trNewItem({ex:'Dřep',type:'strength',sets:5,reps:10})];Store.put('training',oid('to',d),x)});
+      const adv=trAdvice(Array.from({length:7},(_,i)=>addDays(mondayOf(d1),i))).map(a=>a.key.split(':')[0]);
+      return JSON.stringify({minMus:Math.min(...PARTIE.map(([k])=>mus[k]||0)), trMin:st.trMin, total:st.totalMin, sets:st.sets, adv})})()""")
+    print('trénink do hloubky:', tr)
+    import json as _j; _t=_j.loads(tr)
+    if _t['minMus']<MUS_MIN_PY: errs.append('trénink: návrh měsíce nechává partii pod 6 sérií')
+    if 'po-sobe' not in _t['adv']: errs.append('trénink: kontrola nenašla partii dva dny po sobě')
     q.close()
     print('errors:', errs or 'none'); b.close()
