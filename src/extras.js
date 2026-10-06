@@ -236,7 +236,8 @@ function signaly() {
   if (tydnu >= 8) push(2, `${tydnu} týdnů bez udržovacího týdne. Po osmi týdnech deficitu se vyplatí jeden týden na nule.`, { key: 'udrz', em: '⏸️', go: "go('nastaveni')", label: 'Zařadit' });
   const apl = activePlanFor(t); const naDatum = Array.from({ length: 14 }, (_, i) => addDays(t, i)).some(d => trainingOverride(d));
   if (!apl && !naDatum) push(3, `Žádný tréninkový plán – Robert jede na výchozích ${s.walk_min} min chůze.`, { key: 'trenink', em: '🏋️', go: "go('trenink')", label: 'Trénink' });
-  const gs = goalSignal(); if (gs) push(gs.lv, gs.text, gs);
+  const rs = replanSignal(); if (rs) push(rs.lv, rs.text, rs);
+  const gs = rs ? null : goalSignal(); if (gs) push(gs.lv, gs.text, gs);
   { const t2 = todayISO(), past = sitStats(addDays(t2, -14), addDays(t2, -1)), fut = sitStats(t2, addDays(t2, 6)); const X = past.n >= 10 ? past : fut;
     if (X.n >= 10 && X.unk >= 4 && X.share >= 0.15) push(2, `${X.unk} z ${X.n} jídel ${X === past ? 'za 14 dní' : 'v plánu na týden'} je „podle situace“ bez zápisu – appka za ně počítá cíl chodu, skutečnost bývá vyšší. Při typickém jídle venku (+50 %) je to ~${fmt0(X.targetKcal * 0.5 / (X === past ? 14 : 7))} kcal denně navíc, které nikde nejsou vidět. Ať je Robert večer jedním ťuknutím odhadne (lehké · jako plán · vydatné · hodně), nebo si je naplánuje.`, { key: 'situace', em: '🎲', head: `${Math.round(X.share * 100)} % jídel „podle situace“ bez zápisu`, kde: [] }); }
   return out.sort((a, b) => a.lv - b.lv);
@@ -669,7 +670,7 @@ function goalCheck() {
   let pk = 0; for (let d = from; d < to; d = addDays(d, 1)) pk += w * effSettings(s, d).rate_pct / 100 / 7;
   const planWk = pk / len * 7, planNow = w * effSettings(s, t).rate_pct / 100;
   const adh = planWk > 0.05 ? Math.max(0, tr.perWeek / planWk) : 1;
-  const target = s.goal_date || planEnd();
+  const target = goalTermin();
   // nejnižší tempo do 1 % (bezpečné maximum), které termín stihne s přestávkami po 8 týdnech
   let req = null; for (let r = 0.4; r <= 1.0001; r += 0.05) { const dd = simGoal(r, 1, true, w, t); if (dd && dd <= target) { req = Math.round(r * 100) / 100; break; } }
   const recRate = req == null ? 1 : Math.max(0.5, req);
@@ -701,7 +702,7 @@ function goalSignal() {
   if (g.adh >= 0.8 && late <= 28) return null;
   const blind = g.R.conf < g.R.n * 0.5; const E = g.energy;
   const why = E ? (E.over > 150 ? `Pohyb sedí (${fmt0(E.steps)} kroků denně podle ${E.src}, plán ${fmt0(E.stepsPlan)}), potíž je jídlo: z výdeje a úbytku vychází příjem ~${fmt0(E.intake)} kcal denně, limit byl ${fmt0(E.limit)} – o ~${fmt0(E.over)} kcal víc.` : `Příjem podle výdeje a úbytku sedí s limitem (~${fmt0(E.intake)} kcal) – rozdíl je spíš voda nebo výdej, počkej na další týden vážení.`) : blind ? `Příčinu appka neurčí – za poslední 3 týdny ${g.R.conf} potvrzených dnů a ${g.R.stepsN}× kroky, neví, jestli jí víc, nebo se hýbe míň.` : 'Rozbor příčin je v Průběhu a v Co řešit.';
-  const rec = !g.hasDate ? `Zadej v Plánu termín cíle – appka spočítá, jaké tempo na něj stačí.` : g.req == null ? `Termín ${czDate(g.target)} je i s tempem 1 % nereálný – posuň ho.` : g.adh < 0.8 ? `Zvyšovat tempo nepomůže, dokud plní ${Math.round(g.adh * 100)} % plánu. Tempo ${String(g.recRate).replace('.', ',')} % s přestávkou po 8 týdnech stihne ${czDate(g.target)}, když plán dodrží.` : `Na termín ${czDate(g.target)} stačí tempo ${String(g.recRate).replace('.', ',')} % s přestávkami.`;
+  const rec = !g.hasDate ? `Zadej v Plánu termín cíle – appka spočítá, jaké tempo na něj stačí.` : g.req == null ? `Termín ${czDate(g.target)} je i s tempem 1 % nereálný – rozhodni v Přeplánovat.` : g.adh < 0.8 ? `Zvyšovat tempo nepomůže, dokud plní ${Math.round(g.adh * 100)} % plánu. Tempo ${String(g.recRate).replace('.', ',')} % s přestávkou po 8 týdnech stihne ${czDate(g.target)}, když plán dodrží.` : `Na termín ${czDate(g.target)} stačí tempo ${String(g.recRate).replace('.', ',')} % s přestávkami.`;
   return { lv: g.adh < 0.6 || late > 60 ? 1 : 2, key: 'cilcheck', em: '🎯', head: `Hubne ${fmt2(g.tr.perWeek)} kg/týden místo ${fmt2(g.planWk)} – plní plán na ${Math.round(g.adh * 100)} %.`,
     text: `Chybí ~${fmt0(g.gapKcal)} kcal deficitu denně, cíl se tímhle tempem posouvá na ${g.dTrend ? czDate(g.dTrend) : 'neurčito'}${late > 0 ? ` (${ymd(g.target, g.dTrend).short} po termínu)` : ''}. ${why} ${rec}`,
     go: 'A.goalCheckSheet()', label: 'Co změnit' };
@@ -713,3 +714,55 @@ function sitStats(from, to) { const s = S(); let n = 0, sit = 0, est = 0, kc = 0
   for (let d = from; d <= to; d = addDays(d, 1)) { const day = effectiveDay(d); s.courses.forEach(c => { const m = (day.meals || {})[c.key] || {}; if (!m.sel || m.sel === VYNECHAT) return; n++;
     if (m.sel === SITUACE) { sit++; if (m.est || (m.extra || []).length) est++; else kc += c.kcal * (calcBase(effSettings(s, d), currentWeight(), s.walk_min, 0, s.walk_kmh, 0, 0).planLimit) / courseTargetSum(s); } }); }
   return { n, sit, est, unk: sit - est, share: n ? sit / n : 0, targetKcal: kc }; }
+
+/* ===== Přeplánování při dlouhodobém neplnění (7. 10. 2026) =====
+   Cíl trenéra je, aby Robert cíle DOSÁHL – appka proto nikdy nenabízí posun cíle jako první
+   řešení. Po 4 týdnech pod 70 % plánu rozliší příčinu:
+   1 nezapisuje → nejdřív zápisy · 2 zapisuje a drží limit, a hubne pomaleji → tělo pálí míň,
+   než říká vzorec: korekce výdeje (limit dolů, termín drží) · 3 limit nedrží → oprava příčiny
+   a plán od dneška se STEJNÝM termínem (tempo dohání ztrátu, nejvýš 1 %). Posun termínu jen
+   když už ho nejde bezpečně stihnout – výslovně, s potvrzením a počítadlem posunů. */
+const REPLAN_DAYS = 28, REPLAN_ADH = 0.7;
+function trendN(days) {
+  const rows = calcMeasurements(S(), Meas()); if (!rows.length) return null;
+  const last = rows[rows.length - 1]; const r = rows.filter(x => x.idx > last.idx - days); if (r.length < 8) return null;
+  const mx = r.reduce((t, x) => t + x.idx, 0) / r.length, my = r.reduce((t, x) => t + x.weight, 0) / r.length;
+  const sxx = r.reduce((t, x) => t + (x.idx - mx) ** 2, 0); if (!sxx) return null;
+  const slope = r.reduce((t, x) => t + (x.idx - mx) * (x.weight - my), 0) / sxx;
+  return { perWeek: -slope * 7, from: r[0].idx, at: last.idx, n: r.length };
+}
+/* termín, který se drží: zadaný, jinak konec prvního plánu */
+function goalTermin() { const s = S(); if (s.goal_date) return s.goal_date; const p0 = planPathFirst(); return p0 ? addDays(s.start_date, p0.length - 1) : planEnd(); }
+function terminPosuny() { return (S().log || []).filter(l => l.k === 'goal_date' && l.from && l.to && l.to > l.from).length; }
+function replanCheck() {
+  const s = S(), t = todayISO(); if (s.maintain) return null;
+  const tr = trendN(REPLAN_DAYS); if (!tr || daysBetween(s.start_date, t) < REPLAN_DAYS) return null;
+  const w = currentWeight(), from = addDays(s.start_date, tr.from), to = addDays(s.start_date, tr.at), len = Math.max(1, daysBetween(from, to));
+  let pk = 0; for (let d = from; d < to; d = addDays(d, 1)) pk += w * effSettings(s, d).rate_pct / 100 / 7;
+  const planWk = pk / len * 7; const adh = planWk > 0.05 ? tr.perWeek / planWk : 1;
+  if (adh >= REPLAN_ADH) return null;
+  // potvrzené dny: příjem proti limitu a výdej podle modelu
+  let conf = 0, inS = 0, limS = 0, outS = 0;
+  for (let d = from; d < to; d = addDays(d, 1)) { const ev = evaluateDay(d); if (!ev.confirmed) continue; conf++; inS += ev.d.intake; limS += ev.d.base.maxIntake; outS += ev.d.base.totalOut; }
+  const realDef = tr.perWeek * KG_KCAL / 7;
+  const sit = conf < len * 0.5 ? 1 : (inS - limS) / conf <= 100 ? 2 : 3;
+  const out = { tr, planWk, adh, conf, len, sit, w, realDef, termin: goalTermin(), posuny: terminPosuny() };
+  if (conf) { out.intake = inS / conf; out.limit = limS / conf; out.model = outS / conf; out.realOut = out.intake + realDef; }
+  if (sit === 2) { const c = Math.round((out.realOut - out.model) / 10) * 10; out.corr = Math.max(-600, Math.min(300, c)); }
+  // dohnat termín od dneška: nejnižší tempo s přestávkami, které ho stihne (nejvýš 1 %)
+  out.req = null; for (let r = 0.4; r <= 1.0001; r += 0.05) { const dd = simGoal(r, 1, true, w, t); if (dd && dd <= out.termin) { out.req = Math.round(r * 100) / 100; break; } }
+  out.brk = true;
+  if (out.req == null) for (let r = 0.4; r <= 1.0001; r += 0.05) { const dd = simGoal(r, 1, false, w, t); if (dd && dd <= out.termin) { out.req = Math.round(r * 100) / 100; out.brk = false; break; } }
+  out.nej = simGoal(1, 1, true, w, t);
+  if (out.req != null) { const act = planActFor(t, w), es = effSettings(s, t); const b0 = calcBase(es, w, act.planWalk, 0, s.walk_kmh, 0, 0, act), b1 = calcBase({ ...es, rate_pct: out.req }, w, act.planWalk, 0, s.walk_kmh, 0, 0, act); out.limitNow = b0.planLimit; out.limitReq = b1.planLimit; }
+  return out;
+}
+function replanSignal() {
+  const r = replanCheck(); if (!r) return null;
+  const pct = Math.round(r.adh * 100);
+  const head = `${Math.round(r.len / 7)} týdny pod 70 % plánu (plní ${pct} %) – přeplánovat s termínem ${czDate(r.termin)}`;
+  const txt = r.sit === 1 ? `Robert nezapisuje (${r.conf} z ${r.len} dnů potvrzených) – nejdřív zápisy, jinak nejde poznat, co opravit. Termín ${czDate(r.termin)} drží ${r.req != null ? `tempo ${String(r.req).replace('.', ',')} %` : 'už jen s posunem'}.`
+    : r.sit === 2 ? `Zapisuje a drží limit, a hubne pomaleji: skutečný výdej vychází o ~${fmt0(-r.corr)} kcal nižší, než počítá vzorec. Oprav výdej – limit klesne, termín zůstane.`
+    : `Limit nedrží (~${fmt0(r.intake - r.limit)} kcal denně navíc). Nejdřív oprav příčinu; plán od dneška ${r.req != null ? `s tempem ${String(r.req).replace('.', ',')} % stihne termín ${czDate(r.termin)}` : 'termín bezpečně nestihne'}.`;
+  return { lv: 1, key: 'preplan', em: '🧭', head, text: txt, go: 'A.replanSheet()', label: 'Přeplánovat' };
+}

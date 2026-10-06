@@ -82,8 +82,11 @@ function calcBase(s, weight, walkMin, exerMin, walkKmh, beers, friedG, act, extr
   /* act.stepsBase = průměr běžných kroků za 14 dní (ráno a pro plán), act.stepsReal = dnešní skutečnost
      (až Robert kroky zapíše nebo přijdou z Apple Health). Bez dat o krocích platí faktor jako ve sešitu. */
   const kps = kcalPerStep(weight), autoSteps = act.stepsBase != null;
-  const baseOut = autoSteps ? bmr * SED + act.stepsBase * kps : bmr * s.activity;
-  const baseOutReal = autoSteps && act.stepsReal != null ? bmr * SED + act.stepsReal * kps : baseOut;
+  /* korekce výdeje podle skutečnosti (7. 10. 2026, settings.out_adj, schvaluje trenér): když Robert
+     zapisuje, drží limit a přesto hubne pomaleji, tělo pálí méně, než říká vzorec. Bez ní 0 – sešit. */
+  const outAdj = Number(s.out_adj) || 0;
+  const baseOut = (autoSteps ? bmr * SED + act.stepsBase * kps : bmr * s.activity) + outAdj;
+  const baseOutReal = autoSteps && act.stepsReal != null ? bmr * SED + act.stepsReal * kps + outAdj : baseOut;
   const kmh = walkKmh || s.walk_kmh;
   const walkPerMin = (metFor(kmh, s.met) - 1) * 3.5 * weight / 200;
   const exerPerMin = 2.5 * 3.5 * weight / 200;
@@ -112,7 +115,7 @@ function calcBase(s, weight, walkMin, exerMin, walkKmh, beers, friedG, act, extr
   const walkToBmr = belowBmr ? Math.ceil((floor - maxIntakeRaw) / walkPerMin) : 0;
   const drinkKcal = cheatKcal;
   const foodBudget = Math.max(600, planLimit - drinkKcal);
-  return { bmr, floor, baseOut, baseOutReal, autoSteps, stepsBase: autoSteps ? act.stepsBase : null, stepsReal: autoSteps ? act.stepsReal : null, effFactor: baseOut / bmr, kps, cheatPopis: cheatText || '', walkPerMin, exerPerMin, totalOut: totalOutRaw, minOut, deficit, maxIntake, maxIntakeRaw, planLimit, drinkKcal, foodBudget, kmh, planWalk, planWalkBase, cheatKcal, cheatWalk, cheatWalkFull, cheatCovered, cheatRest, cheatCoverable, belowBmr, planBelowBmr, walkToBmr, effDeficit: totalOutRaw - maxIntake, planKcal: act.planKcal || 0, doneKcal: act.doneKcal || 0 };
+  return { bmr, floor, baseOut, baseOutReal, outAdj, autoSteps, stepsBase: autoSteps ? act.stepsBase : null, stepsReal: autoSteps ? act.stepsReal : null, effFactor: baseOut / bmr, kps, cheatPopis: cheatText || '', walkPerMin, exerPerMin, totalOut: totalOutRaw, minOut, deficit, maxIntake, maxIntakeRaw, planLimit, drinkKcal, foodBudget, kmh, planWalk, planWalkBase, cheatKcal, cheatWalk, cheatWalkFull, cheatCovered, cheatRest, cheatCoverable, belowBmr, planBelowBmr, walkToBmr, effDeficit: totalOutRaw - maxIntake, planKcal: act.planKcal || 0, doneKcal: act.doneKcal || 0 };
 }
 /* ===== Tolerance dne =====
    O kolik smi den prelezt limit, aniz to appka hlasi jako chybu. Dve veci ji urcuji:
@@ -247,7 +250,7 @@ function settingsAt(s, date) {
   const r = { ...s }; for (let i = later.length - 1; i >= 0; i--) if (later[i].k in SETTINGS_AT_KEYS) r[later[i].k] = later[i].from;
   return r;
 }
-const SETTINGS_AT_KEYS = { factor_lock: 1, maintain: 1, rate_pct: 1, walk_min: 1, protein_min: 1, activity: 1, walk_kmh: 1, steps_goal: 1, height: 1, age: 1 };
+const SETTINGS_AT_KEYS = { out_adj: 1, factor_lock: 1, maintain: 1, rate_pct: 1, walk_min: 1, protein_min: 1, activity: 1, walk_kmh: 1, steps_goal: 1, height: 1, age: 1 };
 function effSettings(s0, date) { const s = settingsAt(s0, date); return isMaintWeek(s, date) || s.maintain ? { ...s, rate_pct: 0 } : s; }
 function calcDay(s0, foods, recipes, day, weight) {
   const s = effSettings(s0, day.date);
