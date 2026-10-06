@@ -1,5 +1,6 @@
 /* ===== Výpočty – 1:1 podle sešitu robert-plan_4_0.xlsx ===== */
 const SITUACE = '«vyřeším podle situace»';
+const SIT_EST = { lehke: { k: 0.7, l: 'lehké' }, plan: { k: 1, l: 'jako plán' }, vydatne: { k: 1.5, l: 'vydatné' }, hodne: { k: 2, l: 'hodně' } };
 const VYNECHAT = '— (vynechat)';
 const BEER_KCAL = 205;      // kcal za 0,5 l 12°  (Dnešní den!E24*205)
 const FRIED_KCAL_G = 2.9;   // kcal/g smaženého  (Dnešní den!E25*2.9)
@@ -144,6 +145,9 @@ function calcCourse(s, foods, recipes, course, sel, edits, budget) {
       out.items.push(row); out.kcal += row.kcal; out.p += row.p; out.c += row.c; out.f += row.fat;
       out.g += row.g; out.gc += cookedG(row.food, row.g); });
     if (out.items.length) { out.zapsano = true; out.hint = `zapsáno ${fmt0(out.kcal)} kcal · cíl byl ${fmt0(cTarget)} kcal`; }
+    /* rychlý odhad jedním ťuknutím (7. 10. 2026): kolikrát cíl chodu to asi bylo. Bez něj se
+       za „podle situace“ počítal cíl a jídlo mimo plán v součtu dne nikdy nebylo vidět. */
+    else if (edits && SIT_EST[edits.est]) { out.kcal = cTarget * SIT_EST[edits.est].k; out.zapsano = true; out.odhad = edits.est; out.hint = `odhad: ${SIT_EST[edits.est].l} ≈ ${fmt0(out.kcal)} kcal · cíl ${fmt0(cTarget)}`; }
     else { out.kcal = cTarget; out.hint = `cíl ${fmt0(cTarget)} kcal · vyřešíš podle situace`; }
     return out;
   }

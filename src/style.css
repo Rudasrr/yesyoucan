@@ -818,3 +818,4 @@ svg.pchart{width:100%;height:auto;display:block}
 @media (max-width:640px){ .drt th:nth-child(n+6),.drt td:nth-child(n+6){display:none} .drt td,.drt th{padding-left:4px;padding-right:4px} }
 .gcl{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:10px;font-size:14px;line-height:1.45}.gcl li .btn{margin-top:6px}
 .dinp{font:inherit;font-size:14px;padding:6px 8px;border:1px solid var(--line);border-radius:10px;background:#fff}
+.sitest{display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:6px 0}.sitest.row-in{padding:0 16px 10px 62px}.sitest span{font-size:12.5px;color:var(--ink2);font-weight:650;margin-right:2px}.sitest button{border:1px solid var(--line);background:#fff;border-radius:999px;padding:5px 11px;font:inherit;font-size:13px;font-weight:650;color:var(--ink2);cursor:pointer}.sitest button.on{background:#eff6ff;border-color:#93c5fd;color:#1d4ed8}

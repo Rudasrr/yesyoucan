@@ -237,6 +237,8 @@ function signaly() {
   const apl = activePlanFor(t); const naDatum = Array.from({ length: 14 }, (_, i) => addDays(t, i)).some(d => trainingOverride(d));
   if (!apl && !naDatum) push(3, `Žádný tréninkový plán – Robert jede na výchozích ${s.walk_min} min chůze.`, { key: 'trenink', em: '🏋️', go: "go('trenink')", label: 'Trénink' });
   const gs = goalSignal(); if (gs) push(gs.lv, gs.text, gs);
+  { const t2 = todayISO(), past = sitStats(addDays(t2, -14), addDays(t2, -1)), fut = sitStats(t2, addDays(t2, 6)); const X = past.n >= 10 ? past : fut;
+    if (X.n >= 10 && X.unk >= 4 && X.share >= 0.15) push(2, `${X.unk} z ${X.n} jídel ${X === past ? 'za 14 dní' : 'v plánu na týden'} je „podle situace“ bez zápisu – appka za ně počítá cíl chodu, skutečnost bývá vyšší. Při typickém jídle venku (+50 %) je to ~${fmt0(X.targetKcal * 0.5 / (X === past ? 14 : 7))} kcal denně navíc, které nikde nejsou vidět. Ať je Robert večer jedním ťuknutím odhadne (lehké · jako plán · vydatné · hodně), nebo si je naplánuje.`, { key: 'situace', em: '🎲', head: `${Math.round(X.share * 100)} % jídel „podle situace“ bez zápisu`, kde: [] }); }
   return out.sort((a, b) => a.lv - b.lv);
 }
 
@@ -681,7 +683,8 @@ function goalCheck() {
     const bmr = calcBase(s, wd, 0, 0, s.walk_kmh, 0, 0).bmr; En += bmr * SED + st.v * kcalPerStep(wd); St += st.v;
     const ev = evaluateDay(d); Ln += ev.d.base.planLimit; const ap = dayActivityPlan(d); Pl += Math.min(WALK_PLAN_MAX, Number(ap.walk_min) || 0) * stepsPerMin(ap.walk_kmh || s.walk_kmh) + stepsTarget(s); nE++; }
   const realDef = tr.perWeek * KG_KCAL / 7;
-  const energy = nE >= len * 0.6 ? { out: En / nE, steps: St / nE, stepsPlan: Pl / nE, limit: Ln / nE, intake: En / nE - realDef, over: En / nE - realDef - Ln / nE, realDef, src: (S().steps_hist || []).length && R.stepsN < 5 ? 'Apple Health' : 'zápisy' } : null;
+  const sitP = sitStats(from, addDays(to, -1));
+  const energy = nE >= len * 0.6 ? { out: En / nE, steps: St / nE, stepsPlan: Pl / nE, limit: Ln / nE, intake: En / nE - realDef, over: En / nE - realDef - Ln / nE, realDef, sit: sitP, src: (S().steps_hist || []).length && R.stepsN < 5 ? 'Apple Health' : 'zápisy' } : null;
   // s bilancí z kroků je plán = výdej − limit (celý pohyb, ne odhad faktoru) – jedno číslo všude
   const planWkE = energy ? Math.max(0.05, (energy.out - energy.limit) * 7 / KG_KCAL) : planWk;
   const adhE = energy ? Math.max(0, tr.perWeek / planWkE) : adh;
@@ -703,3 +706,10 @@ function goalSignal() {
     text: `Chybí ~${fmt0(g.gapKcal)} kcal deficitu denně, cíl se tímhle tempem posouvá na ${g.dTrend ? czDate(g.dTrend) : 'neurčito'}${late > 0 ? ` (${ymd(g.target, g.dTrend).short} po termínu)` : ''}. ${why} ${rec}`,
     go: 'A.goalCheckSheet()', label: 'Co změnit' };
 }
+
+/* Jídla „podle situace“ (7. 10. 2026): za neodhadnuté appka počítá cíl chodu, skutečnost bývá
+   vyšší (jídlo venku, z obchodu, u rodiny). Robertův typický týden měl 9 z 35 takových jídel. */
+function sitStats(from, to) { const s = S(); let n = 0, sit = 0, est = 0, kc = 0;
+  for (let d = from; d <= to; d = addDays(d, 1)) { const day = effectiveDay(d); s.courses.forEach(c => { const m = (day.meals || {})[c.key] || {}; if (!m.sel || m.sel === VYNECHAT) return; n++;
+    if (m.sel === SITUACE) { sit++; if (m.est || (m.extra || []).length) est++; else kc += c.kcal * (calcBase(effSettings(s, d), currentWeight(), s.walk_min, 0, s.walk_kmh, 0, 0).planLimit) / courseTargetSum(s); } }); }
+  return { n, sit, est, unk: sit - est, share: n ? sit / n : 0, targetKcal: kc }; }

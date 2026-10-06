@@ -213,7 +213,7 @@ function mealSheetHtml(key) {
       <div class="row"><button class="btn ghost sm write" onclick="A.extraAdd('${key}')">+ přidat surovinu</button>${c.edited ? `<button class="btn ghost sm write" onclick="A.resetCourse('${key}')">↺ recept beze změn</button>` : ''}</div></details>`;
   } else if (c.situace) {
     const ex = m.extra || [];
-    body = `${pick}${tools}<p class="small muted">${c.zapsano ? `Zapsáno ${fmt0(c.kcal)} kcal · cíl byl ${fmt0(cs.kcal)} kcal. Do součtu dne jde tvůj zápis, ne cíl.` : `Cíl jídla ${fmt0(cs.kcal)} kcal, aspoň ${SEED.settings.courses[ci].prot_min} g bílkovin. Dokud nic nezapíšeš, počítá se cíl. Vyber, co to bylo (Jedl jsem něco jiného), nebo přidej suroviny.`}</p>
+    body = `${sitEstHtml(key, m, cs.kcal)}${pick}${tools}<p class="small muted">${c.zapsano ? `${c.odhad ? `Odhad ${fmt0(c.kcal)} kcal` : `Zapsáno ${fmt0(c.kcal)} kcal`} · cíl byl ${fmt0(cs.kcal)} kcal. Do součtu dne jde tvůj zápis, ne cíl.` : `Cíl jídla ${fmt0(cs.kcal)} kcal, aspoň ${SEED.settings.courses[ci].prot_min} g bílkovin. Dokud nic nezapíšeš, počítá se cíl. Vyber, co to bylo (Jedl jsem něco jiného), nebo přidej suroviny.`}</p>
       ${ex.length ? `<div class="items-l">${ex.map((e2, j) => { const f = foods.find(x => x.name === e2.food); return `<div class="irow"><div class="inm">${modeBadge(e2.food)}<button class="pickbtn sm edit write" onclick="openFoodPicker(n=>A.extraFood('${key}',${j},n),${JSON.stringify(e2.food).replace(/"/g, '&quot;')})"><span>${esc(e2.food)}</span></button><button class="xbtn sm write" onclick="A.extraDel('${key}',${j})">×</button></div>
         <div class="imeta">${measureText(e2.food, e2.g) ? `<span class="meas">${measureText(e2.food, e2.g)}</span>` : ''}${grams(`A.extraG('${key}',${j},this.value)`, e2.g)}<span class="m-kcal">${f ? fmt0(f.kcal * e2.g / 100) : ''} kcal</span></div></div>`; }).join('')}</div>` : ''}
       <button class="btn ghost sm write" style="align-self:flex-start" onclick="A.extraAdd('${key}')">+ přidat surovinu</button>`;
@@ -270,8 +270,8 @@ A.closeDay = () => openSheet(() => {
   const date = App.date, s = S(), day = effectiveDay(date), ev = evaluateDay(date), d = ev.d;
   const done = !!day.reviewed;
   const rows = s.courses.map((c, ci) => { const m = day.meals[c.key] || {}; const cc = d.courses[ci];
-    const name = !m.sel ? 'nic nevybráno' : m.sel === VYNECHAT ? 'vynecháno' : m.sel === SITUACE ? (cc.zapsano ? 'mimo plán · zapsáno' : 'podle situace – zapiš, co to bylo') : m.sel;
-    return `<div class="li" onclick="A.mealSheet('${c.key}')"><span class="em">${ico(c.key === 'vecere2' ? 'cup' : 'fork')}</span><div class="tx"><b>${esc(name)}</b><span>${esc(c.name)}${m.eaten || done ? ' · snědeno' : ''}</span></div><span class="val k">${cc.kcal ? fmt0(cc.kcal) : ''}</span><span class="chev">›</span></div>`; }).join('')
+    const name = !m.sel ? 'nic nevybráno' : m.sel === VYNECHAT ? 'vynecháno' : m.sel === SITUACE ? (cc.zapsano ? (cc.odhad ? `mimo plán · ${SIT_EST[cc.odhad].l}` : 'mimo plán · zapsáno') : 'podle situace – jak vydatné to bylo?') : m.sel;
+    return `<div class="li" onclick="A.mealSheet('${c.key}')"><span class="em">${ico(c.key === 'vecere2' ? 'cup' : 'fork')}</span><div class="tx"><b>${esc(name)}</b><span>${esc(c.name)}${m.eaten || done ? ' · snědeno' : ''}</span></div><span class="val k">${cc.kcal ? fmt0(cc.kcal) : ''}</span><span class="chev">›</span></div>${m.sel === SITUACE && !(cc.zapsano && !cc.odhad) ? sitEstHtml(c.key, m, s.courses[ci].kcal, true) : ''}`; }).join('')
     + (d.base.cheatKcal > 0 ? `<div class="li cheat" onclick="A.cheatSheet()"><span class="em">${ico('beer')}</span><div class="tx"><b>Cheat · ${esc(cheatPopis(day))}</b><span>bylo to tak?</span></div><span class="val">${fmt0(d.base.cheatKcal)}</span><span class="chev">›</span></div>` : '');
   const fails = d.checks.filter(c => c.state === 1);
   return UI.sheetHtml(done ? `Den potvrzený` : `Jak šel den?`, czDate(date),
@@ -494,3 +494,12 @@ function renderDayCheck(d, s, day, w, planned) {
 <tr><td>Limit podle plánu (s cílem chůze a tréninkem)</td><td class="n">${fmt0(d.base.planLimit)} kcal</td></tr>
 <tr><td>Sacharidy / tuky</td><td class="n"><b class="m-carb">${fmt0(d.tot.c)} g</b> / <b class="m-fat">${fmt0(d.tot.f)} g</b></td></tr></table>`;
 }
+
+/* „Podle situace“: jak vydatné to bylo – jedno ťuknutí místo vypisování surovin (7. 10. 2026).
+   Lehké 0,7× · jako plán 1× · vydatné 1,5× · hodně 2× cíle chodu. */
+function sitEstHtml(key, m, target, inRow) {
+  return `<div class="sitest ${inRow ? 'row-in' : ''}"><span>${inRow ? 'Jak vydatné?' : 'Jak vydatné to bylo?'}</span>${Object.entries(SIT_EST).map(([k, v]) => `<button class="${m.est === k ? 'on' : ''} write" onclick="event.stopPropagation();A.sitEst('${key}','${k}')">${v.l}</button>`).join('')}</div>`;
+}
+A.sitEst = (key, v) => { Undo.run('Odhad jídla', () => { const day = effectiveDay(App.date); const m = day.meals[key] || {}; day.meals[key] = { ...m, est: m.est === v ? null : v }; saveDay(day); },
+  () => { const m = (effectiveDay(App.date).meals || {})[key] || {}; return m.est ? `Odhad: ${SIT_EST[m.est].l} – započítáno do dne.` : 'Odhad zrušen – počítá se cíl jídla.'; });
+  render(); };
