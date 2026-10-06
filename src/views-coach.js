@@ -634,7 +634,7 @@ function drillCard() {
 /* podobdobí vybraného období: měsíce · týdny (oříznuté na měsíc) · dny */
 function drKids(dr, r) { const s = S(), t = todayISO(), out = [];
   if (dr.lvl === 'c') { const endM = monthStart([planEnd(), goalForecast(s, calcOverview(s, Meas())).date || t, t].sort().pop()); let m = monthStart(s.start_date);
-    for (let k = 0; k < 36 && m <= endM; k++, m = addMonths(m, 1)) { const d = monthDays(m); out.push({ from: m < s.start_date ? s.start_date : m, to: d[d.length - 1], lab: MES3[+m.slice(5, 7) - 1] + (m.slice(5, 7) === '01' || k === 0 ? ' ' + m.slice(2, 4) : ''), full: monthName(m), go: `A.drGo('m','${m}')`, fut: m > t }); } }
+    for (let k = 0; k < 36 && m <= endM; k++, m = addMonths(m, 1)) { const d = monthDays(m); out.push({ from: m < s.start_date ? s.start_date : m, to: d[d.length - 1], lab: MES3[+m.slice(5, 7) - 1] + ' ' + m.slice(2, 4), full: monthName(m), go: `A.drGo('m','${m}')`, fut: m > t }); } }
   else if (dr.lvl === 'm') { const days = monthDays(r.from); for (let w = mondayOf(r.from); w <= r.to; w = addDays(w, 7)) { const a = w < r.from ? r.from : w, b = addDays(w, 6) > r.to ? r.to : addDays(w, 6);
       out.push({ from: a, to: b, lab: `${parseISO(a).getDate()}.–${czDateShort(b)}`, full: `týden ${czDateShort(a)}–${czDateShort(b)}`, go: `A.drGo('w','${w}')`, fut: a > t }); } }
   else for (let k = 0; k < 7; k++) { const d = addDays(r.from, k); out.push({ from: d, to: d, lab: `${DAY_SHORT[k]} ${parseISO(d).getDate()}.`, full: `${DAY_NAMES[k]} ${czDateShort(d)}`, go: `A.coachDaySheet('${d}')`, fut: d > t, day: true }); }
@@ -648,11 +648,12 @@ function drChart(dr, r) {
   const ys = pts.flatMap(p => [p.real, p.raw, p.plan]).filter(v => v != null); if (dr.lvl === 'c') ys.push(s.goal_weight);
   if (!ys.length) return '<p class="muted small">Zatím žádné vážení.</p>';
   const y0 = Math.min(...ys) - 0.6, y1 = Math.max(...ys) + 0.6; const X = i => L + cw * (i + 0.5), Y = v => T + (y1 - v) / (y1 - y0) * (H - T - B);
+  const lstep = Math.max(1, Math.ceil(n / 15));   // dlouhá cesta: popisek jen u každého n-tého měsíce
   let g = `<svg class="chart" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">`;
   const st = niceStep((y1 - y0) / 4); for (let v = Math.ceil(y0 / st) * st; v <= y1; v += st) g += `<line x1="${L}" x2="${W - R_}" y1="${Y(v)}" y2="${Y(v)}" stroke="#eef1f5"/><text x="${L - 6}" y="${Y(v) + 4}" font-size="11" fill="#7a878c" text-anchor="end">${fmtTick(v)}</text>`;
   pts.forEach((p, i) => { const cur = p.from <= t && t <= p.to;
     g += `<rect x="${L + cw * i + 2}" y="${T}" width="${cw - 4}" height="${H - T - B}" rx="8" fill="${cur ? 'rgba(37,99,235,.06)' : 'transparent'}" class="drcol" ${p.fut && !p.day ? '' : `onclick="${p.go}" style="cursor:pointer"`}/>
-      <text x="${X(i)}" y="${H - 8}" font-size="11.5" fill="${cur ? '#2563eb' : '#7a878c'}" font-weight="${cur ? 700 : 500}" text-anchor="middle">${p.lab}</text>`; });
+      ${cur || i % lstep === 0 ? `<text x="${X(i)}" y="${H - 8}" font-size="11.5" fill="${cur ? '#2563eb' : '#7a878c'}" font-weight="${cur ? 700 : 500}" text-anchor="middle">${p.lab}</text>` : ''}`; });
   if (dr.lvl === 'c' && s.goal_weight >= y0) g += `<line x1="${L}" x2="${W - R_}" y1="${Y(s.goal_weight)}" y2="${Y(s.goal_weight)}" stroke="#15803d" stroke-width="1.5" stroke-dasharray="4 4"/><text x="${L + 4}" y="${Y(s.goal_weight) - 6}" font-size="11.5" font-weight="700" fill="#15803d">cíl ${fmt1(s.goal_weight)} kg</text>`;
   g += `<path d="M${pts.map((p, i) => `${X(i).toFixed(1)},${Y(p.plan).toFixed(1)}`).join('L')}" fill="none" stroke="#9aa3b8" stroke-width="1.8" stroke-dasharray="6 5"/>`;
   const rp = pts.map((p, i) => [i, p.real]).filter(x => x[1] != null);
