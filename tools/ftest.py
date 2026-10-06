@@ -162,7 +162,7 @@ with sync_playwright() as p:
     print('paceGuard:', pg.evaluate("paceGuard().map(g=>g.text)"))
     pg.evaluate("go('nastaveni')"); pg.fill('#st_walk_min','70'); pg.press('#st_walk_min','Tab'); pg.wait_for_timeout(150)
     print('settings:', pg.evaluate("S().walk_min"), pg.evaluate("Store.rows('settings').map(r=>r.user_id)"), 'log:', pg.evaluate("(S().log||[]).slice(-1).map(l=>l.k+':'+l.from+'→'+l.to)"))
-    pg.fill('#st_steps_goal','8000'); pg.press('#st_steps_goal','Tab'); pg.wait_for_timeout(150)
+    pg.evaluate("A.setMoveGoal(4)"); pg.wait_for_timeout(150)
     print('kroky → faktor:', pg.evaluate("S().steps_goal+' / '+S().activity"))
     pg.evaluate("A.applyAdvice(JSON.stringify({protein_min:175}))"); print('doporučení v historii:', pg.evaluate("(S().log||[]).some(l=>l.k==='protein_min')"))
     pg.evaluate("A.editFood('f1')"); pg.fill('#fn','Hovězí přední TEST'); pg.click('#fsave'); pg.wait_for_timeout(100)

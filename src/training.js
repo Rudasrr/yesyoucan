@@ -903,7 +903,14 @@ function trAdvice(dates) {
   const t = todayISO(), out = [], fut = dates.filter(d => d >= trFirstEditable(t)); if (!fut.length) return out;
   const P = trPeriod(fut); const rej = LS.get('trrej', {});
   const add = a => { if (!rej[a.key]) out.push(a); };
-  P.weeks.forEach(W => { const days = P.L.filter(x => mondayOf(x.d) === W.mon); if (!W.sets) return; const wl = `týden od ${czDateShort(W.mon)}`;
+  P.weeks.forEach(W => { const days = P.L.filter(x => mondayOf(x.d) === W.mon); const wl = `týden od ${czDateShort(W.mon)}`;
+    // rámec týdne: méně cvičení, než chce trenér
+    const goalN = S().tr_per_week ?? 3; if (days.length >= 5 && W.days < goalN) { const has = new Set(days.filter(x => x.st.exN).map(x => dayIndex(x.d)));
+      const free = [0, 2, 4, 1, 3, 5].map(i => days.find(x => dayIndex(x.d) === i)).filter(x => x && !x.st.exN && !has.has(dayIndex(x.d) - 1) && !has.has(dayIndex(x.d) + 1))[0] || days.find(x => !x.st.exN);
+      const tpl = [TR_A, TR_B, TR_C][W.days % 3];
+      if (free) add({ key: `ramec:${W.mon}`, lv: 2, title: `${wl}: cvičení ${W.days}× z ${goalN}`, why: `Rámec týdne je ${goalN}× cvičit – silový trénink drží svaly, když tělo hubne, a zvedne výdej.`,
+        fix: `Přidat trénink ${['A (nohy, hýždě, střed)', 'B (záda, hrudník, ramena)', 'C (celé tělo)'][W.days % 3]} ${DEN_V[dayIndex(free.d)]} ${czDateShort(free.d)}`, date: free.d, apply: { add: tpl } }); }
+    if (!W.sets) return;
     // vynechaná partie
     PARTIE.forEach(([k, l]) => { if ((W.mus[k] || 0) >= MUS_MIN * 0.5) return; const fix = MUS_FIX[k];
       const tgt = days.filter(x => x.st.exN).sort((a, b) => a.st.sets - b.st.sets)[0] || days[0]; if (!tgt) return;

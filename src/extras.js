@@ -237,6 +237,9 @@ function signaly() {
   const apl = activePlanFor(t); const naDatum = Array.from({ length: 14 }, (_, i) => addDays(t, i)).some(d => trainingOverride(d));
   if (!apl && !naDatum) push(3, `Žádný tréninkový plán – Robert jede na výchozích ${s.walk_min} min chůze.`, { key: 'trenink', em: '🏋️', go: "go('trenink')", label: 'Trénink' });
   const rs = replanSignal(); if (rs) push(rs.lv, rs.text, rs);
+  // trénink na 14 dní dopředu: návrhy z kontroly plánu (partie, rámec týdne, volno)
+  if (typeof trAdvice === 'function' && !App.ro) { const tA = trAdvice(Array.from({ length: 14 }, (_, i) => addDays(t, i)));
+    if (tA.length) push(2, `${tA.map(a => a.title).slice(0, 3).join(' · ')}${tA.length > 3 ? ' …' : ''}. V Tréninku je u každého návrh s Přijmout / Upravit / Zamítnout.`, { key: 'trplan', em: '🏋️', head: `Trénink: ${tA.length} ${sklon(tA.length, 'návrh', 'návrhy', 'návrhů')} na úpravu plánu`, go: "go('trenink')", label: 'Trénink' }); }
   const gs = rs ? null : goalSignal(); if (gs) push(gs.lv, gs.text, gs);
   { const t2 = todayISO(), past = sitStats(addDays(t2, -14), addDays(t2, -1)), fut = sitStats(t2, addDays(t2, 6)); const X = past.n >= 10 ? past : fut;
     if (X.n >= 10 && X.unk >= 4 && X.share >= 0.15) push(2, `${X.unk} z ${X.n} jídel ${X === past ? 'za 14 dní' : 'v plánu na týden'} je „podle situace“ bez zápisu – appka za ně počítá cíl chodu, skutečnost bývá vyšší. Při typickém jídle venku (+50 %) je to ~${fmt0(X.targetKcal * 0.5 / (X === past ? 14 : 7))} kcal denně navíc, které nikde nejsou vidět. Ať je Robert večer jedním ťuknutím odhadne (lehké · jako plán · vydatné · hodně), nebo si je naplánuje.`, { key: 'situace', em: '🎲', head: `${Math.round(X.share * 100)} % jídel „podle situace“ bez zápisu`, kde: [] }); }
@@ -558,7 +561,8 @@ function stepsHodnoceni(n) {
 function stepsStat(days) { const uid = Store.ownerId(); const vals = days.map(dt => { const r = Store.rows('days', uid).find(x => x.data.date === dt); return r ? daySteps(r.data) : null; }).filter(v => v != null); return vals.length ? { avg: vals.reduce((a, b) => a + b, 0) / vals.length, n: vals.length, min: Math.min(...vals) } : null; }
 
 /* ===== Doporučení k nastavení (trenér) ===== */
-function factorForSteps(avg) { if (avg < 3000) return 1.2; if (avg < 4500) return 1.28; if (avg < 6500) return 1.34; if (avg < 8500) return 1.4; return 1.48; }
+/* faktor pro běžné kroky – stejná fyzika jako výpočet z kroků: sedavě 1,2 × klidový výdej + kroky × kcal na krok */
+function factorForSteps(avg) { const s = S(), w = currentWeight(); const bmr = 10 * w + 6.25 * s.height - 5 * s.age + 5; return Math.round((SED + (Number(avg) || 0) * kcalPerStep(w) / bmr) * 100) / 100; }
 function settingsAdvice() {
   const s = S(), w = currentWeight(), ov = calcOverview(s, Meas()); const A_ = [];
   const b = calcBase(s, w, s.walk_min, 0, s.walk_kmh, 0, 0);
@@ -594,6 +598,9 @@ function adviceBox(field) { const list = settingsAdvice().filter(a => a.field ==
    U každého prvku, jehož význam není jasný z názvu, je „?“. Ťuknutí ukáže 2–4 věty:
    co to dělá · kdy to použít · doporučení. Texty jsou jen tady – Návod z nich vychází. */
 const HELP = {
+  pohybStupen: { t: 'Pohyb mimo trénink', co: 'Kolik se Robert hýbe mimo plánovanou chůzi a trénink, ve stupních: 1 sedavý (do 3 000 běžných kroků) · 2 lehce aktivní (3–6 tisíc) · 3 aktivní (6–9 tisíc) · 4 velmi aktivní (9–12 tisíc) · 5 fyzická práce. Appka stupeň určí z jeho kroků a výdej počítá z nich; ty nastavuješ cílový stupeň. Ručně jen když Robert kroky nezapisuje.' },
+  ramec: { t: 'Cvičení týdně', co: 'Kolikrát týdně má Robert cvičit (silový trénink). Trénink to hlídá v kontrole plánu a navrhne doplnit chybějící tréninky. Pro začátek 2–3×.' },
+  faze: { t: 'Fáze cesty', co: 'Mezicíle se zdravotním smyslem z Robertovy výšky a startu: −5 % a −10 % váhy, hranice BMI, tvůj cíl a zdravá váha (BMI 25). U každé datum podle plánu a podle trendu – zelený trend = stíhá, červený = zaostává o víc než 2 týdny.' },
   trPrumer: { t: 'Průměrný den', co: 'Jak vypadá Robertův běžný den v zobrazeném období: kolik minut se hýbe, kolik kcal spálí navíc a jaký má limit jídla. Pro plánování je užitečnější než součty – den musí jít vydržet.' },
   trPartie: { t: 'Partie těla', co: 'Kolik sérií týdně dostane každá partie (hlavní partie cviku celá série, vedlejší polovina). Pro začátečníka 6–12 sérií týdně. Pod 3 se partie nerozvíjí, nad 14 roste únava a riziko přetížení.' },
   trNavrh: { t: 'Kontrola plánu', co: 'Appka projde naplánované dny a navrhne konkrétní úpravu: chybějící nebo přetíženou partii, stejnou partii dva dny po sobě, týden bez volna, den s málo pohybem. Přijmout = uloží se, Upravit = otevře den, Zamítnout = už se neukáže. Vše jde vrátit v Historii změn.' },
