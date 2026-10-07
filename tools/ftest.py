@@ -247,13 +247,13 @@ with sync_playwright() as p:
     g.evaluate("""localLogin("client"); const s=S(); s.start_date=addDays(todayISO(),-30); saveSettings(s); for(let k=30;k>=1;k--){ const dt=addDays(todayISO(),-k); saveMeas({date:dt, weight:134-(30-k)*0.03}); if(k<=10){const d=getDay(dt); d.walk_min=30; d.reviewed=k%2===0; saveDay(d);} }""")
     g.evaluate("localLogin('coach');go('klient')"); g.wait_for_timeout(150)
     gs=[]
-    for st in [1,2,3,4]:
+    for st in [1,2,3,4,5]:
         g.evaluate(f"UI.closeModal();A.guide({st})"); g.wait_for_timeout(120); gs.append(g.evaluate("document.querySelectorAll('.modal .gsteps span.on').length"))
     g.evaluate("UI.closeModal();A.guide(3)"); g.wait_for_timeout(100); n0=g.evaluate("Object.keys(LS.get('dec:'+guideWeek().from,{})).length")
     g.evaluate("document.querySelector('.modal .grec .btn.ghost') && document.querySelector('.modal .grec .btn.ghost').click()"); g.wait_for_timeout(100)
     n1=g.evaluate("Object.keys(LS.get('dec:'+guideWeek().from,{})).length")
     cisla=g.evaluate("/Čísla|Výchozí data|Naplnit výchozí/.test(document.body.innerText)"); g.evaluate("UI.closeModal();go('ucet')"); g.wait_for_timeout(100); cisla2=g.evaluate("/Výchozí data|Nahrát zálohu|Synchronizovat teď/.test(document.body.innerText)")
     print('průvodce týdnem: kroky', gs, '· rozhodnutí', n0, '→', n1, '· Čísla/Výchozí data vidět:', cisla, cisla2)
-    if gs!=[1,1,1,1] or n1<=n0 or cisla or cisla2: errs.append('průvodce: kroky, rozhodnutí nebo zbytečné prvky')
+    if gs!=[1,1,1,1,1] or n1<=n0 or cisla or cisla2: errs.append('průvodce: kroky, rozhodnutí nebo zbytečné prvky')
     g.close()
     print('errors:', errs or 'none'); b.close()

@@ -16,7 +16,11 @@ function dayTasks(date) {
   const s = S(), day = effectiveDay(date), meas = Meas().find(m => m.date === date);
   const isSun = dayIndex(date) === 6, isToday = date === todayISO(), now = isToday ? nowMin() : 24 * 60;
   const T = [];
-  T.push({ id: 'weigh', em: '⚖️', tx: 'Zvaž se', sub: 'ráno po WC, nalačno', done: !!(meas && meas.weight != null), view: 'mereni', at: WEIGH_TIME, key: 'morning' });
+  /* včerejšek nepotvrzený → první krok dne (7. 10. 2026; dřív to Robert viděl jen při listování zpět) */
+  if (isToday) { const y = addDays(date, -1), dy = Store.rows('days', Store.ownerId()).find(r => r.data.date === y);
+    if (y >= s.start_date && !(dy && (dy.data.reviewed || dayConfirmed(dy.data)))) T.push({ id: 'close_y', em: '', tx: 'Potvrď včerejšek', sub: 'jedl jsi včera podle plánu?', done: false, view: 'dnes', date: y }); }
+  /* ranní váha má smysl jen ráno; po 11:00 se z dalšího kroku vynechá (zůstane v seznamu) */
+  T.push({ id: 'weigh', em: '⚖️', tx: 'Zvaž se', sub: 'ráno po WC, nalačno', done: !!(meas && meas.weight != null), view: 'mereni', at: WEIGH_TIME, key: 'morning', late: isToday && now > 11 * 60 });
   if (isSun) T.push({ id: 'measure', em: '📏', tx: 'Změř obvody', sub: 'pas, boky, hrudník, stehno, paže', done: !!(meas && meas.waist != null), view: 'mereni', at: WEIGH_TIME });
   // aktuální týden nenaplánovaný (Po–So) → úkol
   const thisMon = mondayOf(date);
@@ -122,7 +126,7 @@ const Remind = {
   show(t) {
     document.querySelectorAll('.remind').forEach(e => e.remove());
     const el = document.createElement('div'); el.className = 'remind';
-    el.innerHTML = `<span class="em">${t.em}</span><div><div class="tx">${esc(t.tx)}</div><div class="sub">${esc(t.sub || '')}</div></div><button class="btn sm" onclick="this.closest('.remind').remove();${t.week ? `App.week='${t.week}';` : ''}go('${t.view}')">Otevřít</button>`;
+    el.innerHTML = `<span class="em">${ico(t.meal ? 'fork' : ({ weigh: 'scale', walk: 'walk', steps: 'feet', training: 'dumbbell', close: 'moon', close_y: 'check', plan: 'cal', plan_now: 'cal', review: 'cal', shop: 'cart', measure: 'ruler' })[t.id] || 'bolt')}</span><div><div class="tx">${esc(t.tx)}</div><div class="sub">${esc(t.sub || '')}</div></div><button class="btn sm" onclick="this.closest('.remind').remove();${t.week ? `App.week='${t.week}';` : ''}go('${t.view}')">Otevřít</button>`;
     document.body.appendChild(el); setTimeout(() => el.remove(), 60000);
     if ('Notification' in window && Notification.permission === 'granted' && document.visibilityState !== 'visible') { try { new Notification('YesYouCan', { body: `${t.em} ${t.tx}` }); } catch (e) { } }
   },

@@ -82,13 +82,36 @@ function renderRings(d, day, s) {
     ${left < 0 && isToday ? `<div class="rnote">Dnes víc – nevadí. Chůze navíc to srovná: ${Math.ceil(-left / d.base.walkPerMin)} min.</div>` : ''}</div>`;
 }
 /* Další krok: jedna karta s jedním tlačítkem (to samé jde i ťuknutím na řádek v seznamu) */
+/* další krok: v jakoukoli hodinu jedna jasná věc, jak na ni, a tlačítko (7. 10. 2026) */
+function pickNext(tasks) { const ok = t => !t.done && !t.late; return tasks.find(t => ok(t) && t.due) || tasks.find(ok); }
 function nextCard(day, tasks, s) {
   if (App.date !== todayISO() || App.ro) return '';
-  const next = tasks.find(t => !t.done && t.due) || tasks.find(t => !t.done);
-  if (!next) return `<div class="nextc done"><div class="t">Dnešek</div><b>Všechno hotové. Pěkná práce.</b></div>`;
+  // víc jídel, jejichž čas už minul a nejsou odškrtnutá → jedno ťuknutí pro všechna
+  const pastMeals = tasks.filter(t => t.meal && !t.done && t.due && t.chosen && t.at && timeToMin(t.at) + 60 <= nowMin());
+  if (pastMeals.length >= 2 && !tasks.some(t => t.id === 'close_y'))
+    return `<div class="nextc"><div class="t">Další krok</div><b>Odškrtni, co už jsi snědl</b><div class="how">${pastMeals.map(t => esc(s.courses.find(c => c.key === t.meal).name.toLowerCase())).join(', ')} – jedl jsi podle plánu? Co bylo jinak, oprav ťuknutím na jídlo v seznamu.</div>
+      <div class="row"><button class="btn write" onclick="A.eatenMany('${pastMeals.map(t => t.meal).join(',')}')">${ico('check')} Snědl jsem všechno do teď</button></div></div>`;
+  const next = pickNext(tasks);
+  if (!next) { const tm = addDays(todayISO(), 1); const ap = dayActivityPlan(tm); const nItems = (ap.items || []).length;
+    return `<div class="nextc done"><div class="t">Dnešek</div><b>Všechno hotové. Pěkná práce.</b><div class="how">Zítra: ráno váha${nItems ? `, trénink (${nItems} ${sklon(nItems, 'cvik', 'cviky', 'cviků')})` : ''} a ${ap.walk_min ?? s.walk_min} minut chůze.</div></div>`; }
   const c = next.meal ? s.courses.find(x => x.key === next.meal) : null; const sel = c ? (day.meals[next.meal] || {}).sel : null;
   const title = next.id === 'weigh' ? 'Ráno na váhu' : c ? `${c.name} v ${c.time}${sel && sel !== SITUACE && sel !== VYNECHAT ? ' – ' + esc(sel) : ''}` : next.id === 'walk' ? `Chůze ${(day.act || {}).planWalk || s.walk_min} min` : next.id === 'training' ? 'Trénink' : next.id === 'steps' ? 'Zapiš kroky z telefonu' : next.id === 'close' ? 'Potvrď den' : esc(next.tx || '');
-  return `<div class="nextc"><div class="t">Další krok</div><b>${title}</b><div class="row">${nextAction(next, s)}</div></div>`;
+  return `<div class="nextc"><div class="t">Další krok</div><b>${next.id === 'close_y' ? 'Potvrď včerejšek' : title}</b>${nextHow(next, day, s) ? `<div class="how">${nextHow(next, day, s)}</div>` : ''}<div class="row">${nextAction(next, s)}</div></div>`;
+}
+/* jedna věta „jak na to“ ke každému kroku */
+function nextHow(next, day, s) {
+  if (next.id === 'close_y') return 'Ťukni a potvrď, že jsi jedl podle plánu. Co bylo jinak, oprav u jídla – trenér pak vidí, jak ti to jde.';
+  if (next.id === 'weigh') return 'Po WC, nalačno, bez oblečení. Napiš číslo z váhy – appka počítá s průměrem 7 dní, jedno číslo nic neznamená.';
+  if (next.meal) { const i = s.courses.findIndex(c => c.key === next.meal); const c = calcDay(s, Foods(), Recipes(), day, currentWeight()).courses[i];
+    return next.chosen ? (c && c.active ? `Na talíř ${fmt0(c.gc)} g · ${fmt0(c.kcal)} kcal. Detail a suroviny po ťuknutí na jídlo v seznamu.` : 'Až sníš, ťukni Snědl jsem. Když to bylo jinak, ťukni Změnit.') : 'Ještě nemáš vybráno – appka navrhne jídlo, které se vejde do zbytku dne.'; }
+  if (next.id === 'walk') return `Svižně, tempem ${paceTxt((day.walk_kmh || s.walk_kmh))} /km. Po procházce přičti ušlé minuty – klidně po částech.`;
+  if (next.id === 'training') { const st = trStats({ walk_min: 0, items: (day.act || {}).items || [] }, currentWeight()); return `${st.exN} ${sklon(st.exN, 'cvik', 'cviky', 'cviků')}, asi ${st.trMin + st.carMin} minut. Ťukni Začít – appka tě provede sérií po sérii i pauzami.`; }
+  if (next.id === 'steps') return 'V telefonu Zdraví → Kroky → číslo za dnešek. Zapiš celé číslo, procházku si appka odečte sama.';
+  if (next.id === 'close') return 'Ťukni „Jedl jsem podle plánu“. Co bylo jinak, oprav u jídla. Pak pár ťuknutí, jak šel den.';
+  if (next.id === 'plan_now' || next.id === 'plan') return 'Appka navrhne jídla na celý týden podle tvého limitu. Pak jen vyměníš, co nechceš.';
+  if (next.id === 'shop') return 'Seznam je seřazený podle regálů. Co koupíš, odškrtni.';
+  if (next.id === 'measure') return 'Krejčovský metr, ráno, vždy na stejném místě: pas v pupku, boky v nejširším místě.';
+  return '';
 }
 /* ---- velké číslo: kolik ještě můžu sníst ---- */
 /* kontrola dne a vzorec – dřív uprostřed stránky pod dvěma rozbalovátky */
@@ -105,16 +128,17 @@ function nextAction(next, s) {
   if (!next) return '';
   if (next.id === 'weigh') return `<div class="row nowrap"><input type="text" inputmode="decimal" id="nw" placeholder="kg" style="width:110px;font-size:18px;font-weight:800;text-align:center"><button class="btn write" onclick="A.quickWeigh()">Zapsat váhu</button></div>`;
   if (next.meal) { const c = s.courses.find(x => x.key === next.meal);
-    return next.chosen ? `<button class="btn write" onclick="A.eaten('${next.meal}',true)">✓ Snědl jsem</button><button class="btn sec write" onclick="A.mealSheet('${next.meal}')">Změnit</button>`
-      : `<button class="btn write" onclick="A.suggestOne('${next.meal}')">💡 Navrhni ${esc(c.name.toLowerCase())}</button><button class="btn sec write" onclick="A.pickMeal('${next.meal}')">Vyberu sám</button>`; }
+    return next.chosen ? `<button class="btn write" onclick="A.eaten('${next.meal}',true)">${ico('check')} Snědl jsem</button><button class="btn sec write" onclick="A.mealSheet('${next.meal}')">Změnit</button>`
+      : `<button class="btn write" onclick="A.suggestOne('${next.meal}')">${ico('star')} Navrhni ${esc(c.name.toLowerCase())}</button><button class="btn sec write" onclick="A.pickMeal('${next.meal}')">Vyberu sám</button>`; }
   if (next.id === 'walk') return [15, 30, 60].map(n => `<button class="btn ${n === 30 ? '' : 'sec'} write" onclick="A.addWalk(${n})">+${n} min</button>`).join('');
-  if (next.id === 'training') return `<button class="btn write" onclick="A.trRun(0)">▶︎ Začít cvičit</button><button class="btn sec write" onclick="A.trainSheet()">Zapsat hotovo</button>`;
-  if (next.id === 'steps') return `<button class="btn write" onclick="A.stepsSheet()">👣 Zapsat kroky</button>`;
-  if (next.id === 'close') return `<button class="btn write" onclick="A.closeDay()">✓ Potvrdit den</button>`;
-  if (next.id === 'plan_now' || next.id === 'plan') return `<button class="btn write" onclick="App.week='${next.week}';go('tyden');setTimeout(()=>A.genWeek(weekPlanned(App.week)?'empty':'all'),50)">✨ Navrhnout týden</button>`;
+  if (next.id === 'training') return `<button class="btn write" onclick="A.trRun(0)">${ico('dumbbell')} Začít cvičit</button><button class="btn sec write" onclick="A.trainSheet()">Zapsat hotovo</button>`;
+  if (next.id === 'steps') return `<button class="btn write" onclick="A.stepsSheet()">${ico('feet')} Zapsat kroky</button>`;
+  if (next.id === 'close') return `<button class="btn write" onclick="A.closeDay()">${ico('check')} Potvrdit den</button>`;
+  if (next.id === 'close_y') return `<button class="btn write" onclick="A.closeYesterday()">${ico('check')} Potvrdit včerejšek</button>`;
+  if (next.id === 'plan_now' || next.id === 'plan') return `<button class="btn write" onclick="App.week='${next.week}';go('tyden');setTimeout(()=>A.genWeek(weekPlanned(App.week)?'empty':'all'),50)">${ico('star')} Navrhnout týden</button>`;
   if (next.id === 'review') return `<button class="btn" onclick="App.week='${next.week}';go('tyden')">Projít návrh týdne</button>`;
-  if (next.id === 'shop') return `<button class="btn" onclick="App.week='${next.week}';go('nakup')">🛒 Otevřít nákup</button>`;
-  if (next.id === 'measure') return `<button class="btn write" onclick="A.measSheet('${App.date}',true)">📏 Zapsat obvody</button>`;
+  if (next.id === 'shop') return `<button class="btn" onclick="App.week='${next.week}';go('nakup')">${ico('cart')} Otevřít nákup</button>`;
+  if (next.id === 'measure') return `<button class="btn write" onclick="A.measSheet('${App.date}',true)">${ico('ruler')} Zapsat obvody</button>`;
   return '';
 }
 /* co patří k dnešku navíc: nesoulad plánu a limitu, včerejší váha, nepotvrzený minulý den */
@@ -131,7 +155,7 @@ function dayNotes(day, tasks) {
 function dayRows(d, day, tasks, s) {
   const w = currentWeight(), meas = Meas().find(m => m.date === App.date);
   const byId = Object.fromEntries(tasks.map(t => [t.id, t]));
-  const next = tasks.find(t => !t.done && t.due) || tasks.find(t => !t.done);
+  const next = pickNext(tasks);
   const isToday = App.date === todayISO();
   const cur = t => isToday && !App.ro && t && next && next.id === t.id;
   const row = (t, o) => `<div class="li ${t && t.done ? 'done' : ''} ${cur(t) ? 'cur' : ''} ${o.cls || ''}" onclick="${o.act}" ${o.id ? `id="${o.id}"` : ''}>${o.ck}<span class="tm">${o.tm || ''}</span><span class="em">${o.em}</span><div class="tx"><b>${o.b}</b>${o.s ? `<span>${o.s}</span>` : ''}</div>${o.val || ''}</div>`;
@@ -287,7 +311,7 @@ A.closeDayOk = () => {
     const day = getDay(App.date); const eff = effectiveDay(App.date);
     // co má vybrané jídlo a není vynechané, se počítá jako snědené podle plánu
     S().courses.forEach(c => { const m = eff.meals[c.key] || {}; if (m.sel && m.sel !== VYNECHAT) { day.meals[c.key] = { ...(day.meals[c.key] || {}), sel: m.sel, eaten: true }; } });
-    day.reviewed = true; saveDay(day); render(); },
+    day.reviewed = true; saveDay(day); if (App._backToday) { App._backToday = false; App.date = todayISO(); } render(); },
   () => { const ev = evaluateDay(App.date); return ev.ok ? 'Den potvrzený a seděl. Zítra stejně.' : 'Den potvrzený. Zítra to dorovnáš.'; }); };
 A.unconfirmDay = () => { UI.closeModal(); Undo.run('Potvrzení zrušeno', () => { const day = getDay(App.date); day.reviewed = false; saveDay(day); render(); }, 'Den zase čeká na potvrzení.'); };
 A.toCourse = key => A.mealSheet(key);
@@ -503,3 +527,8 @@ function sitEstHtml(key, m, target, inRow) {
 A.sitEst = (key, v) => { Undo.run('Odhad jídla', () => { const day = effectiveDay(App.date); const m = day.meals[key] || {}; day.meals[key] = { ...m, est: m.est === v ? null : v }; saveDay(day); },
   () => { const m = (effectiveDay(App.date).meals || {})[key] || {}; return m.est ? `Odhad: ${SIT_EST[m.est].l} – započítáno do dne.` : 'Odhad zrušen – počítá se cíl jídla.'; });
   render(); };
+
+/* potvrzení včerejška z dnešní obrazovky; po potvrzení zpátky na dnešek */
+A.closeYesterday = () => { App.date = addDays(todayISO(), -1); App._backToday = true; render(); A.closeDay(); };
+A.eatenMany = keys => { const ks = keys.split(','); Undo.run('Snědeno', () => { const day = getDay(App.date); const eff = effectiveDay(App.date);
+  ks.forEach(k => { const m = eff.meals[k] || {}; if (m.sel && m.sel !== VYNECHAT) day.meals[k] = { ...(day.meals[k] || {}), sel: m.sel, eaten: true }; }); saveDay(day); }, `Odškrtnuto: ${ks.length} ${sklon(ks.length, 'jídlo', 'jídla', 'jídel')}.`); render(); };
