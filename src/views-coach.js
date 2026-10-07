@@ -19,7 +19,7 @@ VIEWS.klient = function () {
   const chip = { 1: `<span class="chip2 bad">${ico('alert')} Potřebuje pozornost</span>`, 2: `<span class="chip2 warn">Pohlídat</span>`, 3: `<span class="chip2 ok">${ico('check')} Jde podle plánu</span>` }[lvl];
   const ch = sinceLast(); const tyden = Math.floor(daysBetween(s.start_date, t) / 7) + 1;
   return `<div class="ph"><div class="pt"><h1>${esc(name)}</h1><span class="sub">${DAY_NAMES[dayIndex(t)].toLowerCase()} ${czDate(t)} · týden ${tyden}</span></div>
-      <div class="act">${ch.items.length ? `<button class="btn ghost sm" onclick="A.sinceSheet()">${ico('bolt')} ${ch.items.length} ${sklon(ch.items.length, 'novinka', 'novinky', 'novinek')}</button>` : ''}<button class="btn ghost sm" onclick="A.numbersSheet()">${ico('clip')} Čísla</button>${chip}</div></div>
+      <div class="act">${chip}</div></div>
     ${weekCheckCard(s, App._shown = [])}
     ${drillCard()}
     ${todoCard(now, App._shown)}
@@ -36,17 +36,18 @@ const scoreCol = v => v >= 70 ? '#16a34a' : v >= 40 ? '#d97706' : '#dc2626';
 function bigRing(pct, size, col, track, txt, sub) { const r = size / 2 - 9, c = 2 * Math.PI * r;
   return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" class="bring"><circle cx="${size / 2}" cy="${size / 2}" r="${r}" fill="none" stroke="${track}" stroke-width="13"/><circle cx="${size / 2}" cy="${size / 2}" r="${r}" fill="none" stroke="${col}" stroke-width="13" stroke-linecap="round" stroke-dasharray="${(c * Math.max(0.02, Math.min(1, pct))).toFixed(1)} ${c.toFixed(1)}" transform="rotate(-90 ${size / 2} ${size / 2})"/><text x="${size / 2}" y="${size / 2 + (sub ? 2 : 9)}" text-anchor="middle" font-size="${size / 4.2}" font-weight="850" fill="#0f172a">${txt}</text>${sub ? `<text x="${size / 2}" y="${size / 2 + size / 6.2}" text-anchor="middle" font-size="${size / 11}" fill="#64748b">${sub}</text>` : ''}</svg>`; }
 function weekCheckCard(s, shown) {
-  const t = todayISO(), from = addDays(mondayOf(t), -7), to = addDays(mondayOf(t), -1);
+  const g = guideWeek(), from = g.from, to = g.to;
   const sc = weekScore(from, to); if (!sc) return '';
-  const dg = diagnoza(from, to); const done = LS.get('dec:' + from, {});
-  const decs = dg.list.filter(x => x.apply || x.go || x.lv <= 2).slice(0, 3); if (shown) decs.forEach(x => shown.push(x.key));
-  const R = sc.R;
-  return `<div class="card wcheck">${bigRing(sc.s / 100, 112, scoreCol(sc.s), '#e0e7ff', sc.s, 'ze 100')}
-    <div class="wtx"><span class="pill2">${ico('clip')} Týdenní kontrola · ${czDateShort(from)}–${czDateShort(to)}${hq('pSkore')}</span><h2>Skóre plnění ${sc.s} ze 100</h2>
-      <div class="muted small">potvrzené dny ${R.conf}/${R.n} · v limitu ${R.inLimit}/${R.n} · chůze ${R.walkPlan ? Math.round(R.walk / R.walkPlan * 100) + ' %' : '–'} · vážení ${R.weigh}/${R.wDays}</div>
-      <div class="decs">${decs.length ? decs.map(x => { const d = done[x.key];
-        return `<div class="dec ${d ? 'done' : ''}"><b>${esc(x.title)}</b><span>${esc((x.sub || '').slice(0, 120))}</span>${d ? `<div class="row nowrap"><span class="ok small b">${ico('check')} ${d === 'ok' ? 'vyřešeno' : 'víš o tom – nic se nezměnilo'}</span><button class="btn ghost sm" onclick="A.decide('${from}','${x.key}',null)">Vrátit</button></div>` : `<div class="row nowrap">${x.apply ? `<button class="btn sm" onclick="${x.apply};A.decide('${from}','${x.key}','ok')">${esc(x.label)}</button>` : x.go ? `<button class="btn sm" onclick="A.decide('${from}','${x.key}','ok');${x.go}">${esc(x.label || 'Otevřít')}</button>` : ''}<button class="btn sm sec" title="Bereš na vědomí a nic neměníš – zmizí ze seznamu Co řešit" onclick="A.decide('${from}','${x.key}','keep')">Vím o tom</button></div>`}</div>`; }).join('')
-        : `<div class="dec done"><b>Bez zásahu</b><span>Týden šel podle plánu. Nic neměň.</span></div>`}</div></div></div>`;
+  const done = LS.get('dec:' + from, {}); const recs = guideRecs(); if (shown) recs.forEach(x => shown.push(x.key));
+  const open = recs.filter(r => !done[r.key]).length; const story = weekStory(from, to); const bad = story.filter(x => x.c === 'bad');
+  const W = drWeight(from, to), wp = W.pct;   // výsledek (váha) se počítá taky – skóre samo měří jen kázeň
+  const head = sc.s >= 70 && (wp == null || wp >= 80) ? 'Robert jede podle plánu' : sc.s >= 70 ? `Dodržuje, ale váha jde pomaleji (${wp} % cíle)` : sc.s >= 40 ? 'Robert plní jen část plánu' : 'Robert plán neplní';
+  const col = sc.s >= 70 && (wp == null || wp >= 80) ? scoreCol(sc.s) : sc.s >= 40 ? '#d97706' : '#dc2626';
+  return `<div class="card wcheck">${bigRing(sc.s / 100, 112, col, '#e0e7ff', sc.s, 'ze 100')}
+    <div class="wtx"><span class="pill2">${ico('clip')} Týdenní kontrola · ${czDateShort(from)}–${czDateShort(to)}${hq('pSkore')}</span>
+      <h2>${head}</h2>
+      <div class="small">${esc((bad[0] || story[0] || {}).txt || '')}</div>
+      <div class="row"><button class="btn" onclick="App._gs=1;A.guide(1)">${open ? `Projít týden · ${open} ${sklon(open, 'věc k rozhodnutí', 'věci k rozhodnutí', 'věcí k rozhodnutí')}` : 'Projít týden znovu'}</button>${!open && recs.length ? `<span class="ok small b">${ico('check')} vše rozhodnuto</span>` : ''}</div></div></div>`;
 }
 A.decide = (week, key, v) => { const d = LS.get('dec:' + week, {}); if (v) d[key] = v; else delete d[key]; LS.set('dec:' + week, d); render(); };
 function heroStats(s, ov) {
@@ -897,3 +898,77 @@ function pathCard(s) {
     <div class="legend kleg" style="justify-content:flex-start"><span><i style="background:#2563eb"></i>dnes</span><span><i style="background:#dbeafe"></i>deficit</span><span><i style="background:#fde68a"></i>přestávka</span><span><i style="background:repeating-linear-gradient(135deg,#dbeafe 0 3px,#fde68a 3px 6px)"></i>doporučená přestávka</span><span>číslo = fáze (kg)</span><span><i style="background:#fff;box-shadow:inset 0 0 0 2px #15803d"></i>termín ${czDate(T)}</span></div>
     <div class="pexp"><b>Kdy přestávku a proč:</b> Robert je teď ${inDef}. týden v deficitu${futBr ? ` · naplánováno ${futBr} ${sklon(futBr, 'přestávka', 'přestávky', 'přestávek')}` : ''}. Po 6–10 týdnech deficitu se tělo brání – roste hlad, únava a klesá chuť se hýbat; týden na úrovni výdeje (jí víc, nehubne) to srovná a plán jde dojít až k cíli. Dřív ji zařaď, když váha 2 týdny stojí při dodržování nebo hlásí hlad a špatný spánek. Každá přestávka posune cíl o týden – appka ji započítá do tempa, takže termín drží.</div></div>`;
 }
+
+/* ---------- Průvodce týdnem (7. 10. 2026) ----------
+   Trenér nemá hledat, co je špatně, ani rozumět tabulkám. Appka ho provede: 1 co Robert dělal
+   (věty, ne čísla bez souvislostí) · 2 proč to tak je · 3 co doporučuje udělat (Udělat / Přeskočit)
+   · 4 shrnutí. Rozhodnutí se pamatují pro týden (LS dec:<pondělí>), stejně jako v Týdenní kontrole. */
+function guideWeek() { const t = todayISO(); return { from: addDays(mondayOf(t), -7), to: addDays(mondayOf(t), -1) }; }
+function weekStory(from, to) {
+  const s = S(), R = periodStats(from, to), W = drWeight(from, to), L = [];
+  if (R.empty) return L;
+  const line = (c, ic, txt) => L.push({ c, ic, txt });
+  line(R.weigh >= R.wDays - 1 ? 'ok' : R.weigh >= R.wDays / 2 ? 'warn' : 'bad', 'scale', `Vážil se ${R.weigh}× ze ${R.wDays} dní.${R.weigh < R.wDays / 2 ? ' Bez vážení nejde poznat, jestli plán funguje.' : ''}`);
+  if (W.real != null) line(W.pct >= 90 ? 'ok' : W.pct >= 60 ? 'warn' : 'bad', 'trend', `Váha ${W.real >= 0 ? 'klesla' : 'stoupla'} o ${fmt1(Math.abs(W.real))} kg (cíl na týden −${fmt1(W.plan)} kg)${W.pct != null ? ` – splnil ${W.pct} % cíle` : ''}.`);
+  line(R.conf >= R.n - 1 ? 'ok' : R.conf >= R.n / 2 ? 'warn' : 'bad', 'check', R.conf ? `Potvrdil ${R.conf} ze ${R.n} dní – z nich ${R.inLimit}× držel limit jídla.` : `Nepotvrdil ani jeden den – appka neví, co opravdu jedl.`);
+  if (R.walkPlan) line(R.walk >= R.walkPlan * 0.9 ? 'ok' : R.walk >= R.walkPlan * 0.6 ? 'warn' : 'bad', 'walk', `Chůze: ${fmt0(R.walk)} z ${fmt0(R.walkPlan)} minut (${Math.round(R.walk / R.walkPlan * 100)} %).`);
+  else line('warn', 'walk', 'Chůzi nezapsal ani jednou.');
+  if (R.stepsAvg != null) line(R.stepsAvg >= stepsTarget(s) * 0.9 ? 'ok' : 'warn', 'feet', `Běžné kroky Ø ${fmt0(R.stepsAvg)} denně (cíl ${fmt0(stepsTarget(s))}).`);
+  else { const h = stepsHistFor(to); line(h ? 'ok' : 'warn', 'feet', h ? `Kroky denně nezapisuje – počítá se průměr z Apple Health (${fmt0(h.avg)} denně).` : 'Kroky nezapsal – výdej je jen odhad.'); }
+  if (R.trPlan) line(R.trDone >= R.trPlan * 0.8 ? 'ok' : R.trDone ? 'warn' : 'bad', 'dumbbell', `Trénink: odcvičil ${R.trDone} z ${R.trPlan}.`);
+  const pc = pocitSouhrn(from, to); if (pc !== 'nevyplnil') line(pc === 'v pořádku' ? 'ok' : 'warn', 'moon', `Jak se cítil: ${pc}.`);
+  return L;
+}
+/* doporučení k rozhodnutí: aktuální problémy s akcí; co nemá tlačítko, má větu, co udělat mimo appku */
+function guideRecs() {
+  const now = diagnoza(); const out = [];
+  now.list.forEach(x => { if (x.lv > 2) return;
+    const kde = (x.kde || []).slice().sort(); const den = kde.length ? kde[kde.length - 1] : null;
+    const doIt = x.apply ? { kind: 'apply', js: x.apply, label: x.label || 'Udělat' } : x.go ? { kind: 'go', js: x.go, label: x.label || 'Otevřít' } : den ? { kind: 'go', js: `A.coachDaySheet('${den}')`, label: `Ukázat ${czDateShort(den)}` } : null;
+    out.push({ key: x.key, title: x.title, why: x.sub || '', doIt, offline: GUIDE_OFFLINE[x.key] || (!doIt ? 'Probrat s Robertem při vašem příštím kontaktu.' : '') }); });
+  return out.slice(0, 6);
+}
+/* co udělat mimo appku, když problém nemá tlačítko (appka na komunikaci není – tohle je rada trenérovi) */
+const GUIDE_OFFLINE = {
+  nepotvrz: 'Domluv s Robertem: každý večer ťuknout „Jedl jsem podle plánu“ (výjimky opravit u jídla). Bez toho jsou rozbory naslepo.',
+  vazeni: 'Domluv s Robertem: vážit se každé ráno po WC, nalačno – appka mu to připomene.',
+  'vazeni-malo': 'Domluv s Robertem: vážit se každé ráno – průměr 7 vážení je teprve spolehlivý.',
+  krokyzap: 'Ať večer zapíše kroky z telefonu (Apple Health → Kroky, číslo za den). Nebo zadej v Plánu → Pohyb průměr z Health za měsíc.',
+  planjidel: 'Ať si v appce naplánuje jídla na další dny (Plán → Jídla → Naplánuj mi týden), ne v Excelu.',
+  situace: 'Ať jídla „podle situace“ večer jedním ťuknutím odhadne (lehké · jako plán · vydatné · hodně), nebo si je předem naplánuje.',
+  preslimit: 'Otevři den a podívej se, který chod nebo cheat ho přetáhl. S Robertem domluv jednu konkrétní změnu (menší porce přílohy, cheat do rezervy dne nebo pokrýt chůzí).',
+  jidlo: 'Otevři dny přes limit a najdi, co se opakuje (stejný chod, víkend, cheat). Domluv s Robertem jednu konkrétní změnu na příští týden.',
+  pohyb: 'Zjisti, proč chůzi nestíhá. Když je cíl moc vysoko, nastav takový, který reálně ujde – lepší 45 minut každý den než 60 občas.',
+  chuze: 'Zjisti, proč chůzi nestíhá, a nastav cíl, který reálně ujde.', trenink: 'Zjisti, co mu brání cvičit (čas, bolest, chuť), a uprav plán v Tréninku na lehčí.',
+  stoji: 'Váha stojí – když Robert potvrzuje dny a drží limit, zvaž přestávku v deficitu nebo korekci výdeje (Přeplánovat).',
+    hlad: 'Zeptej se, kdy má hlad – zvaž víc bílkovin a zeleniny, nebo přestávku v deficitu.', spanek: 'Zeptej se na spánek – špatný spánek zvyšuje hlad a brzdí hubnutí.' };
+A.guide = step => openSheet(() => {
+  const g = guideWeek(), st = step || App._gs || 1; App._gs = st; const done = LS.get('dec:' + g.from, {});
+  const recs = guideRecs(); const nav = `<div class="gsteps">${['Co dělal', 'Proč', 'Co udělat', 'Hotovo'].map((l, i) => `<span class="${i + 1 === st ? 'on' : i + 1 < st ? 'ok' : ''}">${i + 1 < st ? ico('check') : i + 1} ${l}</span>`).join('')}</div>`;
+  let body = '', foot = '';
+  if (st === 1) { const L = weekStory(g.from, g.to); const sc = weekScore(g.from, g.to);
+    body = `${sc ? `<div class="gscore" style="--c:${scoreCol(sc.s)}"><b>${sc.s}</b><span>ze 100 · skóre plnění${hq('pSkore')}</span></div>` : ''}<div class="list">${L.map(x => `<div class="li static"><span class="em ${x.c}">${ico(x.ic)}</span><div class="tx"><b>${esc(x.txt)}</b></div></div>`).join('') || '<p class="muted">Za minulý týden zatím nejsou data.</p>'}</div>`;
+    foot = `<button class="btn" onclick="App._gs=2;window._sheetRedraw()">Dál: proč ›</button>`; }
+  if (st === 2) { const D = diagnoza(g.from, g.to).list.slice(0, 4);
+    body = D.length ? `<div class="list">${D.map(x => `<div class="li static"><span class="em ${x.lv === 1 ? 'bad' : 'warn'}">${ico('alert')}</span><div class="tx"><b>${esc(x.title)}</b><span>${esc(x.sub || '')}</span></div></div>`).join('')}</div>` : `<div class="alert a3"><div>Týden šel podle plánu – žádný problém.</div></div>`;
+    foot = `<button class="btn ghost" onclick="App._gs=1;window._sheetRedraw()">‹ Zpět</button><button class="btn" onclick="App._gs=3;window._sheetRedraw()">Dál: co udělat ›</button>`; }
+  if (st === 3) {
+    body = recs.length ? recs.map((r, i) => { const d = done[r.key];
+      return `<div class="grec ${d ? 'done' : ''}"><b>${i + 1}. ${esc(r.title)}</b>${r.why ? `<span>${esc(r.why)}</span>` : ''}${r.offline ? `<em>Co udělat: ${esc(r.offline)}</em>` : ''}
+        ${d ? `<div class="row nowrap"><span class="ok small b">${ico('check')} ${d === 'ok' ? 'hotovo' : 'přeskočeno'}</span><button class="btn ghost sm" onclick="A.decide('${g.from}','${r.key}',null);window._sheetRedraw()">Vrátit</button></div>`
+          : `<div class="row">${r.doIt ? `<button class="btn sm" onclick="A.guideDo(${i})">${esc(r.doIt.label)}</button>` : `<button class="btn sm" onclick="A.decide('${g.from}','${r.key}','ok');window._sheetRedraw()">Udělám to</button>`}<button class="btn sm ghost" onclick="A.decide('${g.from}','${r.key}','keep');window._sheetRedraw()">Přeskočit</button></div>`}</div>`; }).join('')
+      : `<div class="alert a3"><div>Nic nečeká na rozhodnutí. Plán nech, jak je.</div></div>`;
+    App._grecs = recs;
+    foot = `<button class="btn ghost" onclick="App._gs=2;window._sheetRedraw()">‹ Zpět</button><button class="btn" onclick="App._gs=4;window._sheetRedraw()">Dál: shrnutí ›</button>`; }
+  if (st === 4) { const ok = recs.filter(r => done[r.key] === 'ok'), skip = recs.filter(r => done[r.key] === 'keep'), open = recs.filter(r => !done[r.key]);
+    body = `<div class="list">${ok.map(r => `<div class="li static"><span class="em ok">${ico('check')}</span><div class="tx"><b>${esc(r.title)}</b><span>hotovo${r.offline ? ' · ' + esc(r.offline) : ''}</span></div></div>`).join('')}
+      ${skip.map(r => `<div class="li static"><span class="em">${ico('clip')}</span><div class="tx"><b>${esc(r.title)}</b><span>přeskočeno</span></div></div>`).join('')}
+      ${open.map(r => `<div class="li static"><span class="em warn">${ico('alert')}</span><div class="tx"><b>${esc(r.title)}</b><span>nerozhodnuto – vrať se do kroku 3</span></div></div>`).join('')}</div>
+      <p class="small muted">Změny najdeš v Historii změn a každou jde vrátit. Další kontrola v pondělí ${czDateShort(addDays(mondayOf(todayISO()), 7))}.</p>`;
+    foot = `<button class="btn ghost" onclick="App._gs=3;window._sheetRedraw()">‹ Zpět</button><button class="btn" onclick="App._gs=1;UI.closeModal();render()">Hotovo</button>`; }
+  return UI.sheetHtml('Průvodce týdnem', `${czDateShort(g.from)}–${czDateShort(g.to)} · krok ${st} ze 4`, nav + body, foot);
+});
+A.guideDo = i => { const r = (App._grecs || [])[i]; if (!r || !r.doIt) return; const g = guideWeek();
+  A.decide(g.from, r.key, 'ok');
+  if (r.doIt.kind === 'apply') { try { (new Function(r.doIt.js))(); } catch (e) { console.error(e); } if (window._sheetRedraw) window._sheetRedraw(); }
+  else { UI.closeModal(); (new Function(r.doIt.js))(); UI.toast('Až to vyřešíš, průvodce najdeš na Přehledu v Týdenní kontrole.'); } };

@@ -151,11 +151,11 @@ const UI = {
    Trenér: tři obrazovky – mám zasáhnout, co nastavit, co je v databázi.
    Zbytek je pod kolečkem s iniciálou vpravo nahoře (Více). */
 const NAV_CLIENT = [['dnes', 'Dnes'], ['plan', 'Plán'], ['pokrok', 'Pokrok']];
-const MORE_CLIENT = [['recepty', 'Recepty', 'všech 200 jídel a tvoje vlastní', '📖'], ['suroviny', 'Suroviny', 'hodnoty na 100 g, vlastní suroviny', '🥦'], ['ucet', 'Nastavení', 'připomínky, nádoby, záloha, odhlášení', '⚙️'], ['navod', 'Návod', 'pravidla, slovníček, jak appka počítá', '📘']];
+const MORE_CLIENT = [['recepty', 'Recepty', 'všech 200 jídel a tvoje vlastní', 'fork'], ['suroviny', 'Suroviny', 'hodnoty na 100 g, vlastní suroviny', 'cart'], ['ucet', 'Nastavení', 'připomínky, nádoby, odhlášení', 'gear'], ['navod', 'Návod', 'pravidla, slovníček, jak appka počítá', 'clip']];
 /* Trenér plánuje cíle a trénink, ne jídlo (1. 10. 2026) – databáze potravin ani
    plánování jídel za Roberta v jeho menu nejsou. */
 const NAV_COACH = [['klient', 'Přehled'], ['nastaveni', 'Plán'], ['trenink', 'Trénink']];
-const MORE_COACH = [['historie', 'Historie změn', 'co jsi změnil a kdy · jde vrátit', '🕓'], ['ucet', 'Nastavení', 'účet, výchozí data, odhlášení', '⚙️'], ['navod', 'Návod', 'pravidla, slovníček, jak appka počítá', '📘']];
+const MORE_COACH = [['historie', 'Historie změn', 'co jsi změnil a kdy · jde vrátit', 'cal'], ['ucet', 'Nastavení', 'účet, data do Excelu, odhlášení', 'gear'], ['navod', 'Návod', 'pravidla, slovníček, jak appka počítá', 'clip']];
 /* staré názvy obrazovek (odkazy v úkolech, připomínkách, testech) → nové místo */
 const VIEW_ALIAS = { tyden: ['plan', { planTab: 'jidla' }], jidlo: ['plan', {}], nakup: ['plan', { planTab: 'nakup' }], spiz: ['plan', { planTab: 'nakup' }], vareni: ['plan', { planTab: 'vareni' }],
   mereni: ['pokrok', {}], prehled: ['pokrok', {}], zprava: ['klient', {}], databaze: ['klient', {}] };

@@ -112,7 +112,7 @@ inl=sum(len(re.findall(r'style="',open(f).read())) for f in glob.glob(os.path.jo
 print('inline styly v src/*.js:', inl)
 
 # zakázané a zastaralé pojmy: nikde v textech appky (obrazovky obou rolí, úvod, nápověda)
-ZAKAZ=['Pohled Roberta','udržovací týden','udržovacího týdne','pevný faktor','bazál','cílový deficit','maximální příjem','plánovací limit','cíl chodu','Vrátit měsíc na šablonu','karta Teď']
+ZAKAZ=['Výchozí data','Naplnit výchozí','Synchronizovat teď','Historie ze sešitu','Pohled Roberta','udržovací týden','udržovacího týdne','pevný faktor','bazál','cílový deficit','maximální příjem','plánovací limit','cíl chodu','Vrátit měsíc na šablonu','karta Teď']
 with sync_playwright() as p3:
     b3=p3.chromium.launch(); pg=b3.new_page(viewport={'width':1440,'height':900}); pg.goto(URL); pg.wait_for_timeout(200); pg.evaluate(SETUP)
     texty=[pg.evaluate("JSON.stringify(INTRO)+JSON.stringify(HELP)")]

@@ -214,6 +214,7 @@ VIEWS.plan = function () {
   if (t === 'nakup' && App.shopMode === 'tisk') return VIEWS._nakup();
   const menu = t === 'jidla' ? 'A.weekMenu()' : t === 'nakup' ? 'A.shopMenu()' : '';
   return `<div class="ph noprint"><div class="pt"><h1>Plán</h1></div>${menu ? `<div class="act"><button class="iconbtn" onclick="${menu}" aria-label="další akce">⋯</button></div>` : ''}</div>
+  ${planGuide()}
   <div class="seg noprint">${PLAN_TABS.map(([k, l], i) => `<button class="${k === t ? 'on' : ''}" onclick="A.planTab('${k}')"><em>${i + 1}</em>${l}</button>`).join('')}</div>
   ${t === 'vareni' ? '' : weekToggle()}
   ${VIEWS['_' + t]()}`;
@@ -351,24 +352,22 @@ VIEWS.mereni = () => VIEWS.pokrok();
 VIEWS.more = function () {
   const items = moreItems();
   return `<div class="ph"><div class="pt"><h1>Více</h1></div></div>
-  <div class="card flush">${items.map(([v, l, sub, em]) => `<div class="navrow" onclick="go('${v}')"><span class="ico">${em}</span><div class="tx"><b>${l}</b><span>${sub}</span></div><span class="chev">›</span></div>`).join('')}</div>
-  <div class="card flush"><div class="navrow" onclick="A.syncInfo()"><span class="ico">☁️</span><div class="tx"><b>${Store.localMode() ? 'Bez cloudu' : 'Synchronizace'}</b><span>${Store.localMode() ? 'data jsou jen v tomto prohlížeči' : (Store.outbox.length ? Store.outbox.length + ' ' + sklon(Store.outbox.length, 'změna čeká', 'změny čekají', 'změn čeká') : 'vše uložené')}</span></div><span class="chev">›</span></div>
-    <div class="navrow" onclick="A.logout()"><span class="ico">🚪</span><div class="tx"><b>Odhlásit</b><span>${esc(Store.session ? Store.session.user.email : (isCoach() ? 'trenér' : 'Robert'))}</span></div><span class="chev">›</span></div></div>`;
+  <div class="card flush">${items.map(([v, l, sub, em]) => `<div class="navrow" onclick="go('${v}')"><span class="ico">${ico(em)}</span><div class="tx"><b>${l}</b><span>${sub}</span></div><span class="chev">›</span></div>`).join('')}</div>
+  <div class="card flush"><div class="navrow" onclick="A.syncInfo()"><span class="ico">${ico('check')}</span><div class="tx"><b>${Store.localMode() ? 'Bez cloudu' : 'Synchronizace'}</b><span>${Store.localMode() ? 'data jsou jen v tomto prohlížeči' : (Store.outbox.length ? Store.outbox.length + ' ' + sklon(Store.outbox.length, 'změna čeká', 'změny čekají', 'změn čeká') : 'vše uložené')}</span></div><span class="chev">›</span></div>
+    <div class="navrow" onclick="A.logout()"><span class="ico">${ico('user')}</span><div class="tx"><b>Odhlásit</b><span>${esc(Store.session ? Store.session.user.email : (isCoach() ? 'trenér' : 'Robert'))}</span></div><span class="chev">›</span></div></div>`;
 };
 /* ---------- NASTAVENÍ ---------- */
 VIEWS.ucet = function () {
   const coach = isCoach();
   return `<div class="ph"><button class="iconbtn" onclick="go('more')" aria-label="zpět">‹</button><div class="pt"><h1>Nastavení</h1></div></div>
   <div class="card stack s8"><h2>Účet</h2><p class="small muted">${Store.localMode() ? 'Aplikace běží bez cloudu – data jsou jen v tomto prohlížeči. Udělej si zálohu.' : `Přihlášen: ${esc(Store.session ? Store.session.user.email : '')} · ${coach ? 'trenér' : 'klient'}`}</p>
-    <div class="row">${Store.localMode() ? '' : '<button class="btn sec sm" onclick="Store.sync().then(()=>{render();UI.toast(\'Synchronizováno\')})">Synchronizovat teď</button>'}<button class="btn sec sm" onclick="A.logout()">Odhlásit</button></div></div>
-  ${!coach && !Meas().length ? `<div class="card stack s8"><h2>Historie ze sešitu</h2><p class="small muted">Zatím nemáš žádné vážení. Můžeš nahrát 14 vážení a obvody z Excelu (27. 8. – 9. 9. 2026), ať grafy navazují.</p><div class="row"><button class="btn sec sm" onclick="A.seedMeas()">Nahrát vážení ze sešitu</button></div></div>` : ''}
-  ${coach ? `<div class="card stack s8"><h2>Výchozí data</h2><p class="small muted">Naplnění je bezpečné opakovat – záznamy se párují podle id.</p><div class="row"><button class="btn sec sm" onclick="A.seedAll()">Naplnit výchozí data</button>${Store.localMode() ? '<button class="btn sec sm" onclick="A.seedMeas()">Nahrát 14 vážení ze sešitu</button>' : ''}</div></div>` : ''}
-  ${coach ? '' : `<div class="card stack s8"><h2>🔔 Připomínky</h2><p class="small muted">Váha ${WEIGH_TIME}, jídla v časech chodů, kroky 20:00 a potvrzení dne ${CLOSE_TIME} – jen když to ještě nemáš hotové. Chodí i do zavřené appky.${Push.iphone() && !Push.naPlose() ? ' <b>Na iPhonu nejdřív přidej appku na plochu</b> a otevři ji odtamtud.' : ''}</p>
+    <div class="row"><button class="btn sec sm" onclick="A.logout()">Odhlásit</button></div></div>
+  ${coach ? '' : `<div class="card stack s8"><h2>Připomínky</h2><p class="small muted">Váha ${WEIGH_TIME}, jídla v časech chodů, kroky 20:00 a potvrzení dne ${CLOSE_TIME} – jen když to ještě nemáš hotové. Chodí i do zavřené appky.${Push.iphone() && !Push.naPlose() ? ' <b>Na iPhonu nejdřív přidej appku na plochu</b> a otevři ji odtamtud.' : ''}</p>
     <div class="row" id="pushstav"><span class="small muted">zjišťuju…</span></div>
-    <details><summary class="small muted">Místo toho kalendář (.ics)</summary><div class="row"><button class="btn ghost sm" onclick="A.exportIcs()">📅 Stáhnout do kalendáře</button></div><p class="hint">Pevné časy bez ohledu na to, co máš hotové. iPhone: otevři soubor a „Přidat vše“.</p></details></div>`}
+    <details><summary class="small muted">Místo toho kalendář (.ics)</summary><div class="row"><button class="btn ghost sm" onclick="A.exportIcs()">Stáhnout do kalendáře</button></div><p class="hint">Pevné časy bez ohledu na to, co máš hotové. iPhone: otevři soubor a „Přidat vše“.</p></details></div>`}
   ${coach ? '' : containersCard()}
-  <div class="card stack s8"><h2>Export a záloha</h2><p class="small muted">Excel obsahuje měření, dny a plány týdnů. JSON je kompletní záloha, kterou jde nahrát zpět.</p>
-    <div class="row"><button class="btn sec sm" onclick="A.exportXlsx()">Export do Excelu</button><button class="btn sec sm" onclick="A.exportJson()">Záloha JSON</button><label class="btn sec sm" style="cursor:pointer">Nahrát zálohu<input type="file" accept=".json" style="display:none" onchange="A.importJson(this.files[0])"></label></div></div>`;
+  <div class="card stack s8"><h2>${coach ? 'Robertova data do Excelu' : 'Moje data do Excelu'}</h2><p class="small muted">Stáhne vážení, obvody, dny a plány do souboru .xlsx. Data jsou jinak uložená v cloudu a zálohují se samy každý týden.</p>
+    <div class="row"><button class="btn sec sm" onclick="A.exportXlsx()">Stáhnout Excel</button></div></div>`;
 };
 
 /* ---------- SUROVINY ---------- */
@@ -544,3 +543,18 @@ function barChart(vals, labels, goal) {
   return g + '</svg>';
 }
 
+
+/* Průvodce Plánem (7. 10. 2026): co je další krok týdne – naplánovat, nakoupit, uvařit – a jedno tlačítko.
+   Robert nemusí přemýšlet, kde začít; hotový krok je zelený. */
+function planGuide() {
+  if (App.ro) return ''; const s = S(), t = todayISO(), mon = mondayOf(t), wk = getWeek(mon);
+  const di = [0, 1, 2, 3, 4, 5, 6].filter(i => addDays(mon, i) >= t); const slots = di.length * s.courses.length;
+  const filled = di.reduce((a, i) => a + wk.plan[i].filter(Boolean).length, 0);
+  let shopDone = 1, shopN = 0; try { const w = currentWeight(); const L = calcShopping(s, Foods(), Recipes(), wk.plan, w, weekActs(mon, w), di); const sh = getShop(mon);
+    const k = L.filter(x => !(x.pantry && pantryState(x.food, x.g) === 'mam')); shopN = k.length; shopDone = shopN ? k.filter(x => sh.checked[x.food]).length / shopN : 1; } catch (e) { }
+  const step = filled < slots * 0.7 ? 1 : shopN && shopDone < 0.8 ? 2 : 3;
+  const st = [['Naplánovat jídla', filled >= slots * 0.7, `${filled} z ${slots} jídel`], ['Nakoupit', step > 2 || (shopN && shopDone >= 0.8), shopN ? `${Math.round(shopDone * 100)} % v košíku` : 'nic k nákupu'], ['Uvařit dopředu', false, 'krabičky na další dny']];
+  const btn = step === 1 ? `<button class="btn" onclick="A.planTab('jidla');A.genWeek('empty')">Naplánuj mi zbytek týdne</button>` : step === 2 ? `<button class="btn" onclick="A.planTab('nakup')">Otevřít nákupní seznam</button>` : `<button class="btn sec" onclick="A.planTab('vareni')">Co uvařit dopředu</button>`;
+  return `<div class="card pguide"><div class="gsteps">${st.map(([l, ok, sub], i) => `<span class="${i + 1 === step ? 'on' : ok ? 'ok' : ''}">${ok && i + 1 !== step ? ico('check') : i + 1} ${l}</span>`).join('')}</div>
+    <div class="small muted">${esc(st[step - 1][2])}</div>${btn}</div>`;
+}

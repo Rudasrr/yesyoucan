@@ -850,3 +850,11 @@ svg.pchart{width:100%;height:auto;display:block}
 .mst .m.next{background:#eff6ff;border-radius:10px;padding-left:8px;padding-right:8px}.mst .m em{font-style:normal;font-size:12px}
 @media (max-width:640px){ .ptl2{flex-wrap:wrap;overflow:visible;row-gap:6px}.ptl2 .pw{flex:0 0 22px;min-width:22px}.ptl2 .mo{overflow:hidden} }
 .intro .ie svg.ic{width:44px;height:44px;color:#2563eb;stroke-width:1.8}
+
+/* Průvodce týdnem (2026-10) */
+.gsteps{display:flex;gap:6px;flex-wrap:wrap}.gsteps span{font-size:12.5px;font-weight:650;color:var(--ink3);background:#f1f5f9;border-radius:999px;padding:5px 10px;display:flex;gap:4px;align-items:center}
+.gsteps span.on{background:#2563eb;color:#fff}.gsteps span.ok{background:#dcfce7;color:#15803d}.gsteps svg.ic{width:13px;height:13px}
+.gscore{display:flex;align-items:baseline;gap:8px}.gscore b{font-size:44px;font-weight:850;color:var(--c);letter-spacing:-.03em}.gscore span{color:var(--ink2);font-size:13px}
+.li .em.ok{color:#16a34a;background:#dcfce7}.li .em.warn{color:#b45309;background:#fef3c7}.li .em.bad{color:#dc2626;background:#fee2e2}
+.grec{border:1px solid var(--line2);border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:6px}.grec span{font-size:13px;color:var(--ink2)}.grec em{font-style:normal;font-size:13.5px;color:var(--p-ink);font-weight:600}.grec.done{opacity:.7}
+.pguide{display:flex;flex-direction:column;gap:8px}.pguide .btn{align-self:flex-start}
