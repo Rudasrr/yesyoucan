@@ -41,8 +41,9 @@ function weekCheckCard(s, shown) {
   const done = LS.get('dec:' + from, {}); const recs = guideRecs(); if (shown) recs.forEach(x => shown.push(x.key));
   const open = recs.filter(r => !done[r.key]).length; const story = weekStory(from, to); const bad = story.filter(x => x.c === 'bad');
   const W = drWeight(from, to), wp = W.pct;   // výsledek (váha) se počítá taky – skóre samo měří jen kázeň
-  const head = sc.s >= 70 && (wp == null || wp >= 80) ? 'Robert jede podle plánu' : sc.s >= 70 ? `Dodržuje, ale váha jde pomaleji (${wp} % cíle)` : sc.s >= 40 ? 'Robert plní jen část plánu' : 'Robert plán neplní';
-  const col = sc.s >= 70 && (wp == null || wp >= 80) ? scoreCol(sc.s) : sc.s >= 40 ? '#d97706' : '#dc2626';
+  const head = sc.s >= 70 && (wp == null || wp >= 80) ? 'Robert jede podle plánu' : sc.s >= 70 ? `Dodržuje, ale váha jde pomaleji (${wp} % cíle)`
+    : wp != null && wp >= 80 ? `Váha minulý týden podle plánu (${wp} %), ale Robert nezapisuje` : sc.s >= 40 ? 'Robert plní jen část plánu' : 'Robert plán neplní';
+  const col = sc.s >= 70 && (wp == null || wp >= 80) ? scoreCol(sc.s) : sc.s >= 40 || (wp != null && wp >= 80) ? '#d97706' : '#dc2626';
   return `<div class="card wcheck">${bigRing(sc.s / 100, 112, col, '#e0e7ff', sc.s, 'ze 100')}
     <div class="wtx"><span class="pill2">${ico('clip')} Týdenní kontrola · ${czDateShort(from)}–${czDateShort(to)}${hq('pSkore')}</span>
       <h2>${head}</h2>
@@ -924,7 +925,7 @@ function guideRecs() {
   const now = diagnoza(); const out = [];
   now.list.forEach(x => { if (x.lv > 2) return;
     const kde = (x.kde || []).slice().sort(); const den = kde.length ? kde[kde.length - 1] : null;
-    const doIt = x.apply ? { kind: 'apply', js: x.apply, label: x.label || 'Udělat' } : x.go ? { kind: 'go', js: x.go, label: x.label || 'Otevřít' } : den ? { kind: 'go', js: `A.coachDaySheet('${den}')`, label: `Ukázat ${czDateShort(den)}` } : null;
+    const doIt = x.apply ? { kind: 'apply', js: x.apply, label: x.label || 'Udělat' } : x.go ? { kind: 'go', js: x.go, label: x.label || 'Otevřít' } : den && !GUIDE_OFFLINE[x.key] ? { kind: 'go', js: `A.coachDaySheet('${den}')`, label: `Ukázat ${czDateShort(den)}` } : null;
     out.push({ key: x.key, title: x.title, why: x.sub || '', doIt, offline: GUIDE_OFFLINE[x.key] || (!doIt ? 'Probrat s Robertem při vašem příštím kontaktu.' : '') }); });
   return out.slice(0, 6);
 }
@@ -956,7 +957,7 @@ A.guide = step => openSheet(() => {
     body = recs.length ? recs.map((r, i) => { const d = done[r.key];
       return `<div class="grec ${d ? 'done' : ''}"><b>${i + 1}. ${esc(r.title)}</b>${r.why ? `<span>${esc(r.why)}</span>` : ''}${r.offline ? `<em>Co udělat: ${esc(r.offline)}</em>` : ''}
         ${d ? `<div class="row nowrap"><span class="ok small b">${ico('check')} ${d === 'ok' ? 'hotovo' : 'přeskočeno'}</span><button class="btn ghost sm" onclick="A.decide('${g.from}','${r.key}',null);window._sheetRedraw()">Vrátit</button></div>`
-          : `<div class="row">${r.doIt ? `<button class="btn sm" onclick="A.guideDo(${i})">${esc(r.doIt.label)}</button>` : `<button class="btn sm" onclick="A.decide('${g.from}','${r.key}','ok');window._sheetRedraw()">Udělám to</button>`}<button class="btn sm ghost" onclick="A.decide('${g.from}','${r.key}','keep');window._sheetRedraw()">Přeskočit</button></div>`}</div>`; }).join('')
+          : `<div class="row">${r.doIt ? `<button class="btn sm" onclick="A.guideDo(${i})">${esc(r.doIt.label)}</button>` : `<button class="btn sm" onclick="A.decide('${g.from}','${r.key}','ok');window._sheetRedraw()">Domluvím to</button>`}<button class="btn sm ghost" onclick="A.decide('${g.from}','${r.key}','keep');window._sheetRedraw()">Přeskočit</button></div>`}</div>`; }).join('')
       : `<div class="alert a3"><div>Nic nečeká na rozhodnutí. Plán nech, jak je.</div></div>`;
     App._grecs = recs;
     foot = `<button class="btn ghost" onclick="App._gs=2;window._sheetRedraw()">‹ Zpět</button><button class="btn" onclick="App._gs=4;window._sheetRedraw()">Dál: shrnutí ›</button>`; }
