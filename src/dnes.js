@@ -54,7 +54,7 @@ VIEWS.dnes = function () {
   <div class="ph"><button class="iconbtn" onclick="A.dayShift(-1)" aria-label="předchozí den">‹</button>
     <div class="pt"><h1>${isToday ? 'Dnes' : dn}</h1><span class="sub">${isToday ? dn.toLowerCase() + ' ' : ''}${czDateShort(App.date)}</span></div>${isToday ? `<span class="chip2 acc">${ico('flame')} ${Math.max(st, weighStreak()) >= 1 ? `${Math.max(st, weighStreak())} ${sklon(Math.max(st, weighStreak()), 'den', 'dny', 'dní')} v řadě` : 'nová série'}</span>` : ''}
     <div class="act">${isToday ? '' : `<button class="btn sec sm" onclick="App.date=todayISO();render()">Dnes</button>`}<button class="iconbtn" onclick="A.dayShift(1)" ${isToday ? 'disabled' : ''} aria-label="další den">›</button><button class="iconbtn" onclick="A.dayMenu()" aria-label="další akce">⋯</button></div></div>
-  ${s.maintain ? `<div class="notice">🏁 Udržování – cíl dosažen, deficit je nula. Jíš na celkový výdej.</div>` : isMaintWeek(s, App.date) ? `<div class="notice">⚖️ Udržovací týden – deficit nula, limit na celkovém výdeji. Jídlo, chůze i trénink jedou dál.</div>` : ''}
+  ${s.maintain ? `<div class="notice">🏁 Udržování – cíl dosažen, deficit je nula. Jíš na celkový výdej.</div>` : isMaintWeek(s, App.date) ? `<div class="notice">Přestávka v deficitu – tento týden deficit nula, limit na celkovém výdeji. Jídlo, chůze i trénink jedou dál.</div>` : ''}
   ${resumeCard()}
   ${renderRings(d, day, s)}
   ${nextCard(day, tasks, s)}

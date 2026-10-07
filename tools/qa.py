@@ -110,3 +110,17 @@ print('nápověda ? bez textu:', MAX_I, 'OK' if MAX_I==0 else 'CHYBA', MAX_I_WHE
 import re,glob
 inl=sum(len(re.findall(r'style="',open(f).read())) for f in glob.glob(os.path.join(os.path.dirname(__file__),'..','src','*.js')))
 print('inline styly v src/*.js:', inl)
+
+# zakázané a zastaralé pojmy: nikde v textech appky (obrazovky obou rolí, úvod, nápověda)
+ZAKAZ=['Pohled Roberta','udržovací týden','udržovacího týdne','pevný faktor','bazál','cílový deficit','maximální příjem','plánovací limit','cíl chodu','Vrátit měsíc na šablonu','karta Teď']
+with sync_playwright() as p3:
+    b3=p3.chromium.launch(); pg=b3.new_page(viewport={'width':1440,'height':900}); pg.goto(URL); pg.wait_for_timeout(200); pg.evaluate(SETUP)
+    texty=[pg.evaluate("JSON.stringify(INTRO)+JSON.stringify(HELP)")]
+    for role,views in [('client',VIEWS_C),('coach',VIEWS_K+['historie','klient'])]:
+        if role=='coach': pg.evaluate("localLogin('coach');render()")
+        for v in views:
+            pg.evaluate(f"go('{v}')"); pg.wait_for_timeout(80); texty.append(pg.evaluate("document.body.innerText"))
+    pg.evaluate("go('klient');A.goalCheckSheet&&A.goalCheckSheet()"); pg.wait_for_timeout(80); texty.append(pg.evaluate("document.body.innerText"))
+    b3.close()
+nalez=sorted({z for z in ZAKAZ for t in texty if z.lower() in t.lower()})
+print('zakázané pojmy:', ', '.join(nalez) if nalez else 'žádné', 'OK' if not nalez else 'PŘES')

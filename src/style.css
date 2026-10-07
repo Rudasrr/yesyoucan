@@ -849,3 +849,4 @@ svg.pchart{width:100%;height:auto;display:block}
 .seg.mlv{flex:none}.seg.mlv button{flex:none;min-width:28px;padding-left:6px;padding-right:6px}.ptl2 .pp span.t{color:#15803d}.mlvnow{font-size:12.5px;color:var(--ink2);padding:2px 0 6px}.mlvnow.ok b{color:#15803d}.mlvnow.warn b{color:#b45309}.mlvnow .seg{margin-top:6px}
 .mst .m.next{background:#eff6ff;border-radius:10px;padding-left:8px;padding-right:8px}.mst .m em{font-style:normal;font-size:12px}
 @media (max-width:640px){ .ptl2{flex-wrap:wrap;overflow:visible;row-gap:6px}.ptl2 .pw{flex:0 0 22px;min-width:22px}.ptl2 .mo{overflow:hidden} }
+.intro .ie svg.ic{width:44px;height:44px;color:#2563eb;stroke-width:1.8}

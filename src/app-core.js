@@ -199,11 +199,9 @@ A.syncClear = () => { Store.odlozene = []; LS.set('odlozene', []); Store.lastErr
 
 function realCoach() { return Store.profile && Store.profile.role === 'coach'; }
 function isCoach() { return realCoach() && !App.preview; }
-A.togglePreview = () => { App.preview = !App.preview; App.view = App.preview ? 'dnes' : 'klient'; UI.closeModal(); render(); window.scrollTo(0, 0); UI.toast(App.preview ? 'Vidíš appku Robertovýma očima – jen náhled, nic se neuloží.' : 'Zpět v trenérském pohledu.'); };
 function nav() { return isCoach() ? NAV_COACH : NAV_CLIENT; }
 function moreItems() { return isCoach() ? MORE_COACH : MORE_CLIENT; }
 function go(v) {
-  if (v === '__preview') { A.togglePreview(); return; }
   if (VIEW_ALIAS[v]) { const [to, st] = VIEW_ALIAS[v]; Object.assign(App, st); v = to; }
   App.view = v; UI.closeModal(); render(); window.scrollTo(0, 0);
 }
@@ -235,7 +233,6 @@ function render() {
   const V = VIEWS[App.view] || (isCoach() ? VIEWS.klient : VIEWS.dnes);
   let head = '';
   if (isCoach() && Store.clients.length > 1) head = `<div class="row small muted">Klient: <select style="width:auto;min-height:34px;padding:3px 8px" onchange="Store.clientId=this.value;LS.set('clientId',this.value);render()">${Store.clients.map(c => `<option value="${c.id}" ${c.id === Store.clientId ? 'selected' : ''}>${esc(c.display_name || c.name || c.email || c.id.slice(0, 8))}</option>`).join('')}</select></div>`;
-  if (App.preview) head += `<div class="notice"><span>👁️ Robertův pohled – jen náhled, nic se neuloží.</span><span class="row" style="margin-left:auto"><button class="btn sm" onclick="A.togglePreview()">Zpět do trenéra</button></span></div>`;
   // překreslení nesmí sebrat kurzor z rozepsaného pole ani odskočit se stránkou
   const ae = document.activeElement;
   const keep = ae && ae.id && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA') && el.contains(ae)
@@ -368,12 +365,12 @@ document.addEventListener('DOMContentLoaded', boot);
    jednou pochopil, četl pak jen text navíc. Teď je to jednorázový úvod na tři karty
    a zbytek je v Návodu. Automatické testy (navigator.webdriver) úvod přeskakují. */
 const INTRO = {
-  client: [['☀️', 'Dnes', 'Nahoře vidíš, kolik ještě můžeš sníst. Pod tím celý den v jednom seznamu – další krok je zvýrazněný a má tlačítko přímo pod sebou. Když nevíš, drž se ho.'],
-    ['🗓️', 'Plán', 'Jednou týdně: nech si navrhnout jídla, nakup podle seznamu a uvař dopředu. Tři kroky vedle sebe.'],
-    ['📈', 'Pokrok', 'Váha ráno po WC, nalačno. Appka počítá s průměrem sedmi vážení – jedno číslo nic neznamená.']],
-  coach: [['🚦', 'Robert', 'Barva a jedna věta řeknou, jestli zasáhnout. Pod tím jen to, co vyžaduje akci – každé s tlačítkem.'],
-    ['🎛️', 'Plán', 'Nahoře páky, které měníš opravdu: tempo, chůze, kroky, udržovací týden. Trénink je vedle.'],
-    ['👁️', 'Pohled Roberta', 'Pod kolečkem vpravo nahoře uvidíš appku přesně tak, jak ji vidí on.']]
+  client: [['sun', 'Dnes', 'Nahoře dva kroužky: kolik ještě můžeš sníst a kolik se ještě hýbat. Pod nimi Další krok s tlačítkem – když nevíš, drž se ho.'],
+    ['cal', 'Plán', 'Jídla na další dny, nákup podle seznamu a vaření dopředu. Tři kroky vedle sebe.'],
+    ['trend', 'Pokrok', 'Váha ráno po WC, nalačno. Uvidíš, kolik už je dole, další milník a své série.']],
+  coach: [['grid', 'Přehled', 'Týdenní kontrola se skóre, Průběh od celé cesty po jednotlivý den a Co řešit – každý problém s návrhem a tlačítkem.'],
+    ['sliders', 'Plán', 'Cíl a termín, pohyb a jídlo. Appka hlídá, jestli Robert termín stihne, a když dlouhodobě neplní, navrhne přeplánování.'],
+    ['dumbbell', 'Trénink', 'Kalendář s délkou a kcal každého dne, partie těla a kontrola plánu s návrhy. Navrhnout měsíc sestaví vyvážený plán.']]
 };
 function maybeIntro() {
   if (navigator.webdriver || document.querySelector('.modal')) return;
@@ -383,7 +380,7 @@ function maybeIntro() {
 A.intro = i => {
   const cards = INTRO[realCoach() ? 'coach' : 'client']; const c = cards[i];
   UI.closeModal();
-  UI.modal(`<div class="intro"><div class="ie">${c[0]}</div><h2>${c[1]}</h2><p>${c[2]}</p><div class="idots">${cards.map((_, k) => `<i class="${k === i ? 'on' : ''}"></i>`).join('')}</div>
+  UI.modal(`<div class="intro"><div class="ie">${ico(c[0])}</div><h2>${c[1]}</h2><p>${c[2]}</p><div class="idots">${cards.map((_, k) => `<i class="${k === i ? 'on' : ''}"></i>`).join('')}</div>
     <div class="row" style="justify-content:center">${i < cards.length - 1 ? `<button class="btn ghost" onclick="UI.closeModal()">Přeskočit</button><button class="btn" onclick="A.intro(${i + 1})">Další</button>` : `<button class="btn" onclick="UI.closeModal()">Začít</button>`}</div></div>`, { center: 1 });
 };
 

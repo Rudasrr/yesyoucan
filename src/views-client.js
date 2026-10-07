@@ -424,7 +424,7 @@ VIEWS.navod = function () {
     ['Dnešní deficit', 'celkový výdej − příjem', 'Kolik ti dnes doopravdy chybí. Když je menší než plánovaný, hubnutí se zpomalí.'],
     ['Limit dne', `${fmt0(b.maxIntake)} kcal`, 'Kolik můžeš dnes sníst, aby deficit vyšel. Roste s tím, kolik se dnes pohybuješ.'],
     ['Limit podle plánu', `${fmt0(b.planLimit)} kcal`, 'Totéž, ale počítá s chůzí a tréninkem, které máš na den naplánované. Podle něj ti appka dopředu nakrájí porce.'],
-    ['Rezerva', 'limit dne − příjem', 'Kolik ti ještě zbývá do limitu. Velké číslo nahoře na Dnes.'],
+    ['Rezerva', 'limit dne − příjem', 'Kolik ti ještě zbývá do limitu. Kroužek Jídlo nahoře na Dnes.'],
     ['Spodní hranice jídla', `${fmt0(b.floor)} kcal`, 'Limit nikdy nespadne pod 85 % klidového výdeje. Když na ní limit drží, znamená to málo pohybu – a menší deficit, než má být.'],
     ['Cíl jídla', 'např. snídaně 620 kcal', 'Kolik má mít jedno jídlo. Appka podle toho škáluje přílohu.'],
     ['Cíl chůze', `${s.walk_min} min denně`, 'Kolik minut chůze máš denně ujít. Pozor, neplést s cílem jídla.'],

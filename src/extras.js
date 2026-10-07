@@ -201,7 +201,7 @@ function signaly() {
   // tempo
   paceGuard().forEach(g => push(g.lv, g.text.replace(/^[^\wÁ-ž]+ /, ''), g.text.includes('rychleji') ? { key: 'tempo', em: '⚡', head: 'Hubne rychleji, než je zdravé.', go: "go('nastaveni')", label: 'Tempo' } : { key: 'tempo', em: '🎯', go: "go('nastaveni')", label: 'Plán' }));
   if (ov.rows.length > 14) { const a = ov.rows[ov.rows.length - 1].avg, b = ov.rows[ov.rows.length - 15].avg;
-    if (Math.abs(a - b) < 0.3) push(2, `Průměr se dva týdny nehnul (${fmt1(b)} → ${fmt1(a)} kg). Zvaž udržovací týden nebo úpravu tempa.`, { key: 'stoji', em: '⏸️', head: 'Váha dva týdny stojí.', go: "go('nastaveni')", label: 'Plán' }); }
+    if (Math.abs(a - b) < 0.3) push(2, `Průměr se dva týdny nehnul (${fmt1(b)} → ${fmt1(a)} kg). Zvaž přestávku v deficitu nebo úpravu tempa.`, { key: 'stoji', em: '⏸️', head: 'Váha dva týdny stojí.', go: "go('nastaveni')", label: 'Plán' }); }
   // kroky
   { const cil = stepsTarget(s), w2 = currentWeight(); let pod = 0, kcal = 0, zapsano = 0; const podD = [];
     for (let k = 1; k <= 7; k++) { const d2 = effectiveDay(addDays(t, -k)); const bk = daySteps(d2); if (bk == null) continue; zapsano++; if (bk < cil) { pod++; podD.push(addDays(t, -k)); kcal += (cil - bk) * kcalPerStep(w2); } }
@@ -233,7 +233,7 @@ function signaly() {
   else if (!s.maintain && ov.cur - s.goal_weight <= 2) push(2, `Robert je ${fmt1(ov.cur - s.goal_weight)} kg od cíle. Připrav udržování.`, { key: 'cil', em: '🏁', go: "go('nastaveni')", label: 'Plán' });
   // udržovací týden – jeden práh všude: po 8 týdnech upozornit, Plán radí 6–10
   const mw = (s.maint_weeks || []).slice().sort(); const odKdy = mw.length ? mw[mw.length - 1] : s.start_date; const tydnu = Math.floor(daysBetween(odKdy, t) / 7);
-  if (tydnu >= 8) push(2, `${tydnu} týdnů bez udržovacího týdne. Po osmi týdnech deficitu se vyplatí jeden týden na nule.`, { key: 'udrz', em: '⏸️', go: "go('nastaveni')", label: 'Zařadit' });
+  if (tydnu >= 8) push(2, `${tydnu} týdnů v deficitu bez přestávky. Po osmi týdnech se vyplatí jeden týden na nule.`, { key: 'udrz', em: '⏸️', go: "go('nastaveni')", label: 'Zařadit' });
   const apl = activePlanFor(t); const naDatum = Array.from({ length: 14 }, (_, i) => addDays(t, i)).some(d => trainingOverride(d));
   if (!apl && !naDatum) push(3, `Žádný tréninkový plán – Robert jede na výchozích ${s.walk_min} min chůze.`, { key: 'trenink', em: '🏋️', go: "go('trenink')", label: 'Trénink' });
   const rs = replanSignal(); if (rs) push(rs.lv, rs.text, rs);
@@ -331,8 +331,8 @@ function weightWhy(from, to) {
   const autoK = stepsBaseFor(addDays(to, 1)) != null;
   if (X.stepsN >= 3 && !autoK) { const avg = X.stepsSum / X.stepsN, k = perW(X.stepsGap, X.stepsN); const rec = factorForSteps(avg);
     const fix = Math.abs(rec - s.activity) >= 0.05 ? { apply: `A.applyAdvice(${JSON.stringify(JSON.stringify({ activity: rec })).replace(/"/g, '&quot;')})`, label: `Faktor ${String(rec).replace('.', ',')}` } : {};
-    if (state !== 'rychle' && k >= 0.04) add({ key: 'kroky', lv: lvK(k), em: '👣', kg: k, kde: D.steps, title: `Kroky Ø ${fmt0(avg)} z ${fmt0(cil)}`, sub: `Výdej je o ~${fmt0(k * KG_KCAL / 7)} kcal/den nižší, než počítá limit – a limit to nevidí. Sniž faktor, nebo ať chodí víc.`, ...fix });
-    if (state === 'rychle' && k <= -0.04) add({ key: 'kroky', lv: 2, em: '👣', kg: -k, title: `Chodí víc, než počítá faktor: Ø ${fmt0(avg)} kroků`, sub: 'Výdej je vyšší, než si appka myslí, deficit vychází větší. Zvedni faktor.', ...fix }); }
+    if (state !== 'rychle' && k >= 0.04) add({ key: 'kroky', lv: lvK(k), em: '👣', kg: k, kde: D.steps, title: `Kroky Ø ${fmt0(avg)} z ${fmt0(cil)}`, sub: `Výdej je o ~${fmt0(k * KG_KCAL / 7)} kcal/den nižší, než počítá limit – a limit to nevidí. Ať chodí víc, nebo sniž stupeň pohybu.`, ...fix });
+    if (state === 'rychle' && k <= -0.04) add({ key: 'kroky', lv: 2, em: '👣', kg: -k, title: `Chodí víc, než počítá odhad výdeje: Ø ${fmt0(avg)} kroků`, sub: 'Výdej je vyšší, než si appka myslí, deficit vychází větší. Zvedni stupeň pohybu.', ...fix }); }
   else if (n >= 5 && X.stepsN < 3) add(stepsHistFor(to) ? { key: 'krokyzap', lv: 3, em: '👣', data: true, title: `Kroky denně nezapsané – počítá se průměr z Apple Health`, sub: 'Výdej vychází z průměru za období. Denní zápis by ukázal i jednotlivé dny.' } : { key: 'krokyzap', lv: 2, em: '👣', data: true, title: `Kroky zapsané jen ${X.stepsN}× z ${n}`, sub: 'Bez nich nejde ověřit odhad výdeje – největší skrytá chyba plánu.' });
   if (state === 'rychle') {
     const kU = perW(X.under, X.conf);
@@ -569,8 +569,8 @@ function settingsAdvice() {
   // kroky → faktor aktivity
   const st = stepsStat(Array.from({ length: 14 }, (_, i) => addDays(todayISO(), -i)));
   if (s.factor_lock && st && st.n >= 5) { const rec = factorForSteps(st.avg); if (Math.abs(rec - s.activity) >= 0.05) { const dl = Math.round((rec - s.activity) * b.bmr);
-    A_.push({ field: 'activity', lv: 1, text: `Běžná chůze Ø ${fmt0(st.avg)} kroků/den (${st.n} dní), faktor ${String(s.activity).replace('.', ',')} počítá s cílem ${fmt0(stepsTarget(s))}. ${rec < s.activity ? `Výdej je nadhodnocený o ~${fmt0(-dl)} kcal/den – Robert by mohl hubnout pomaleji, než čekáš, nebo přibírat.` : `Výdej je podhodnocený o ~${fmt0(dl)} kcal/den – Robert je ve větším deficitu, než chceš.`} Doporučení: faktor ${String(rec).replace('.', ',')} (limit ${dl > 0 ? '+' : ''}${fmt0(dl)} kcal/den).`, apply: { activity: rec }, label: `Nastavit ${String(rec).replace('.', ',')}` }); }
-    else A_.push({ field: 'activity', lv: 3, text: `Běžná chůze Ø ${fmt0(st.avg)} kroků/den sedí s faktorem ${String(s.activity).replace('.', ',')}.` }); }
+    A_.push({ field: 'activity', lv: 1, text: `Běžná chůze Ø ${fmt0(st.avg)} kroků/den (${st.n} dní), ručně nastavený pohyb počítá s ~${fmt0(stepsTarget(s))} kroky. ${rec < s.activity ? `Výdej je nadhodnocený o ~${fmt0(-dl)} kcal/den – Robert by mohl hubnout pomaleji, než čekáš, nebo přibírat.` : `Výdej je podhodnocený o ~${fmt0(dl)} kcal/den – Robert je ve větším deficitu, než chceš.`} Doporučení: počítat z jeho kroků (limit ${dl > 0 ? '+' : ''}${fmt0(dl)} kcal/den).`, apply: { factor_lock: false }, label: 'Počítat z kroků' }); }
+    else A_.push({ field: 'activity', lv: 3, text: `Běžná chůze Ø ${fmt0(st.avg)} kroků/den sedí s ručně nastaveným pohybem.` }); }
   // tempo
   if (s.rate_pct > 1) A_.push({ field: 'rate_pct', lv: 1, text: `Tempo ${String(s.rate_pct).replace('.', ',')} % je nad 1 % – riziko ztráty svalu a únavy. Doporučení: 0,7–1,0 %.`, apply: { rate_pct: 1 }, label: 'Nastavit 1,0 %' });
   else if (s.rate_pct < 0.5) A_.push({ field: 'rate_pct', lv: 2, text: `Tempo ${String(s.rate_pct).replace('.', ',')} % je pomalé (−${fmt2(w * s.rate_pct / 100)} kg/týden). Pro ${fmt0(w)} kg je udržitelné 0,7 %.`, apply: { rate_pct: 0.7 }, label: 'Nastavit 0,7 %' });
@@ -618,7 +618,7 @@ const HELP = {
   chuze: { t: 'Chůze denně', co: 'Kolik minut cílené chůze má Robert ujít ve dnech, které nemají vlastní plán v Tréninku. Každá minuta zvedá limit dne.', kdy: 'Když ji opakovaně neplní, nastav, co reálně ujde – jinak jí podle plánu víc, než spálí.', tip: '45–75 minut.' },
   tempoChuze: { t: 'Tempo chůze', co: 'Kolik minut trvá jeden kilometr. Méně minut = rychlejší chůze = víc kcal za minutu. 12:00 min/km je svižná procházka, 10:00 už rychlá chůze.', tip: 'Fáze podle váhy ti řekne, kdy přidat.' },
   kroky: { t: 'Cíl běžných kroků', co: 'Kolik kroků mimo procházku chceš, aby Robert dělal (doma, v práci, nákup). Je to tvůj cíl – limit jídla ale počítá s jeho skutečnými kroky, ne s cílem.', kdy: 'Zvedej postupně o 1 000, až ho dva týdny plní.', tip: 'Každých 1 000 kroků navíc ≈ 60 kcal jídla navíc při stejném deficitu.' },
-  faktor: { t: 'Běžný výdej', co: 'Kolik Robert spálí za běžný den bez procházky. Appka ho počítá z jeho kroků: klidový výdej × 1,2 + běžné kroky × kcal na krok. Ráno s průměrem 14 dní, večer se skutečností.', kdy: 'Ručně (zamčený faktor) jen když kroky chybí nebo jim nevěříš – v Nastavení.', tip: 'Bez kroků (méně než 5 dní za 14) platí faktor: 1,2 sedavě · 1,34 = 5 000 kroků.' },
+  faktor: { t: 'Běžný výdej', co: 'Kolik Robert spálí za běžný den bez procházky. Appka ho počítá z jeho kroků: klidový výdej × 1,2 + běžné kroky × kcal na krok. Ráno s průměrem 14 dní, večer se skutečností.', kdy: 'Ručně (stupeň pohybu 1–5) jen když kroky chybí nebo jim nevěříš – v Plánu → Pohyb.', tip: 'Bez kroků (méně než 5 dní za 14 a bez průměru z Apple Health) se počítá s cílovým stupněm pohybu.' },
   limit: { t: 'Limit dne', co: 'Kolik má Robert sníst a vypít: celkový výdej (klidový + běžný + chůze + trénink) mínus deficit z tempa. Nikdy pod 85 % klidového výdeje – to je pojistka appky.', tip: 'Mění ho tempo a pohyb. Rozpis krok po kroku je pod tlačítkem „Jak se limit počítá“.' },
   bilkoviny: { t: 'Bílkoviny', co: 'Minimum bílkovin za den. Při hubnutí chrání sval a sytí.', tip: '1,6–2 g na kg cílové váhy.' },
   chody: { t: 'Rozdělení mezi chody', co: 'Jak se limit dne dělí mezi jídla. Kolik Robert sní celkem, to nemění.', tip: 'Hlavní jídla 20–30 %, svačiny a druhá večeře 5–20 %.' },
@@ -639,7 +639,7 @@ const HELP = {
   gJidlo: { t: 'Jídlo v limitu', co: 'Kolik potvrzených dnů bylo v limitu. Dopad = kolik kg týdně to ubírá.' },
   gDeficit: { t: 'Deficit', co: 'Průměrný skutečný deficit potvrzených dnů proti plánovanému. Rozhoduje o tempu.' },
   gChuze: { t: 'Chůze', co: 'Ušlé minuty proti plánu (cíl chůze nebo plán z Tréninku) ve dnech, kdy Robert něco zapsal.' },
-  gKroky: { t: 'Kroky', co: 'Průměr běžné chůze (kroky z telefonu bez procházky) proti cíli. Když je nízko, faktor výdeje přeceňuje a Robert hubne pomaleji.' },
+  gKroky: { t: 'Kroky', co: 'Průměr běžné chůze (kroky z telefonu bez procházky) proti cíli. Když je nízko, odhad výdeje přeceňuje a Robert hubne pomaleji.' },
   gTrenink: { t: 'Trénink', co: 'Odcvičené tréninky proti naplánovaným v Tréninku.' },
   gZapis: { t: 'Zapisování', co: 'Potvrzené dny, vážení a zapsané kroky. Bez nich nejde říct, kde je problém.' },
   gPocit: { t: 'Jak se cítí', co: 'Souhrn odpovědí z potvrzení dne – spánek, stres, hlad, chutě, bolest.' },

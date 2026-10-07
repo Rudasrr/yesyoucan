@@ -428,7 +428,7 @@ A.profileEdit = () => openSheet(() => { const s = S(); const sb = stepsBaseFor(t
 /* meze, aby překlep nerozbil výpočet */
 const SET_MEZ = { tr_per_week: [0, 6], height: [120, 230], age: [15, 100], activity: [1.1, 2], start_weight: [40, 400], goal_weight: [40, 400],
   goal_waist: [50, 200], rate_pct: [0.3, 1.2], walk_kmh: [2, 9], walk_min: [0, 240], rest_sec: [15, 600], protein_min: [60, 400], steps_goal: [0, 30000] };
-const SET_POP = { tr_per_week: 'cvičení týdně', out_adj: 'korekce výdeje (kcal)', goal_date: 'termín cíle', factor_lock: 'pevný faktor výdeje', maintain: 'udržování (cíl dosažen)', rate_pct: 'tempo hubnutí (%)', walk_min: 'cíl chůze (min)', protein_min: 'bílkoviny (g)', goal_weight: 'cílová váha (kg)', activity: 'faktor běžného výdeje', walk_kmh: 'tempo chůze (min/km)', goal_waist: 'cíl pasu (cm)', steps_goal: 'cíl kroků/den', height: 'výška (cm)', age: 'věk', start_weight: 'startovní váha (kg)' };
+const SET_POP = { tr_per_week: 'cvičení týdně', out_adj: 'korekce výdeje (kcal)', goal_date: 'termín cíle', factor_lock: 'pohyb nastavený ručně', maintain: 'udržování (cíl dosažen)', rate_pct: 'tempo hubnutí (%)', walk_min: 'cíl chůze (min)', protein_min: 'bílkoviny (g)', goal_weight: 'cílová váha (kg)', activity: 'pohyb mimo trénink (ručně)', walk_kmh: 'tempo chůze (min/km)', goal_waist: 'cíl pasu (cm)', steps_goal: 'cíl kroků/den', height: 'výška (cm)', age: 'věk', start_weight: 'startovní váha (kg)' };
 /* Jedno místo, kudy jde každá změna nastavení – ruční, z doporučení i z fáze chůze.
    Dřív se změny z doporučení nelogovaly a v grafu po nich nezůstala značka. */
 function commitSettings(d, label, msg) {
@@ -449,7 +449,7 @@ A.setSetting = (k, v) => {
   /* Cíl kroků a faktor běžného výdeje jsou totéž číslo ze dvou stran – limit jídla
      počítá s faktorem. Když trenér změní cíl kroků, faktor se dopočítá sám. */
   let msg;
-  if (k === 'steps_goal') { const rec = factorForSteps(r.n); if (rec !== s.activity) { d.activity = rec; msg = `Cíl ${fmt0(r.n)} kroků – faktor běžného výdeje srovnán na ${String(rec).replace('.', ',')}.`; } }
+  if (k === 'steps_goal') { const rec = factorForSteps(r.n); if (rec !== s.activity) { d.activity = rec; msg = `Cíl ${fmt0(r.n)} běžných kroků (stupeň ${moveLevel(r.n)[0]}/5).`; } }
   if (k === 'walk_min' && r.n > WALK_PLAN_WARN && r.n > (s.walk_min || 0)) { UI.confirm(`Cíl ${r.n} minut chůze denně je u ${fmt0(currentWeight())} kg velká zátěž na klouby a těžko se dá dodržet. Doporučuju do ${WALK_PLAN_WARN} minut. Nastavit ${r.n} minut?`, () => commitSettings(d, (SET_POP[k] || k) + ' změněno', msg), `Nastavit ${r.n} min`, true); render(); return; }
   commitSettings(d, (SET_POP[k] || k) + ' změněno', msg);
 };
@@ -501,12 +501,12 @@ function profileCard() {
     <div class="small muted">${s.factor_lock ? `Limit počítá s pevným faktorem ${String(s.activity).replace('.', ',')}.` : sb != null ? `Běžný výdej z Robertova průměru ${fmt0(sb)} běžných kroků (14 dní) = faktor ≈ ${String(Math.round(limitToday(s).effFactor * 100) / 100).replace('.', ',')}.` : 'Dokud Robert nezapíše kroky aspoň 5 dní ze 14, platí faktor.'} Délka kroku ${String(Math.round(strideM() * 100) / 100).replace('.', ',')} m${strideM() !== 0.75 ? ' (z jeho km)' : ''}.</div></div>`;
 }
 A.profileSheet = () => go('ucet');
-A.setFactorLock = on => commitSettings({ ...S(), factor_lock: !!on }, on ? 'Běžný výdej: pevný faktor' : 'Běžný výdej: z Robertových kroků');
+A.setFactorLock = on => commitSettings({ ...S(), factor_lock: !!on }, on ? 'Pohyb nastavený ručně' : 'Pohyb z Robertových kroků');
 A.logSheet = () => { const s = S(); const log = (s.log || []).slice().reverse();
   UI.sheet('Historie změn', 'každá změna nastavení', log.length ? `<div class="list">${log.map(l => `<div class="li static"><span class="tm">${czDateShort(l.at)}</span><div class="tx"><b>${esc(l.pop)}</b><span>${l.k === 'walk_kmh' ? `${paceTxt(l.from)} → ${paceTxt(l.to)}` : `${esc(String(l.from).replace('.', ','))} → ${esc(String(l.to).replace('.', ','))}`}</span></div></div>`).join('')}</div>` : '<p class="muted">Zatím žádná změna.</p>'); };
 A.maintWeek = m => { const s = S(); const mw = (s.maint_weeks || []).slice();
   const i = mw.indexOf(m); if (i >= 0) mw.splice(i, 1); else mw.push(m);
-  Undo.run('Udržovací týden', () => saveSettings({ ...s, maint_weeks: mw.sort() }), i >= 0 ? `Týden od ${czDateShort(m)} zase v deficitu.` : `Týden od ${czDateShort(m)} je udržovací – deficit nula, limit na celkovém výdeji.`); render(); };
+  Undo.run('Přestávka v deficitu', () => saveSettings({ ...s, maint_weeks: mw.sort() }), i >= 0 ? `Týden od ${czDateShort(m)} zase v deficitu.` : `Týden od ${czDateShort(m)} je přestávka – deficit nula, limit na celkovém výdeji.`); render(); };
 A.seedAll = () => UI.confirm(`Nahrát ${SEED.recipes.length} receptů, ${SEED.foods.length} surovin a výchozí nastavení ze sešitu do databáze?`, () => {
   SEED.foods.forEach(f => { const { id, ...data } = f; Store.put('foods', id, data, null); });
   SEED.recipes.forEach(r => { const { id, ...data } = r; Store.put('recipes', id, data, null); });

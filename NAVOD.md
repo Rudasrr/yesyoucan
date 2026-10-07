@@ -151,13 +151,13 @@ Robert večer zapíše **celkový počet kroků** z Apple Health (a nepovinně *
 
 ## A8. Jak appku používáš ty (trenér)
 
-Tři záložky: **Přehled · Plán · Trénink** – uzpůsobené pro počítač. Pod kolečkem **T** je Nastavení účtu, Pohled Roberta a Návod. Robertovy údaje (výška, věk, start, běžný výdej) jsou nahoře v **Plánu**. U všeho, co není jasné z názvu, je **?** – ťukni a uvidíš, co to dělá, kdy to použít a doporučení.
+Tři záložky: **Přehled · Plán · Trénink** – uzpůsobené pro počítač. Pod kolečkem **T** je Historie změn (každá změna jde vrátit), Nastavení účtu a Návod. Robertovy údaje (výška, věk, start, běžný výdej) jsou nahoře v **Plánu**. U všeho, co není jasné z názvu, je **?** – ťukni a uvidíš, co to dělá, kdy to použít a doporučení.
 
 - **Přehled** – nahoře barva a jedna věta, pak tři čísla vždy proti plánu: **tempo** (trend 3 týdnů a na kolik % plní plán), **cíl** (kdy ho dosáhne tímto tempem, kdy podle plánu a rozdíl v letech, měsících a dnech), **zápisy** za 7 dní. Pod tím **tabulka cílů**: každý cíl má plán, skutečnost, rozdíl, stav, políčka dnů (nebo týdnů v měsíci), dopad v kg za týden a tlačítko nápravy. Přepínač **Měsíc / Týden**, šipkami listuješ. Ťukni na řádek – vysvětlení, co vázne a dny. Ťukni na den – vpravo se otevře **den**: co ho rozhodlo a doporučení, snědeno proti limitu, deficit, jídla proti cíli, chůze, kroky, trénink cvik po cviku a jak šel den. Vpravo graf **Váha / Obvody**: výchozí rozsah **do cíle** ukazuje celou cestu k cílové váze – zelená čára cíle a značky, kdy ho Robert dosáhne podle plánu a podle trendu. Najeď na tečku pro detail, ⤢ graf zvětší přes celou obrazovku.
 - **Plán** – tři bloky: **🎯 Cíl a tempo** (cílová váha, tempo hubnutí, pas, přestávka v deficitu – týden na nule po 6–10 týdnech, udržování u cíle), **🚶 Pohyb** (chůze denně, tempo chůze, běžné kroky), **🍽️ Jídlo** (výsledný limit dne a z čeho je – „jak se počítá ›“ ukáže rozpis krok po kroku s Robertovými čísly a co ho chrání před strádáním; bílkoviny; rozdělení limitu mezi jídla v %). Každý blok končí řádkem, co z nastavení vyjde. Ukládá se hned, Zpět v hlášce. **🕓 Historie změn** vpravo nahoře; zásahy jsou i v grafu.
 - **Trénink** – kalendář měsíce. Ťukni na den: **1 chůze**, **2 cviky** (+ cvik, + uložený trénink), **3 platí** (každou sobotu od dneška, nebo jen tento den) a Uložit. Kopírování, uložení jako trénink, vyprázdnění a vrácení na šablonu jsou v menu **⋯**. Pod kalendářem kopíruješ týden nebo měsíc.
 - **Dny bez potvrzení** jsou šrafované: appka neví, co Robert jedl, proto je nehodnotí.
-- Appka na komunikaci není – vzkazy, poznámky ani zprávy k posílání v ní nejsou. **Pohled Roberta** je jen pro podporu, nic se v něm neuloží.
+- Appka na komunikaci není – vzkazy, poznámky ani zprávy k posílání v ní nejsou. Robertův den vidíš v Přehledu (Průběh → den), ne v jeho pohledu – ten v appce není.
 
 Denní kontrola: otevři **Robert**. Když je zeleno, nic nedělej.
 
