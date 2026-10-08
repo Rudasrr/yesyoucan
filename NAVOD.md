@@ -224,3 +224,12 @@ V **Plánu**: nech si navrhnout týden (⋯ → Naplánuj mi celý týden), dola
 | **Úvod při prvním spuštění chci vidět znovu** | Více → Návod → „Ukázat úvod znovu“. |
 | **Nasazení spadlo** | `gh run list --workflow deploy.yml` a `gh run view --log-failed`. Nejčastěji chybí Secrets – viz A3. |
 | **V appce jsou stará data receptů** | Trenér: Více → Nastavení → Naplnit výchozí data. Je bezpečné to pustit znovu. |
+
+## Rutina (8. 10. 2026)
+
+**Trenér:** každý den otevři Přehled – **Brief na dnes** (~2 min): co appka zkontrolovala, co udělat (tlačítko) a co Robertovi říct. V pondělí **Průvodce týdnem** (5 kroků, ~5 min). Jednou za měsíc v Tréninku **Navrhnout měsíc** a v Plánu → Pohyb zadat průměr kroků z Apple Health. Každá změna je v Historii změn a jde vrátit.
+
+**Robert:** ráno váha (po WC, nalačno) · přes den odškrtávej jídla a ujdi chůzi · večer kroky z telefonu a **Potvrdit den** · v neděli obvody a plán jídel na další týden. Appka vždycky ukáže **Další krok** a v **Hlídám za tebe** připomene, co chybí.
+
+Oba najdou tutoriál kdykoli v menu → **Průvodce appkou**.
+

@@ -20,6 +20,7 @@ VIEWS.klient = function () {
   const ch = sinceLast(); const tyden = Math.floor(daysBetween(s.start_date, t) / 7) + 1;
   return `<div class="ph"><div class="pt"><h1>${esc(name)}</h1><span class="sub">${DAY_NAMES[dayIndex(t)].toLowerCase()} ${czDate(t)} · týden ${tyden}</span></div>
       <div class="act">${chip}</div></div>
+    ${briefCard(s)}
     ${todayStrip(s)}
     ${weekCheckCard(s, App._shown = [])}
     ${drillCard()}
@@ -1033,4 +1034,38 @@ function todayStrip(s) {
     ${it(wk >= wt - 5 ? true : wk ? null : false, 'walk', `chůze ${wk}/${wt} min`)}${items.length ? it(!!trDone, 'dumbbell', trDone ? 'trénink hotový' : 'trénink čeká') : ''}
     ${it(st != null ? true : null, 'feet', st != null ? `${fmt0(st)} kroků` : 'kroky večer')}${it(!!day.reviewed, 'check', day.reviewed ? 'den potvrzený' : 'potvrzení večer')}
     ${y >= s.start_date && !yev.confirmed ? it(false, 'alert', 'včerejšek nepotvrzený') : ''}<span class="chev">›</span></div>`;
+}
+
+/* ---------- Denní brief trenéra (8. 10. 2026) ----------
+   Appka je trenér, vlastník jen tlumočí. Každý den za dvě minuty: jedna věta, co appka
+   zkontrolovala (klouzavých 7 dní), co udělat (s tlačítkem) a co Robertovi dnes říct. */
+function coachChecks() {
+  const s = S(), t = todayISO(), from = addDays(t, -7), to = addDays(t, -1), R = periodStats(from, to), out = [];
+  const add = (c, ic, area, txt) => out.push({ c, ic, area, txt });
+  if (R.empty) return out;
+  add(R.weigh >= 6 ? 'ok' : R.weigh >= 4 ? 'warn' : 'bad', 'scale', 'Vážení', `${R.weigh}× za 7 dní`);
+  add(R.conf >= 6 ? 'ok' : R.conf >= 3 ? 'warn' : 'bad', 'check', 'Zápisy', `${R.conf} ze 7 dní potvrzených`);
+  add(!R.conf ? 'bad' : R.inLimit >= R.conf * 0.85 ? 'ok' : R.inLimit >= R.conf * 0.6 ? 'warn' : 'bad', 'fork', 'Jídlo', R.conf ? `limit ${R.inLimit}× z ${R.conf}` : 'nejde ověřit');
+  add(!R.walkPlan ? 'bad' : R.walk >= R.walkPlan * 0.9 ? 'ok' : R.walk >= R.walkPlan * 0.6 ? 'warn' : 'bad', 'walk', 'Chůze', R.walkPlan ? `${Math.round(R.walk / R.walkPlan * 100)} % plánu` : 'nezapsaná');
+  { const h = stepsHistFor(t); add(R.stepsAvg != null ? (R.stepsAvg >= stepsTarget(s) * 0.9 ? 'ok' : 'warn') : h ? 'ok' : 'warn', 'feet', 'Kroky', R.stepsAvg != null ? `Ø ${fmt0(R.stepsAvg)} běžných` : h ? `Health Ø ${fmt0(h.avg)}` : 'nezapsané'); }
+  add(!R.trPlan ? 'warn' : R.trDone >= R.trPlan * 0.8 ? 'ok' : R.trDone ? 'warn' : 'bad', 'dumbbell', 'Trénink', R.trPlan ? `${R.trDone} z ${R.trPlan}` : 'žádný v plánu');
+  { let n = 0; for (let k = 0; k < 3; k++) { const d = addDays(t, k); n += (getWeek(mondayOf(d)).plan[dayIndex(d)] || []).filter(Boolean).length; } add(n >= 12 ? 'ok' : n >= 6 ? 'warn' : 'bad', 'cal', 'Plán jídel', `${n} z 15 na 3 dny`); }
+  { const g = goalCheck(); if (g) { add(g.adh >= 0.8 ? 'ok' : g.adh >= 0.6 ? 'warn' : 'bad', 'trend', 'Tempo', `${Math.round(g.adh * 100)} % plánu (−${fmt2(g.tr.perWeek)} kg/t)`);
+    const late = g.dTrend ? daysBetween(g.target, g.dTrend) : 999; add(late <= 14 ? 'ok' : late <= 60 ? 'warn' : 'bad', 'target', 'Termín', g.dTrend ? (late <= 14 ? `stihne ${czDateShort(g.target)}` : `trend ${czDateShort(g.dTrend)}${String(parseISO(g.dTrend).getFullYear()).slice(2)}`) : 'nejde odhadnout'); } }
+  { const pc = pocitSouhrn(from, to); add(pc === 'v pořádku' ? 'ok' : pc === 'nevyplnil' ? 'warn' : 'warn', 'moon', 'Pocit', pc); }
+  { const n = trAdvice(Array.from({ length: 14 }, (_, i) => addDays(t, i))).length; add(n ? 'warn' : 'ok', 'clip', 'Plán tréninku', n ? `${n} ${sklon(n, 'návrh', 'návrhy', 'návrhů')}` : 'vyvážený'); }
+  { const sit = sitStats(from, to); if (sit.n) add(sit.unk / sit.n < 0.15 ? 'ok' : 'warn', 'fork', 'Jídla podle situace', `${sit.unk} bez odhadu`); }
+  return out;
+}
+function briefCard(s) {
+  const t = todayISO(), C = coachChecks(); if (!C.length) return '';
+  const g = guideWeek(), done = LS.get('dec:' + g.from, {}), recs = guideRecs().filter(r => !done[r.key]).slice(0, 3); App._grecs = guideRecs();
+  const F = feedbackPoints(addDays(t, -7), addDays(t, -1)); const bad = C.filter(c => c.c === 'bad').length, warn = C.filter(c => c.c === 'warn').length;
+  const verdict = bad >= 3 ? 'Robert teď plán neplní – hlavně zápisy a jídlo.' : bad ? `Většina sedí, ${bad} ${sklon(bad, 'věc vázne', 'věci váznou', 'věcí vázne')}.` : warn ? 'Robert jede, pár věcí pohlídat.' : 'Robert jede podle plánu.';
+  return `<div class="card brief"><div class="bhd"><div><span class="pill2">${ico('sun')} Brief na ${DAY_NAMES[dayIndex(t)].toLowerCase()} ${czDateShort(t)} · ~2 min${hq('brief')}</span><h2>${esc(verdict)}</h2></div></div>
+    <div class="bgrid">
+      <div><h4>Zkontrolovala jsem za tebe · 7 dní</h4><div class="chks">${C.map(c => `<div class="chk2 ${c.c}">${ico(c.ic)}<b>${esc(c.area)}</b><span>${esc(c.txt)}</span></div>`).join('')}</div></div>
+      <div><h4>Udělej</h4>${recs.length ? recs.map(r => { const i = App._grecs.indexOf(r); return `<div class="bdo"><b>${esc(r.title)}</b>${r.offline ? `<span>${esc(r.offline)}</span>` : ''}<div class="row">${r.doIt ? `<button class="btn sm" onclick="A.guideDo(${i})">${esc(r.doIt.label)}</button>` : `<button class="btn sm" onclick="A.decide('${g.from}','${r.key}','ok')">Domluvím to</button>`}<button class="btn sm ghost" onclick="A.decide('${g.from}','${r.key}','keep')">Přeskočit</button></div></div>`; }).join('') : `<div class="small muted">${ico('check')} Dnes nic – plán nech běžet.</div>`}</div>
+      <div><h4>Řekni Robertovi</h4>${F.P[0] ? `<div class="fbk ok"><ul><li>${esc(F.P[0])}</li></ul></div>` : ''}${F.Z[0] ? `<div class="fbk b"><ul><li>${esc(F.Z[0])}</li></ul></div>` : ''}${F.Q[0] ? `<div class="fbk p"><ul><li>${esc(F.Q[0])}</li></ul></div>` : ''}</div>
+    </div></div>`;
 }

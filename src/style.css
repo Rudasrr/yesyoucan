@@ -868,3 +868,25 @@ svg.pchart{width:100%;height:auto;display:block}
 .lbar{font-size:12px;color:var(--ink2)}.lbar .ok{color:#15803d}.lbar .warn{color:#b45309}.lbar .bad{color:#dc2626}
 .drt th{white-space:normal;line-height:1.2;vertical-align:bottom}
 @media (max-width:640px){ .drt td,.drt th{white-space:normal;font-size:12px} .drt table{width:100%} }
+
+/* Hlídám za tebe + Co tě čeká (2026-10) */
+.nudge{display:flex;flex-direction:column;gap:8px;padding:12px 16px}.nudge .nh{font-size:12.5px;font-weight:750;color:#b45309;display:flex;gap:6px;align-items:center;text-transform:uppercase;letter-spacing:.04em}.nudge .nh svg.ic{width:14px;height:14px}.nrow{display:flex;align-items:center;gap:12px}.nrow .em{width:34px;height:34px;border-radius:10px;background:#fef3c7;color:#b45309;display:grid;place-items:center;flex:none}
+.nrow .tx{flex:1;min-width:0;display:flex;flex-direction:column}.nrow .tx span{font-size:12.5px;color:var(--ink2)}.nrow .btn{flex:none}.ninp{width:96px;flex:none}
+.nextc .ahead{display:flex;flex-direction:column;gap:4px;font-size:12.5px;border-top:1px solid rgba(255,255,255,.25);padding-top:8px;opacity:.95}.nextc .ahead b{font-weight:700}.ach{display:inline-flex;gap:4px;align-items:baseline;background:rgba(255,255,255,.18);border-radius:999px;padding:2px 9px;margin:2px 4px 2px 0;font-size:12.5px}.ach em{font-style:normal;opacity:.8;font-size:11.5px}
+
+/* Brief trenéra (2026-10) */
+.brief{display:flex;flex-direction:column;gap:12px;background:linear-gradient(135deg,#eff6ff,#fff 60%)}.brief h2{margin:6px 0 0}
+.bgrid{display:grid;grid-template-columns:1.3fr 1fr 1fr;gap:16px}.bgrid h4{margin:0 0 8px;font-size:12.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink2)}
+.chks{display:grid;grid-template-columns:1fr 1fr;gap:6px}.chk2{display:grid;grid-template-columns:18px auto;column-gap:6px;align-items:center;font-size:12.5px;padding:6px 8px;border-radius:10px;background:#f8fafc}
+.chk2 svg.ic{width:15px;height:15px;grid-row:span 2}.chk2 b{font-size:12.5px}.chk2 span{grid-column:2;color:var(--ink2);font-size:12px}
+.chk2.ok{background:#f0fdf4}.chk2.ok svg.ic{color:#16a34a}.chk2.warn{background:#fffbeb}.chk2.warn svg.ic{color:#d97706}.chk2.bad{background:#fef2f2}.chk2.bad svg.ic{color:#dc2626}
+.bdo{border:1px solid var(--line2);border-radius:12px;padding:8px 10px;display:flex;flex-direction:column;gap:4px;margin-bottom:8px}.bdo span{font-size:12.5px;color:var(--ink2)}.brief .fbk{margin-bottom:8px;padding:8px 12px}.brief .fbk ul{font-size:13px}
+@media (max-width:1100px){ .bgrid{grid-template-columns:1fr} }
+
+/* Tutoriál (2026-10) */
+.tourov{position:fixed;inset:0;z-index:9000;pointer-events:none}.tourov .thole{position:fixed;border-radius:16px;box-shadow:0 0 0 9999px rgba(15,23,42,.55);transition:all .2s ease;pointer-events:none}
+.tourov .tdim{position:fixed;inset:0;background:rgba(15,23,42,.55)}
+.tourov .ttip{position:fixed;width:min(360px,calc(100vw - 16px));background:#fff;border-radius:18px;padding:16px;box-shadow:0 20px 50px -10px rgba(15,23,42,.45);pointer-events:auto;display:flex;flex-direction:column;gap:8px}
+.tourov.center .ttip{left:50%!important;top:50%!important;transform:translate(-50%,-50%)}.tourov .ttip h3{margin:0;font-size:17px}.tourov .ttip p{margin:0;font-size:14px;line-height:1.5;color:var(--ink2)}.tourov .tn{font-size:12px;color:var(--ink3);font-weight:650}
+.nrow .tx b{font-size:14px;line-height:1.3}.nrow .tx span{font-size:12px}.nudge{gap:6px}
+.nrow .ninp{width:84px!important;max-width:84px;flex:0 0 84px;min-height:38px}.nextc .ahead b{font-size:12.5px;line-height:1.4;display:inline}

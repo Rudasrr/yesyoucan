@@ -101,7 +101,7 @@ print('výška Dnes na 390 px:', DNES_H, 'px (cíl ≤ 1 800)', 'OK' if DNES_H<=
 with sync_playwright() as p2:
     b2=p2.chromium.launch(); pg=b2.new_page(viewport={'width':1440,'height':800},locale='cs-CZ',timezone_id='Europe/Prague'); pg.goto(URL); pg.wait_for_timeout(200); pg.evaluate(SETUP); pg.evaluate("localLogin('coach');render()")
     vys=[]
-    for v,sel in [('klient','.wcheck'),('klient','.drill svg'),('nastaveni','.ptl2'),('trenink','.tmgrid')]:
+    for v,sel in [('klient','.brief'),('klient','.tstrip'),('nastaveni','.ptl2'),('trenink','.tmgrid')]:
         pg.evaluate(f"go('{v}')"); pg.wait_for_timeout(150)
         vys.append((v+' '+sel, pg.evaluate(f"(()=>{{const e=document.querySelector('#main {sel}');return e?Math.round(e.getBoundingClientRect().top+Math.min(e.getBoundingClientRect().height,240)):9999}})()")))
     b2.close()
@@ -115,7 +115,7 @@ print('inline styly v src/*.js:', inl)
 ZAKAZ=['Výchozí data','Naplnit výchozí','Synchronizovat teď','Historie ze sešitu','Pohled Roberta','udržovací týden','udržovacího týdne','pevný faktor','bazál','cílový deficit','maximální příjem','plánovací limit','cíl chodu','Vrátit měsíc na šablonu','karta Teď']
 with sync_playwright() as p3:
     b3=p3.chromium.launch(); pg=b3.new_page(viewport={'width':1440,'height':900}); pg.goto(URL); pg.wait_for_timeout(200); pg.evaluate(SETUP)
-    texty=[pg.evaluate("JSON.stringify(INTRO)+JSON.stringify(HELP)")]
+    texty=[pg.evaluate("JSON.stringify(TOUR)+JSON.stringify(HELP)")]
     for role,views in [('client',VIEWS_C),('coach',VIEWS_K+['historie','klient'])]:
         if role=='coach': pg.evaluate("localLogin('coach');render()")
         for v in views:

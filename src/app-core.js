@@ -151,11 +151,11 @@ const UI = {
    Trenér: tři obrazovky – mám zasáhnout, co nastavit, co je v databázi.
    Zbytek je pod kolečkem s iniciálou vpravo nahoře (Více). */
 const NAV_CLIENT = [['dnes', 'Dnes'], ['plan', 'Plán'], ['pokrok', 'Pokrok']];
-const MORE_CLIENT = [['recepty', 'Recepty', 'všech 200 jídel a tvoje vlastní', 'fork'], ['suroviny', 'Suroviny', 'hodnoty na 100 g, vlastní suroviny', 'cart'], ['ucet', 'Nastavení', 'připomínky, nádoby, odhlášení', 'gear'], ['navod', 'Návod', 'pravidla, slovníček, jak appka počítá', 'clip']];
+const MORE_CLIENT = [['__tour', 'Průvodce appkou', 'jak appku používat krok za krokem', 'star'], ['recepty', 'Recepty', 'všech 200 jídel a tvoje vlastní', 'fork'], ['suroviny', 'Suroviny', 'hodnoty na 100 g, vlastní suroviny', 'cart'], ['ucet', 'Nastavení', 'připomínky, nádoby, odhlášení', 'gear'], ['navod', 'Návod', 'pravidla, slovníček, jak appka počítá', 'clip']];
 /* Trenér plánuje cíle a trénink, ne jídlo (1. 10. 2026) – databáze potravin ani
    plánování jídel za Roberta v jeho menu nejsou. */
 const NAV_COACH = [['klient', 'Přehled'], ['nastaveni', 'Plán'], ['trenink', 'Trénink']];
-const MORE_COACH = [['historie', 'Historie změn', 'co jsi změnil a kdy · jde vrátit', 'cal'], ['ucet', 'Nastavení', 'účet, data do Excelu, odhlášení', 'gear'], ['navod', 'Návod', 'pravidla, slovníček, jak appka počítá', 'clip']];
+const MORE_COACH = [['__tour', 'Průvodce appkou', 'tvoje rutina krok za krokem', 'star'], ['historie', 'Historie změn', 'co jsi změnil a kdy · jde vrátit', 'cal'], ['ucet', 'Nastavení', 'účet, data do Excelu, odhlášení', 'gear'], ['navod', 'Návod', 'pravidla, slovníček, jak appka počítá', 'clip']];
 /* staré názvy obrazovek (odkazy v úkolech, připomínkách, testech) → nové místo */
 const VIEW_ALIAS = { tyden: ['plan', { planTab: 'jidla' }], jidlo: ['plan', {}], nakup: ['plan', { planTab: 'nakup' }], spiz: ['plan', { planTab: 'nakup' }], vareni: ['plan', { planTab: 'vareni' }],
   mereni: ['pokrok', {}], prehled: ['pokrok', {}], zprava: ['klient', {}], databaze: ['klient', {}] };
@@ -201,7 +201,7 @@ function realCoach() { return Store.profile && Store.profile.role === 'coach'; }
 function isCoach() { return realCoach() && !App.preview; }
 function nav() { return isCoach() ? NAV_COACH : NAV_CLIENT; }
 function moreItems() { return isCoach() ? MORE_COACH : MORE_CLIENT; }
-function go(v) {
+function go(v) { if (v === '__tour') { A._tourDir = 1; A.tour(0); return; }
   if (VIEW_ALIAS[v]) { const [to, st] = VIEW_ALIAS[v]; Object.assign(App, st); v = to; }
   App.view = v; UI.closeModal(); render(); window.scrollTo(0, 0);
 }
@@ -364,24 +364,57 @@ document.addEventListener('DOMContentLoaded', boot);
    Dřív měla každá obrazovka nahoře pruh s návodem o třech až čtyřech krocích. Kdo to
    jednou pochopil, četl pak jen text navíc. Teď je to jednorázový úvod na tři karty
    a zbytek je v Návodu. Automatické testy (navigator.webdriver) úvod přeskakují. */
-const INTRO = {
-  client: [['sun', 'Dnes', 'Nahoře dva kroužky: kolik ještě můžeš sníst a kolik se ještě hýbat. Pod nimi Další krok s tlačítkem – když nevíš, drž se ho.'],
-    ['cal', 'Plán', 'Jídla na další dny, nákup podle seznamu a vaření dopředu. Tři kroky vedle sebe.'],
-    ['trend', 'Pokrok', 'Váha ráno po WC, nalačno. Uvidíš, kolik už je dole, další milník a své série.']],
-  coach: [['grid', 'Přehled', 'Týdenní kontrola se skóre, Průběh od celé cesty po jednotlivý den a Co řešit – každý problém s návrhem a tlačítkem.'],
-    ['sliders', 'Plán', 'Cíl a termín, pohyb a jídlo. Appka hlídá, jestli Robert termín stihne, a když dlouhodobě neplní, navrhne přeplánování.'],
-    ['dumbbell', 'Trénink', 'Kalendář s délkou a kcal každého dne, partie těla a kontrola plánu s návrhy. Navrhnout měsíc sestaví vyvážený plán.']]
+/* ===== Tutoriál (8. 10. 2026) =====
+   Při prvním přihlášení appka provede trenéra i Roberta jejich rutinou – zvýrazní skutečné
+   prvky na obrazovce a ke každému řekne, k čemu je a kdy ho použít. Kdykoli znovu z menu
+   (Průvodce appkou). Automatické testy ho přeskakují (navigator.webdriver). Nahradil úvod na tři karty. */
+const TOUR = {
+  coach: [
+    { t: 'Appka je Robertův trenér', x: 'Každý den hlídá, co Robert dělá, a připraví ti, co udělat a co mu říct. Ty jen rozhodneš a tlumočíš. Tvoje rutina: denně 2 minuty, v pondělí 5 minut.' },
+    { v: 'klient', sel: '.brief', t: 'Brief na dnes', x: 'Začni tady každý den. Appka za tebe zkontrolovala posledních 7 dní – zelená sedí, oranžová pohlídat, červená řešit.' },
+    { v: 'klient', sel: '.brief .bgrid > div:nth-child(2)', t: 'Udělej', x: 'Co má smysl udělat. Tlačítko změnu rovnou provede (vše jde vrátit v Historii změn). „Domluvím to“ = věc, kterou řešíš s Robertem.' },
+    { v: 'klient', sel: '.brief .bgrid > div:nth-child(3)', t: 'Řekni Robertovi', x: 'Pochvala s konkrétním číslem, co zlepšit a na co se zeptat. Řekneš mu to osobně – v appce mu nic neodchází.' },
+    { v: 'klient', sel: '.tstrip', t: 'Robert dnes', x: 'Co má dnes hotové a co ho čeká. Klik otevře celý den: jídla, pohyb, trénink a jak se cítil.' },
+    { v: 'klient', sel: '.wcheck', t: 'Pondělí: Průvodce týdnem', x: 'Jednou týdně projdeš týden v pěti krocích: co dělal, proč, co udělat, co mu říct, shrnutí.' },
+    { v: 'klient', sel: '.drill', t: 'Průběh', x: 'Celá cesta po měsících až k cíli. Klik na měsíc, týden nebo den jde hlouběji. Barva čáry: zelená podle plánu, oranžová pozadu, červená hodně pozadu.' },
+    { v: 'nastaveni', sel: '.pblk', t: 'Plán: cíl a termín', x: 'Cílová váha, termín a tempo. Appka hlídá, jestli Robert termín stihne – když ne, nabídne přeplánování tak, aby termín držel.' },
+    { v: 'nastaveni', sel: '.ptl2', t: 'Cesta k cíli', x: 'Týdny do cíle, fáze a přestávky v deficitu. Doporučené přestávky zařadíš jedním tlačítkem.' },
+    { v: 'trenink', sel: '.tmgrid', t: 'Trénink', x: 'Robertův kalendář. Ťukni na den a uprav ho. Jednou za měsíc „Navrhnout měsíc“ – appka sestaví vyvážený plán podle toho, jak Robert cvičí.' },
+    { v: 'trenink', sel: '.tradv', t: 'Kontrola plánu', x: 'Appka hlídá partie těla, dny volna a rámec týdne. U každého návrhu Přijmout, Upravit, nebo Zamítnout.' },
+    { t: 'Tvoje rutina', x: 'Každý den: Brief (2 min). Pondělí: Průvodce týdnem (5 min). Jednou za měsíc: Navrhnout měsíc tréninku a zadat průměr kroků z Apple Health (Plán → Pohyb). Tutoriál najdeš kdykoli v menu → Průvodce appkou.' }],
+  client: [
+    { t: 'Ahoj Roberte', x: 'Appka tě povede celý den – vždycky ti řekne, co dál a jak na to. Tady je tvoje rutina, zabere to minutu.' },
+    { v: 'dnes', sel: '.rings2', t: 'Jídlo a pohyb', x: 'Levý kroužek: kolik ještě můžeš dnes sníst. Pravý: kolik minut ještě ujít a odcvičit. Pohyb je stejně důležitý jako jídlo – každá minuta chůze ti přidá jídlo.' },
+    { v: 'dnes', sel: '.nextc', t: 'Další krok', x: 'Tohle je jediné, co teď musíš udělat – s návodem a tlačítkem. Když nevíš, drž se ho.' },
+    { v: 'dnes', sel: '.nudge', t: 'Hlídám za tebe', x: 'Když něco chybí – váha, nepotvrzené dny, jídla na zítřek – appka ti to tady připomene a pomůže doplnit.' },
+    { v: 'dnes', sel: '.ahead', t: 'Co tě čeká', x: 'Co dnes ještě přijde a co zítra. Ať víš dopředu.' },
+    { v: 'dnes', sel: '#timeline', t: 'Celý den', x: 'Když sníš jídlo, ťukni na kolečko. Ťuknutím na řádek otevřeš detail – gramy, suroviny, výměnu jídla. Cheat zapiš ráno dopředu, appka ho pokryje chůzí.' },
+    { v: 'plan', sel: '.pguide', t: 'Plán', x: 'Jednou týdně: 1 nech si navrhnout jídla, 2 nakup podle seznamu, 3 uvař dopředu. Appka ukáže, který krok je na řadě.' },
+    { v: 'pokrok', sel: '.pkhero', t: 'Pokrok', x: 'Kolik už je dole, další milník, tvoje série a odznaky.' },
+    { t: 'Tvoje rutina', x: 'Ráno: na váhu (po WC, nalačno). Přes den: odškrtávej jídla a ujdi chůzi. Večer: zapiš kroky z telefonu a potvrď den. V neděli: obvody a plán jídel na další týden. Tutoriál najdeš kdykoli v menu → Průvodce appkou.' }]
 };
 function maybeIntro() {
-  if (navigator.webdriver || document.querySelector('.modal')) return;
-  const k = 'introSeen:' + (realCoach() ? 'coach' : 'client'); if (LS.get(k, false)) return;
-  LS.set(k, true); A.intro(0);
+  if (navigator.webdriver || document.querySelector('.modal') || document.querySelector('.tourov')) return;
+  const k = 'tourSeen:' + (realCoach() ? 'coach' : 'client'); if (LS.get(k, false)) return;
+  LS.set(k, true); setTimeout(() => A.tour(0), 400);
 }
-A.intro = i => {
-  const cards = INTRO[realCoach() ? 'coach' : 'client']; const c = cards[i];
-  UI.closeModal();
-  UI.modal(`<div class="intro"><div class="ie">${ico(c[0])}</div><h2>${c[1]}</h2><p>${c[2]}</p><div class="idots">${cards.map((_, k) => `<i class="${k === i ? 'on' : ''}"></i>`).join('')}</div>
-    <div class="row" style="justify-content:center">${i < cards.length - 1 ? `<button class="btn ghost" onclick="UI.closeModal()">Přeskočit</button><button class="btn" onclick="A.intro(${i + 1})">Další</button>` : `<button class="btn" onclick="UI.closeModal()">Začít</button>`}</div></div>`, { center: 1 });
+A.tour = i => {
+  const steps = TOUR[realCoach() ? 'coach' : 'client']; document.querySelectorAll('.tourov').forEach(e => e.remove()); window.removeEventListener('scroll', A._tourPos, true);
+  if (i < 0 || i >= steps.length) return;
+  const st = steps[i];
+  if (st.v && App.view !== st.v) { UI.closeModal(); go(st.v); }
+  const el = st.sel ? document.querySelector(st.sel) : null;
+  if (st.sel && !el) return A.tour(i + (A._tourDir || 1));   // prvek teď není (třeba nic nehlídá) – přeskočit
+  if (el) el.scrollIntoView({ block: 'center', behavior: 'instant' });
+  const ov = document.createElement('div'); ov.className = 'tourov' + (el ? '' : ' center');
+  ov.innerHTML = `${el ? '<div class="thole"></div>' : '<div class="tdim"></div>'}<div class="ttip" role="dialog"><div class="tn">${i + 1} / ${steps.length}</div><h3>${esc(st.t)}</h3><p>${esc(st.x)}</p>
+    <div class="row">${i ? `<button class="btn ghost sm" onclick="A._tourDir=-1;A.tour(${i - 1})">‹ Zpět</button>` : `<button class="btn ghost sm" onclick="A.tour(-1)">Přeskočit</button>`}<span class="sp"></span>${i < steps.length - 1 ? `<button class="btn sm" onclick="A._tourDir=1;A.tour(${i + 1})">Další ›</button>` : `<button class="btn sm" onclick="A.tour(-1);go('${realCoach() ? 'klient' : 'dnes'}')">Hotovo</button>`}</div></div>`;
+  document.body.appendChild(ov);
+  A._tourPos = () => { const h = ov.querySelector('.thole'), tip = ov.querySelector('.ttip'); if (!el || !h) return; const r = el.getBoundingClientRect(), pad = 6;
+    Object.assign(h.style, { left: r.left - pad + 'px', top: r.top - pad + 'px', width: r.width + 2 * pad + 'px', height: r.height + 2 * pad + 'px' });
+    const below = r.bottom + 12 + tip.offsetHeight < innerHeight; tip.style.top = Math.max(8, Math.min(innerHeight - tip.offsetHeight - 8, below ? r.bottom + 12 : r.top - tip.offsetHeight - 12)) + 'px';
+    tip.style.left = Math.max(8, Math.min(innerWidth - tip.offsetWidth - 8, r.left)) + 'px'; };
+  A._tourPos(); window.addEventListener('scroll', A._tourPos, true);
 };
 
 /* ===== Způsoby zobrazení plnění =====

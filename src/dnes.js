@@ -58,6 +58,7 @@ VIEWS.dnes = function () {
   ${resumeCard()}
   ${renderRings(d, day, s)}
   ${nextCard(day, tasks, s)}
+  ${isToday ? robertNudges(s) : ''}
   ${dayNotes(day, tasks)}
   <div class="card flush"><div class="list" id="timeline">${dayRows(d, day, tasks, s).join('')}</div></div>`;
 };
@@ -90,13 +91,13 @@ function nextCard(day, tasks, s) {
   const pastMeals = tasks.filter(t => t.meal && !t.done && t.due && t.chosen && t.at && timeToMin(t.at) + 60 <= nowMin());
   if (pastMeals.length >= 2 && !tasks.some(t => t.id === 'close_y'))
     return `<div class="nextc"><div class="t">Další krok</div><b>Odškrtni, co už jsi snědl</b><div class="how">${pastMeals.map(t => esc(s.courses.find(c => c.key === t.meal).name.toLowerCase())).join(', ')} – jedl jsi podle plánu? Co bylo jinak, oprav ťuknutím na jídlo v seznamu.</div>
-      <div class="row"><button class="btn write" onclick="A.eatenMany('${pastMeals.map(t => t.meal).join(',')}')">${ico('check')} Snědl jsem všechno do teď</button></div></div>`;
+      <div class="row"><button class="btn write" onclick="A.eatenMany('${pastMeals.map(t => t.meal).join(',')}')">${ico('check')} Snědl jsem všechno do teď</button></div>${aheadCard(tasks, s)}</div>`;
   const next = pickNext(tasks);
   if (!next) { const tm = addDays(todayISO(), 1); const ap = dayActivityPlan(tm); const nItems = (ap.items || []).length;
     return `<div class="nextc done"><div class="t">Dnešek</div><b>Všechno hotové. Pěkná práce.</b><div class="how">Zítra: ráno váha${nItems ? `, trénink (${nItems} ${sklon(nItems, 'cvik', 'cviky', 'cviků')})` : ''} a ${ap.walk_min ?? s.walk_min} minut chůze.</div></div>`; }
   const c = next.meal ? s.courses.find(x => x.key === next.meal) : null; const sel = c ? (day.meals[next.meal] || {}).sel : null;
   const title = next.id === 'weigh' ? 'Ráno na váhu' : c ? `${c.name} v ${c.time}${sel && sel !== SITUACE && sel !== VYNECHAT ? ' – ' + esc(sel) : ''}` : next.id === 'walk' ? `Chůze ${(day.act || {}).planWalk || s.walk_min} min` : next.id === 'training' ? 'Trénink' : next.id === 'steps' ? 'Zapiš kroky z telefonu' : next.id === 'close' ? 'Potvrď den' : esc(next.tx || '');
-  return `<div class="nextc"><div class="t">Další krok</div><b>${next.id === 'close_y' ? 'Potvrď včerejšek' : title}</b>${nextHow(next, day, s) ? `<div class="how">${nextHow(next, day, s)}</div>` : ''}<div class="row">${nextAction(next, s)}</div></div>`;
+  return `<div class="nextc"><div class="t">Další krok</div><b>${next.id === 'close_y' ? 'Potvrď včerejšek' : title}</b>${nextHow(next, day, s) ? `<div class="how">${nextHow(next, day, s)}</div>` : ''}<div class="row">${nextAction(next, s)}</div>${aheadCard(tasks, s)}</div>`;
 }
 /* jedna věta „jak na to“ ke každému kroku */
 function nextHow(next, day, s) {
@@ -146,8 +147,6 @@ function dayNotes(day, tasks) {
   const isToday = App.date === todayISO(); const out = [];
   if (!isToday && !day.reviewed && !dayConfirmed(day)) out.push(`<div class="row"><span style="flex:1">🗂️ Den není potvrzený – appka neví, co jsi opravdu snědl.</span><button class="btn write" onclick="A.closeDay()">✓ Potvrdit den</button></div>`);
   if (isToday) { const mm = mismatchAlert(App.date); if (mm) out.push(mm); }
-  if (isToday) { const y = addDays(todayISO(), -1); if (y >= S().start_date && !Meas().some(m => m.date === y && m.weight != null))
-    out.push(`<div class="row nowrap small"><span class="muted" style="flex:1">Včera chybí váha. Víš ji?</span><input type="text" inputmode="decimal" placeholder="kg" style="width:90px;min-height:38px" onchange="A.fillWeight('${y}',this.value)"></div>`); }
   return out.length ? `<div class="card stack s8 dnotes">${out.join('')}</div>` : '';
 }
 
@@ -311,7 +310,11 @@ A.closeDayOk = () => {
     const day = getDay(App.date); const eff = effectiveDay(App.date);
     // co má vybrané jídlo a není vynechané, se počítá jako snědené podle plánu
     S().courses.forEach(c => { const m = eff.meals[c.key] || {}; if (m.sel && m.sel !== VYNECHAT) { day.meals[c.key] = { ...(day.meals[c.key] || {}), sel: m.sel, eaten: true }; } });
-    day.reviewed = true; saveDay(day); if (App._backToday) { App._backToday = false; App.date = todayISO(); } render(); },
+    day.reviewed = true; saveDay(day);
+    // doplňování dnů: další nepotvrzený den, nebo zpátky na dnešek
+    if (App._catchup && App._catchup.length) { const nx = App._catchup.shift(); App.date = nx; setTimeout(() => A.closeDay(), 60); }
+    else if (App._backToday) { App._backToday = false; App._catchup = null; App.date = todayISO(); }
+    render(); },
   () => { const ev = evaluateDay(App.date); return ev.ok ? 'Den potvrzený a seděl. Zítra stejně.' : 'Den potvrzený. Zítra to dorovnáš.'; }); };
 A.unconfirmDay = () => { UI.closeModal(); Undo.run('Potvrzení zrušeno', () => { const day = getDay(App.date); day.reviewed = false; saveDay(day); render(); }, 'Den zase čeká na potvrzení.'); };
 A.toCourse = key => A.mealSheet(key);
@@ -532,3 +535,39 @@ A.sitEst = (key, v) => { Undo.run('Odhad jídla', () => { const day = effectiveD
 A.closeYesterday = () => { App.date = addDays(todayISO(), -1); App._backToday = true; render(); A.closeDay(); };
 A.eatenMany = keys => { const ks = keys.split(','); Undo.run('Snědeno', () => { const day = getDay(App.date); const eff = effectiveDay(App.date);
   ks.forEach(k => { const m = eff.meals[k] || {}; if (m.sel && m.sel !== VYNECHAT) day.meals[k] = { ...(day.meals[k] || {}), sel: m.sel, eaten: true }; }); saveDay(day); }, `Odškrtnuto: ${ks.length} ${sklon(ks.length, 'jídlo', 'jídla', 'jídel')}.`); render(); };
+
+/* ---- Hlídám za tebe (8. 10. 2026): co Robertovi chybí, laskavě a s tlačítkem ----
+   Appka vede jako trenér: nevážil se, nepotvrdil dny, nemá jídla na zítřek, utekl trénink,
+   chybí včerejší kroky. Nejvýš tři věci, nejdůležitější první. Žádná červená. */
+function unconfirmedDays(n) { const s = S(), t = todayISO(), out = []; for (let k = n; k >= 1; k--) { const d = addDays(t, -k); if (d < s.start_date) continue; const r = Store.rows('days', Store.ownerId()).find(x => x.data.date === d); if (!(r && (r.data.reviewed || dayConfirmed(r.data)))) out.push(d); } return out; }
+function robertNudges(s) {
+  if (App.ro) return ''; const t = todayISO(), y = addDays(t, -1), out = [];
+  const ms = Meas().filter(m => m.weight != null).map(m => m.date).sort(); const last = ms[ms.length - 1]; const gap = last ? daysBetween(last, t) : 99;
+  const weighedToday = last === t;
+  const yW = y >= s.start_date && !Meas().some(m => m.date === y && m.weight != null);
+  if (!weighedToday && gap >= 2) out.push({ ic: 'scale', t: `Nevážil ses ${gap} ${DEN(gap)}${last ? ` (naposledy ${czDateShort(last)})` : ''}.`, sub: yW ? 'Víš včerejší váhu? Napiš ji. Jinak zítra ráno na váhu.' : 'Zítra ráno po WC na váhu.', btn: yW ? `<input type="text" inputmode="decimal" placeholder="kg" class="ninp" onchange="A.fillWeight('${y}',this.value)">` : '' });
+  else if (!weighedToday && yW && nowMin() >= 11 * 60) out.push({ ic: 'scale', t: 'Chybí včerejší váha.', sub: 'Víš ji? Napiš ji.', btn: `<input type="text" inputmode="decimal" placeholder="kg" class="ninp" onchange="A.fillWeight('${y}',this.value)">` });
+  const un = unconfirmedDays(7).filter(d => d !== y);
+  if (un.length) out.push({ ic: 'check', t: `${un.length + (unconfirmedDays(1).length)} ${sklon(un.length + unconfirmedDays(1).length, 'den čeká', 'dny čekají', 'dní čeká')} na potvrzení.`, sub: 'Za minutu – appka tě provede den po dni.', btn: `<button class="btn sm write" onclick="A.catchUp()">Doplnit dny</button>` });
+  const tm = addDays(t, 1), wk = getWeek(mondayOf(tm)); const nTm = (wk.plan[dayIndex(tm)] || []).filter(Boolean).length;
+  if (nTm < 3 && nowMin() >= 12 * 60) out.push({ ic: 'cal', t: 'Na zítřek nemáš naplánovaná jídla.', sub: 'Appka je navrhne podle limitu.', btn: `<button class="btn sm write" onclick="App.week='${mondayOf(tm)}';A.planTab('jidla');go('plan');setTimeout(()=>A.genWeek('empty'),60)">Naplánovat</button>` });
+  const yd = effectiveDay(y), yItems = ((yd.act || {}).items || []).length, yDone = Object.values((yd.training || {}).done || {}).some(Boolean) || Object.keys((yd.training || {}).log || {}).length;
+  if (y >= s.start_date && yItems && !yDone) out.push({ ic: 'dumbbell', t: 'Včera ti utekl trénink.', sub: 'Když jsi cvičil, zapiš to. Když ne, nevadí – drž dnešní plán.', btn: `<button class="btn sm sec write" onclick="App.date='${y}';App._backToday=true;render();A.trainSheet()">Zapsat včerejší</button>` });
+  const yr = Store.rows('days', Store.ownerId()).find(x => x.data.date === y); if (y >= s.start_date && !(yr && yr.data.steps != null) && !stepsHistFor(t))
+    out.push({ ic: 'feet', t: 'Chybí včerejší kroky.', sub: 'Zdraví → Kroky → včerejší číslo.', btn: `<input type="text" inputmode="numeric" placeholder="kroky" class="ninp" onchange="A.fillSteps('${y}',this.value)">` });
+  if (!out.length) return '';
+  return `<div class="card nudge"><div class="nh">${ico('alert')} Hlídám za tebe${out.length > 2 ? ` · ${out.length - 2} další po vyřešení` : ''}</div>
+    ${out.slice(0, 2).map(n => `<div class="nrow"><span class="em">${ico(n.ic)}</span><div class="tx"><b>${esc(n.t)}</b><span>${esc(n.sub)}</span></div>${n.btn || ''}</div>`).join('')}</div>`;
+}
+A.catchUp = () => { const L = unconfirmedDays(7); if (!L.length) return; App._catchup = L.slice(1); App._backToday = true; App.date = L[0]; render(); A.closeDay();
+  UI.toast(`Potvrdíš ${L.length} ${sklon(L.length, 'den', 'dny', 'dní')} – nejdřív ${czDateShort(L[0])}.`); };
+A.fillSteps = (d, v) => { const r = omez(v, 0, 80000); if (r.n == null) return; Undo.run('Kroky', () => { const day = getDay(d); day.steps = r.n; saveDay(day); }, `Kroky za ${czDateShort(d)}: ${fmt0(r.n)}.`); render(); };
+/* Co tě dnes ještě čeká a zítra – přehled dopředu, ať Robert ví, co se bude dít */
+function aheadCard(tasks, s) {
+  if (App.ro) return ''; const nx = pickNext(tasks);
+  const rest = tasks.filter(t => !t.done && !t.late && t !== nx && t.id !== 'close_y' && !/^plan|review|shop/.test(t.id) && !(t.meal && t.due));
+  const lab = t => t.meal ? s.courses.find(c => c.key === t.meal).name : ({ walk: 'chůze', steps: 'kroky', close: 'potvrdit den', training: 'trénink', measure: 'obvody', weigh: 'váha' })[t.id] || t.tx;
+  const tm = addDays(todayISO(), 1), ap = dayActivityPlan(tm), nItems = (ap.items || []).length, isSun = dayIndex(tm) === 6;
+  const zitra = [`ráno váha`, nItems ? `trénink (${nItems} ${sklon(nItems, 'cvik', 'cviky', 'cviků')})` : '', `${ap.walk_min ?? s.walk_min} min chůze`, isSun ? 'obvody a plán na další týden' : ''].filter(Boolean).join(' · ');
+  return `<div class="ahead">${rest.length ? `<div><b>Dnes ještě:</b> ${rest.map(t => `<span class="ach">${t.at && !/večer/.test(t.at) ? `<em>${t.at}</em>` : ''}${esc(lab(t))}</span>`).join('')}</div>` : ''}<div><b>Zítra:</b> ${esc(zitra)}</div></div>`;
+}

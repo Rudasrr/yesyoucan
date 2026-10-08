@@ -940,9 +940,9 @@ function trAdvice(dates) {
   return out.slice(0, 8);
 }
 function trAdviceHtml(list) {
-  if (!list.length) return `<div class="card"><div class="chd"><h2>Kontrola plánu</h2></div><p class="small muted">${ico('check')} Plán je vyvážený – partie, dny volna i pohyb sedí.</p></div>`;
+  if (!list.length) return `<div class="card tradv"><div class="chd"><h2>Kontrola plánu</h2></div><p class="small muted">${ico('check')} Plán je vyvážený – partie, dny volna i pohyb sedí.</p></div>`;
   App._trAdv = list;
-  return `<div class="card stack s8"><div class="chd"><h2>Kontrola plánu</h2><span class="muted small">${list.length} ${sklon(list.length, 'návrh', 'návrhy', 'návrhů')} · přijmi, uprav, nebo zamítni${hq('trNavrh')}</span></div>
+  return `<div class="card stack s8 tradv"><div class="chd"><h2>Kontrola plánu</h2><span class="muted small">${list.length} ${sklon(list.length, 'návrh', 'návrhy', 'návrhů')} · přijmi, uprav, nebo zamítni${hq('trNavrh')}</span></div>
     ${list.map((a, i) => `<div class="tadv"><b>${esc(a.title)}</b><span>${esc(a.why)}</span><em>→ ${esc(a.fix)}</em><div class="row"><button class="btn sm" onclick="A.trAdvOk(${i})">${a.apply.propose ? 'Navrhnout měsíc' : 'Přijmout'}</button><button class="btn sm sec" onclick="A.trDaySheet('${a.date}','day')">Upravit</button><button class="btn sm ghost" onclick="A.trAdvNo(${i})">Zamítnout</button></div></div>`).join('')}</div>`;
 }
 A.trAdvOk = i => { const a = (App._trAdv || [])[i]; if (!a) return; if (a.apply.propose) { App.trMonth = monthStart(a.date); A.trProposeSheet(); return; } const day = trDayData(a.date); const it = day.items = JSON.parse(JSON.stringify(day.items || []));
