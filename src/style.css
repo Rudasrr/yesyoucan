@@ -867,3 +867,4 @@ svg.pchart{width:100%;height:auto;display:block}
 .legend i.lpl{width:22px;height:0;border-top:2px dashed #9aa3b8;background:none}.legend i.ltr{width:22px;height:0;border-top:2px dashed #d97706;background:none}
 .lbar{font-size:12px;color:var(--ink2)}.lbar .ok{color:#15803d}.lbar .warn{color:#b45309}.lbar .bad{color:#dc2626}
 .drt th{white-space:normal;line-height:1.2;vertical-align:bottom}
+@media (max-width:640px){ .drt td,.drt th{white-space:normal;font-size:12px} .drt table{width:100%} }
