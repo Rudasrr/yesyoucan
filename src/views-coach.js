@@ -696,7 +696,12 @@ function drChart(dr, r) {
   const id = 'ct' + (++lineChart.n);
   lineChart.reg[id] = pts.map((p, i) => ({ sx: X(i), sy: Y(p.real != null ? p.real : p.plan), html: `<b>${esc(p.full)}</b><br>${p.real != null ? `<span class="w">${fmt1(p.real)} kg</span> průměr 7 vážení<br>` : ''}${p.real != null && !p.day ? (() => { const W = drWeight(p.from, p.to); return W.pct != null ? `za období ${kgS(W.real)} kg z cíle ${kgS(W.plan)} · <b>plní na ${W.pct} %</b><br>` : ''; })() : ''}${p.raw != null ? `ráno ${fmt1(p.raw)} kg<br>` : ''}plán ${fmt1(p.plan)} kg${p.real != null ? ` · <b>${dkg(p.real - p.plan)}</b>` : ''}${p.fut && !p.day ? '' : '<br><span class="muted">ťukni pro detail</span>'}` }));
   g += `<g class="tipg" style="display:none"><line y1="${T}" y2="${H - B}" stroke="#2563eb" stroke-width="1" stroke-dasharray="2 3"/><circle r="5.5" fill="#fff" stroke="#2563eb" stroke-width="2.5"/></g></svg>`;
-  return `<div class="legend kleg"><span><i style="background:#16a34a"></i>podle plánu nebo líp</span><span><i style="background:#d97706"></i>mírně pozadu</span><span><i style="background:#dc2626"></i>pozadu</span><span><i style="background:#9aa3b8"></i>plán</span>${planPathFirst() ? '<span><i style="background:#c4b5fd"></i>první plán</span>' : ''}${dr.lvl === 'c' ? '<span><i style="background:#d97706"></i>trend k cíli</span>' : ''}${dr.lvl === 'w' ? '<span><i style="background:#93c5fd"></i>ranní váha</span>' : ''}</div><div class="chartw" data-tip="${id}">${g}<div class="ctip" hidden></div></div>`;
+  /* jedna věta nad grafem a legenda, která pojmenuje čáry; význam barev zvlášť (8. 10. 2026 – dřív legenda míchala čáry a barvy) */
+  const lastR = pts.filter(p => p.real != null).pop();
+  const verdikt = lastR ? (() => { const gap = lastR.plan - lastR.real; const c = devC(lastR.real, lastR.plan);
+    return `<div class="dverd ${c}"><b>${dr.lvl === 'w' ? `${DAY_NAMES[dayIndex(lastR.from)]} ${czDateShort(lastR.from)}` : esc(lastR.full)}: skutečnost ${fmt1(lastR.real)} kg, plán ${fmt1(lastR.plan)} kg</b> – ${Math.abs(gap) < 0.25 ? 'přesně podle plánu' : gap < 0 ? `chybí ${fmt1(-gap)} kg` : `náskok ${fmt1(gap)} kg`}.</div>`; })() : '';
+  return `${verdikt}<div class="legend kleg"><span><i class="lsk"></i>skutečnost – průměr 7 vážení${hq('dSkut')}</span>${dr.lvl === 'w' ? '<span><i class="ldot"></i>váha na váze ráno</span>' : ''}<span><i class="lpl"></i>plán</span>${planPathFirst() ? '<span><i style="background:#c4b5fd"></i>první plán</span>' : ''}${dr.lvl === 'c' ? '<span><i class="ltr"></i>kam to vede (trend)</span>' : ''}</div><div class="chartw" data-tip="${id}">${g}<div class="ctip" hidden></div></div>
+    <div class="lbar">Barva skutečnosti: <span class="ok">zelená = podle plánu nebo líp</span> · <span class="warn">oranžová = do 1,5 kg pozadu</span> · <span class="bad">červená = víc pozadu</span></div>`;
 }
 /* souhrn období ve skupinách, vždy proti cíli přepočtenému na období */
 function drTiles(dr, r) {
@@ -734,8 +739,8 @@ function drTable(dr, r) {
   const s = S(), t = todayISO(); const kids = drKids(dr, r).filter(k => k.from <= t);
   if (!kids.length) return '';
   const c = (v, ok, warn) => v == null ? '' : ok ? 'ok' : warn ? 'warn' : 'bad';
-  const head = dr.lvl === 'w' ? ['Den', 'Váha ráno', 'Ø 7', 'Plán', 'Příjem / limit', 'Deficit', 'Chůze', 'Kroky', 'Trénink', 'Den']
-    : [dr.lvl === 'c' ? 'Měsíc' : 'Týden', 'Ø váha', 'Změna', 'Cíl', 'Rozdíl', 'V limitu', 'Deficit ≈ kg', 'Chůze', 'Kroky Ø', 'Trénink', 'Zápisy'];
+  const head = dr.lvl === 'w' ? ['Den', 'Váha ráno', 'Skutečnost Ø 7', 'Plán', 'Příjem / limit', 'Deficit', 'Chůze', 'Kroky', 'Trénink', 'Den']
+    : [dr.lvl === 'c' ? 'Měsíc' : 'Týden', 'Skutečnost Ø 7', 'Změna', 'Cíl', 'Rozdíl', 'V limitu', 'Deficit ≈ kg', 'Chůze', 'Kroky Ø', 'Trénink', 'Zápisy'];
   const body = kids.slice().reverse().map(k => {
     if (k.day) { const ev = evaluateDay(k.from), B = ev.d.base, day = ev.day, mm = Meas().find(x => x.date === k.from && x.weight != null), row = calcMeasurements(s, Meas()).filter(x => x.date <= k.from).pop();
       const bk = daySteps(day), wk = day.walk_min || 0, pd = planAt(k.from);

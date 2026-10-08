@@ -598,6 +598,7 @@ function adviceBox(field) { const list = settingsAdvice().filter(a => a.field ==
    U každého prvku, jehož význam není jasný z názvu, je „?“. Ťuknutí ukáže 2–4 věty:
    co to dělá · kdy to použít · doporučení. Texty jsou jen tady – Návod z nich vychází. */
 const HELP = {
+  dSkut: { t: 'Skutečnost', co: 'Průměr posledních 7 ranních vážení. Jedno ranní číslo skáče o kilo nahoru i dolů podle vody, soli a jídla den předtím – průměr ukáže, kam váha opravdu jde. Proto se plán porovnává s ním, ne s jedním vážením.' },
   pohybStupen: { t: 'Pohyb mimo trénink', co: 'Kolik se Robert hýbe mimo plánovanou chůzi a trénink, ve stupních: 1 sedavý (do 3 000 běžných kroků) · 2 lehce aktivní (3–6 tisíc) · 3 aktivní (6–9 tisíc) · 4 velmi aktivní (9–12 tisíc) · 5 fyzická práce. Appka stupeň určí z jeho kroků a výdej počítá z nich; ty nastavuješ cílový stupeň. Ručně jen když Robert kroky nezapisuje.' },
   ramec: { t: 'Cvičení týdně', co: 'Kolikrát týdně má Robert cvičit (silový trénink). Trénink to hlídá v kontrole plánu a navrhne doplnit chybějící tréninky. Pro začátek 2–3×.' },
   faze: { t: 'Fáze cesty', co: 'Mezicíle se zdravotním smyslem z Robertovy výšky a startu: −5 % a −10 % váhy, hranice BMI, tvůj cíl a zdravá váha (BMI 25). U každé datum podle plánu a podle trendu – zelený trend = stíhá, červený = zaostává o víc než 2 týdny.' },
