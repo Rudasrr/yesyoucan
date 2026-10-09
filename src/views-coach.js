@@ -458,7 +458,6 @@ A.setSetting = (k, v) => {
   if (k === 'walk_min' && r.n > WALK_PLAN_WARN && r.n > (s.walk_min || 0)) { UI.confirm(`Cíl ${r.n} minut chůze denně je u ${fmt0(currentWeight())} kg velká zátěž na klouby a těžko se dá dodržet. Doporučuju do ${WALK_PLAN_WARN} minut. Nastavit ${r.n} minut?`, () => commitSettings(d, (SET_POP[k] || k) + ' změněno', msg), `Nastavit ${r.n} min`, true); render(); return; }
   commitSettings(d, (SET_POP[k] || k) + ' změněno', msg);
 };
-A.setMaintain = on => commitSettings({ ...S(), maintain: !!on }, on ? 'Udržování zapnuto' : 'Udržování vypnuto', on ? 'Deficit je nula – Robertův limit sedí na celkovém výdeji.' : `Zpátky na tempo ${String(S().rate_pct).replace('.', ',')} %.`);
 /* Cíle chodů jsou PODÍL limitu dne, ne kalorie navíc: limit = celkový výdej − deficit a chody si ho dělí.
    Dřív pole „kcal“ sváděla k myšlence, že 2 000 u snídaně přidá jídlo – jen to snídani dalo půl dne.
    Trenér zadá procenta, ostatní chody se poměrně dorovnají do 100 % a uloží se váhy se součtem 2 450. */
@@ -565,7 +564,7 @@ A.editFood = (id, mode, after, fromId) => {
 /* ---------- HISTORIE ZMĚN (6. 10. 2026) ----------
    Každá akce trenéra s tím, co změnila, a tlačítkem Vrátit. Zdroj: histAdd v Undo.run. */
 const HIST_KEYS = { ...SET_POP, plan_bases: 'nový výchozí bod plánu', steps_hist: 'kroky z Apple Health', courses: 'rozdělení jídla mezi chody', maint_weeks: 'přestávky v deficitu', start_date: 'start', start_weight: 'startovní váha' };
-function histVal(k, v) { if (v == null || v === '') return '–'; if (k === 'walk_kmh') return paceTxt(v) + ' /km'; if (k === 'maint_weeks') return v.length ? v.map(czDateShort).join(', ') : 'žádné'; if (k === 'plan_bases') return v.length ? v.map(b => `${czDateShort(b.date)} od ${fmt1(b.weight)} kg`).join(', ') : 'žádný'; if (k === 'steps_hist') return v.length ? v.map(h => `${czDateShort(h.from)}–${czDateShort(h.to)} Ø ${fmt0(h.avg)}`).join(', ') : 'žádné';
+function histVal(k, v) { if (v == null || v === '') return '–'; if (/_date$/.test(k) && /^\d{4}-\d\d-\d\d$/.test(String(v))) return czDate(v); if (k === 'walk_kmh') return paceTxt(v) + ' /km'; if (k === 'maint_weeks') return v.length ? v.map(czDateShort).join(', ') : 'žádné'; if (k === 'plan_bases') return v.length ? v.map(b => `${czDateShort(b.date)} od ${fmt1(b.weight)} kg`).join(', ') : 'žádný'; if (k === 'steps_hist') return v.length ? v.map(h => `${czDateShort(h.from)}–${czDateShort(h.to)} Ø ${fmt0(h.avg)}`).join(', ') : 'žádné';
   if (typeof v === 'boolean') return v ? 'zapnuto' : 'vypnuto'; if (typeof v === 'object') return '…'; return String(v).replace('.', ','); }
 function histDesc(c) {
   const a = (c.prev && !c.prev.deleted && c.prev.data) || null, b = (c.next && !c.next.deleted && c.next.data) || null;
@@ -804,8 +803,7 @@ A.planBreaks = () => { const s = S(), t = todayISO(), g = goalCheck(); const end
   const first = mondayOf(addDays(t, 7));   // nejdřív příští týden
   for (let blok = last; ;) { let br = addDays(blok, 7 * 8); if (br < first) br = first; if (br > end) break; if (!mw.includes(br)) add.push(br); blok = addDays(br, 7); }
   if (!add.length) { UI.toast('Přestávky už jsou naplánované.'); return; }
-  UI.confirm(`Naplánovat ${add.length} ${sklon(add.length, 'přestávku', 'přestávky', 'přestávek')} v deficitu (${add.map(czDateShort).join(', ')})? Ten týden bude deficit nula a cíl se posune o ${add.length} ${sklon(add.length, 'týden', 'týdny', 'týdnů')}.`,
-    () => commitSettings({ ...s, maint_weeks: mw.concat(add).sort() }, 'Přestávky v deficitu', `${add.length} ${sklon(add.length, 'přestávka naplánována', 'přestávky naplánovány', 'přestávek naplánováno')}.`), 'Naplánovat', true); };
+  UI.closeModal(); previewChange({ ...s, maint_weeks: mw.concat(add).sort() }, `Přestávky v deficitu: ${add.map(czDateShort).join(', ')}`, `${add.length} ${sklon(add.length, 'přestávka naplánována', 'přestávky naplánovány', 'přestávek naplánováno')}.`); };
 A.setGoalDate = v => { if (v && v <= todayISO()) { UI.toast('Termín cíle musí být v budoucnu.'); render(); return; } commitSettings({ ...S(), goal_date: v || null }, v ? 'Termín cíle' : 'Termín cíle zrušen', v ? `Termín cíle ${czDate(v)}.` : 'Termín se bere z plánu.'); };
 
 /* průměry kroků z Apple Health za období */
@@ -842,15 +840,6 @@ A.replanSheet = () => openSheet(() => {
      <h3>2 · Plán od dneška</h3><ol class="gcl">${plan}</ol>
      <p class="hint">Plnění = úbytek za 4 týdny ÷ plánovaný úbytek za stejné dny. Každá změna je v Historii změn a jde vrátit; v grafu zůstane první plán k porovnání.</p>`);
 });
-A.replanApply = req => { const s = S(), r = replanCheck(); const t = todayISO(), w = currentWeight(); const T = r ? r.termin : goalTermin();
-  UI.confirm(`Přeplánovat od dneška: plán začne od ${fmt1(w)} kg, tempo ${String(req).replace('.', ',')} %, termín ${czDate(T)} zůstává.`, () => {
-    commitSettings({ ...s, rate_pct: req, goal_date: s.goal_date || T, plan_bases: (s.plan_bases || []).filter(b => b.date !== t).concat([{ date: t, weight: Math.round(w * 10) / 10 }]) }, 'Přeplánováno od dneška', `Plán od ${fmt1(w)} kg, tempo ${String(req).replace('.', ',')} %, termín ${czDate(T)}.`);
-    UI.closeModal(); }, 'Přeplánovat', true); };
-A.replanMove = d => { if (!d) return; const s = S(); const n = terminPosuny() + 1;
-  UI.confirm(`Opravdu posunout termín cíle z ${czDate(goalTermin())} na ${czDate(d)}? Bude to ${n}. posun termínu – appka ho bude ukazovat.`, () => {
-    const w = currentWeight(), t = todayISO(); commitSettings({ ...s, rate_pct: 1, goal_date: d, plan_bases: (s.plan_bases || []).filter(b => b.date !== t).concat([{ date: t, weight: Math.round(w * 10) / 10 }]) }, 'Termín cíle posunut', `Termín ${czDate(d)} (${n}. posun), tempo 1 %.`); UI.closeModal(); }, 'Posunout termín'); };
-A.applyOutAdj = c => { const s = S(); const n = (Number(s.out_adj) || 0) + c;
-  UI.confirm(`Opravit výdej o ${c > 0 ? '+' : ''}${c} kcal (celkem ${n > 0 ? '+' : ''}${n})? Limit dne se změní o stejné číslo, termín zůstane.`, () => commitSettings({ ...s, out_adj: n }, 'Korekce výdeje', `Výdej ${n > 0 ? '+' : ''}${n} kcal podle skutečnosti.`), 'Opravit', true); };
 
 /* ---------- Fáze 4 (7. 10. 2026): zdravá váha a fáze cesty, škála pohybu, rámec týdne, cesta ---------- */
 /* Pohyb mimo trénink ve stupních místo faktoru: trenér vidí, kam Robert patří podle kroků,
@@ -969,7 +958,7 @@ A.guide = step => openSheet(() => {
       : `<div class="alert a3"><div>Nic nečeká na rozhodnutí. Plán nech, jak je.</div></div>`;
     App._grecs = recs;
     foot = `<button class="btn ghost" onclick="App._gs=2;window._sheetRedraw()">‹ Zpět</button><button class="btn" onclick="App._gs=4;window._sheetRedraw()">Dál: co mu říct ›</button>`; }
-  if (st === 4) { body = `<p class="small muted">Podklady pro tvou zpětnou vazbu – řekneš je Robertovi osobně. V appce mu nic neodchází.</p>${feedbackHtml(feedbackPoints(g.from, g.to))}`;
+  if (st === 4) { body = `<p class="small muted">Podklady pro tvou zpětnou vazbu. Hotovou zprávu z nich i z toho, co jsi vyřešil, zkopíruješ jedním tlačítkem.</p><button class="btn" onclick="A.msgSheet()">${ico('clip')} Zpráva pro Roberta</button>${feedbackHtml(feedbackPoints(g.from, g.to))}`;
     foot = `<button class="btn ghost" onclick="App._gs=3;window._sheetRedraw()">‹ Zpět</button><button class="btn" onclick="App._gs=5;window._sheetRedraw()">Dál: shrnutí ›</button>`; }
   if (st === 5) { const ok = recs.filter(r => done[r.key] === 'ok'), skip = recs.filter(r => done[r.key] === 'keep'), open = recs.filter(r => !done[r.key]);
     body = `<div class="list">${ok.map(r => `<div class="li static"><span class="em ok">${ico('check')}</span><div class="tx"><b>${esc(r.title)}</b><span>hotovo${r.offline ? ' · ' + esc(r.offline) : ''}</span></div></div>`).join('')}
@@ -979,10 +968,11 @@ A.guide = step => openSheet(() => {
     foot = `<button class="btn ghost" onclick="App._gs=4;window._sheetRedraw()">‹ Zpět</button><button class="btn" onclick="App._gs=1;UI.closeModal();render()">Hotovo</button>`; }
   return UI.sheetHtml('Průvodce týdnem', `${czDateShort(g.from)}–${czDateShort(g.to)} · krok ${st} z 5`, nav + body, foot);
 });
-A.guideDo = i => { const r = (App._grecs || [])[i]; if (!r || !r.doIt) return; const g = guideWeek();
-  A.decide(g.from, r.key, 'ok');
+A.guideDo = i => { const r = (App._grecs || [])[i]; if (!r || !r.doIt) { UI.toast('Doporučení se mezitím změnilo – obnovuji.'); render(); return; } const g = guideWeek();
+  const defer = r.doIt.kind === 'apply' || /replanSheet|goalCheckSheet/.test(r.doIt.js);   // vyřešeno až po potvrzení v náhledu
+  if (defer) App._pvDecide = { week: g.from, key: r.key }; else A.decide(g.from, r.key, 'ok');
   if (r.doIt.kind === 'apply') { try { (new Function(r.doIt.js))(); } catch (e) { console.error(e); } if (window._sheetRedraw) window._sheetRedraw(); }
-  else { UI.closeModal(); (new Function(r.doIt.js))(); UI.toast('Až to vyřešíš, průvodce najdeš na Přehledu v Týdenní kontrole.'); } };
+  else { UI.closeModal(); (new Function(r.doIt.js))(); if (!defer) UI.toast('Až to vyřešíš, průvodce najdeš na Přehledu v Týdenní kontrole.'); } };
 
 /* ---------- Co Robertovi říct (7. 10. 2026) ----------
    Zpětnou vazbu dává trenér osobně; appka mu připraví podklady z dat týdne: konkrétní
@@ -1065,7 +1055,92 @@ function briefCard(s) {
   return `<div class="card brief"><div class="bhd"><div><span class="pill2">${ico('sun')} Brief na ${DAY_NAMES[dayIndex(t)].toLowerCase()} ${czDateShort(t)} · ~2 min${hq('brief')}</span><h2>${esc(verdict)}</h2></div></div>
     <div class="bgrid">
       <div><h4>Zkontrolovala jsem za tebe · 7 dní</h4><div class="chks">${C.map(c => `<div class="chk2 ${c.c}">${ico(c.ic)}<b>${esc(c.area)}</b><span>${esc(c.txt)}</span></div>`).join('')}</div></div>
-      <div><h4>Udělej</h4>${recs.length ? recs.map(r => { const i = App._grecs.indexOf(r); return `<div class="bdo"><b>${esc(r.title)}</b>${r.offline ? `<span>${esc(r.offline)}</span>` : ''}<div class="row">${r.doIt ? `<button class="btn sm" onclick="A.guideDo(${i})">${esc(r.doIt.label)}</button>` : `<button class="btn sm" onclick="A.decide('${g.from}','${r.key}','ok')">Domluvím to</button>`}<button class="btn sm ghost" onclick="A.decide('${g.from}','${r.key}','keep')">Přeskočit</button></div></div>`; }).join('') : `<div class="small muted">${ico('check')} Dnes nic – plán nech běžet.</div>`}</div>
-      <div><h4>Řekni Robertovi</h4>${F.P[0] ? `<div class="fbk ok"><ul><li>${esc(F.P[0])}</li></ul></div>` : ''}${F.Z[0] ? `<div class="fbk b"><ul><li>${esc(F.Z[0])}</li></ul></div>` : ''}${F.Q[0] ? `<div class="fbk p"><ul><li>${esc(F.Q[0])}</li></ul></div>` : ''}</div>
+      <div><h4>Udělej</h4>${recs.length ? recs.map(r => { const i = App._grecs.findIndex(x => x.key === r.key); return `<div class="bdo"><b>${esc(r.title)}</b>${r.offline ? `<span>${esc(r.offline)}</span>` : ''}<div class="row">${r.doIt ? `<button class="btn sm" onclick="A.guideDo(${i})">${esc(r.doIt.label)}</button>` : `<button class="btn sm" onclick="A.decide('${g.from}','${r.key}','ok')">Domluvím to</button>`}<button class="btn sm ghost" onclick="A.decide('${g.from}','${r.key}','keep')">Přeskočit</button></div></div>`; }).join('') : `<div class="small muted">${ico('check')} Dnes nic – plán nech běžet.</div>`}</div>
+      <div><h4>Řekni Robertovi</h4><button class="btn sm" style="margin-bottom:8px" onclick="A.msgSheet()">${ico('clip')} Zpráva pro Roberta</button>${F.P[0] ? `<div class="fbk ok"><ul><li>${esc(F.P[0])}</li></ul></div>` : ''}${F.Z[0] ? `<div class="fbk b"><ul><li>${esc(F.Z[0])}</li></ul></div>` : ''}${F.Q[0] ? `<div class="fbk p"><ul><li>${esc(F.Q[0])}</li></ul></div>` : ''}</div>
     </div></div>`;
 }
+
+/* ---------- Náhled změny před potvrzením (9. 10. 2026) ----------
+   Každá změna plánu z doporučení se nejdřív ukáže: co se v nastavení změní (před → po) a co
+   z toho vyjde (limit jídla, tempo, kdy cíl podle plánu, termín). Teprve pak „Potvrdit změnu“. */
+function settingsEffects(d) { const t = todayISO(), w = currentWeight(), act = planActFor(t, w);
+  const b = calcBase(effSettings(d, t), w, act.planWalk, 0, d.walk_kmh, 0, 0, act); const p = planPathFrom(d, d.plan_bases || []);
+  return { limit: b.planLimit, kg: w * effSettings(d, t).rate_pct / 100, plan: p[p.length - 1] <= d.goal_weight + 0.001 ? addDays(d.start_date, p.length - 1) : null, termin: d.goal_date || null, walk: d.walk_min }; }
+function previewChange(d, label, msg) {
+  const s = S(), a = settingsEffects(s), b = settingsEffects(d); const nz = v => v == null || (Array.isArray(v) && !v.length) ? null : v;
+  const rows = Object.keys(HIST_KEYS).filter(k => JSON.stringify(nz(s[k])) !== JSON.stringify(nz(d[k]))).map(k => `<tr><td>${esc(HIST_KEYS[k])}</td><td class="n muted">${esc(paceFix(histVal(k, s[k])))}</td><td class="n b">${esc(paceFix(histVal(k, d[k])))}</td></tr>`);
+  const eff = [['Limit jídla dnes', fmt0(a.limit) + ' kcal', fmt0(b.limit) + ' kcal'], ['Tempo', `−${fmt2(a.kg)} kg/týden`, `−${fmt2(b.kg)} kg/týden`], ['Cíl podle plánu', a.plan ? czDate(a.plan) : '–', b.plan ? czDate(b.plan) : '–'], ['Termín cíle', a.termin ? czDate(a.termin) : 'nezadaný', b.termin ? czDate(b.termin) : 'nezadaný']]
+    .filter(([, x, y]) => x !== y).map(([l, x, y]) => `<tr><td>${l}</td><td class="n muted">${x}</td><td class="n b">${y}</td></tr>`);
+  App._pv = { d, label, msg };
+  openSheet(() => UI.sheetHtml('Zkontroluj změnu', esc(label),
+    `<p class="small muted">Nic se ještě nezměnilo. Takhle bude plán vypadat po potvrzení:</p>
+     <div class="tbl"><table class="small"><tr><th>Co se mění</th><th class="n">Teď</th><th class="n">Po změně</th></tr>${rows.join('') || '<tr><td colspan="3" class="muted">nastavení beze změny</td></tr>'}</table></div>
+     ${eff.length ? `<h3>Co z toho vyjde</h3><div class="tbl"><table class="small"><tr><th></th><th class="n">Teď</th><th class="n">Po změně</th></tr>${eff.join('')}</table></div>` : ''}
+     <p class="hint">Robert uvidí nový limit hned. Změna se zapíše do Historie změn a jde vrátit.</p>`,
+    `<button class="btn" onclick="A.pvOk()">Potvrdit změnu</button><button class="btn ghost" onclick="UI.closeModal()">Zrušit</button>`));
+}
+A.pvOk = () => { const p = App._pv; if (!p) return; App._pv = null; UI.closeModal(); commitSettings(p.d, p.label, p.msg);
+  if (App._pvDecide) { const q = App._pvDecide; App._pvDecide = null; A.decide(q.week, q.key, 'ok'); } };
+A.applyAdvice = json => previewChange({ ...S(), ...JSON.parse(json) }, 'Nastavení podle doporučení');
+A.replanApply = req => { const s = S(), r = replanCheck(), t = todayISO(), w = currentWeight(); const T = r ? r.termin : goalTermin(); UI.closeModal();
+  previewChange({ ...s, rate_pct: req, goal_date: s.goal_date || T, plan_bases: (s.plan_bases || []).filter(b => b.date !== t).concat([{ date: t, weight: Math.round(w * 10) / 10 }]) }, 'Přeplánováno od dneška', `Plán od ${fmt1(w)} kg, tempo ${String(req).replace('.', ',')} %, termín ${czDate(T)}.`); };
+A.replanMove = d => { if (!d) return; const s = S(), n = terminPosuny() + 1, w = currentWeight(), t = todayISO(); UI.closeModal();
+  previewChange({ ...s, rate_pct: 1, goal_date: d, plan_bases: (s.plan_bases || []).filter(b => b.date !== t).concat([{ date: t, weight: Math.round(w * 10) / 10 }]) }, `Termín cíle posunut (${n}. posun)`, `Termín ${czDate(d)} (${n}. posun), tempo 1 %.`); };
+A.applyOutAdj = c => { const s = S(), n = (Number(s.out_adj) || 0) + c; UI.closeModal(); previewChange({ ...s, out_adj: n }, 'Korekce výdeje', `Výdej ${n > 0 ? '+' : ''}${n} kcal podle skutečnosti.`); };
+A.setMaintain = on => previewChange({ ...S(), maintain: !!on }, on ? 'Udržování zapnuto' : 'Udržování vypnuto', on ? 'Deficit je nula – Robertův limit sedí na celkovém výdeji.' : `Zpátky na tempo ${String(S().rate_pct).replace('.', ',')} %.`);
+
+/* ---------- Zpráva pro Roberta (9. 10. 2026, rozhodnutí vlastníka) ----------
+   Appka nic neposílá. Složí text, který trenér zkopíruje a pošle sám (Messenger, SMS…):
+   pochvala, co trenér v plánu změnil (z Historie změn za 7 dní) a na co se zaměřit
+   (to, co trenér v „Udělej“ vyřešil jako „Domluvím to“ / „Hotovo“), plus na co se zeptat. */
+const ROBERT_TODO = {
+  nepotvrz: 'Každý večer v appce ťukni „Potvrdit den“ – jedl jsem podle plánu, co bylo jinak, oprav u jídla. Zabere to 10 vteřin a já pak vidím, co funguje.',
+  vazeni: 'Vážit se každé ráno po WC, nalačno – appka ti to připomene.', 'vazeni-malo': 'Vážit se každé ráno – teprve průměr 7 vážení ukáže, jak ti to jde.',
+  krokyzap: 'Večer zapiš kroky z telefonu (Zdraví → Kroky → číslo za den).', planjidel: 'Jídla plánuj v appce: Plán → Naplánuj mi týden, pak jen vyměň, co nechceš.',
+  situace: 'Jídla „podle situace“ večer odhadni jedním ťuknutím (lehké / jako plán / vydatné / hodně) – jinak je appka počítá jako podle plánu.',
+  preslimit: 'Hlídej porce – hlavně přílohu. Cheat si zapiš ráno dopředu, appka ti ho pokryje chůzí.', jidlo: 'Hlídej porce – hlavně přílohu a víkendy. Cheat zapiš ráno dopředu.',
+  pohyb: 'Chůzi klidně rozděl na dvakrát (ráno a večer) – a po každé přičti minuty v appce.', chuze: 'Chůzi klidně rozděl na dvakrát a po každé přičti minuty v appce.',
+  trenink: 'Trénink: ťukni v appce „Začít cvičit“ – provede tě sérií po sérii. Dej mi vědět, kdyby tě něco bolelo.',
+  kroky: 'Přidej běžné kroky – schody místo výtahu, kratší procházka po jídle.', hlad: 'Když máš hlad, přidej bílkoviny a zeleninu – a napiš mi, kdy to bývá.',
+  spanek: 'Zkus chodit spát o půl hodiny dřív – spánek hodně ovlivňuje hlad.',
+trplan: 'Trénink jsem upravil – najdeš ho v appce u každého dne.' };
+function msgPraise(from, to) { const s = S(), R = periodStats(from, to), W = drWeight(from, to), ov = calcOverview(s, Meas()), P = [];
+  if (R.empty) return P;
+  if (W.real != null && W.real > 0.1) P.push(`za poslední týden máš dole ${fmt1(W.real)} kg${W.pct >= 90 ? ' – přesně podle plánu' : ''}`);
+  if (ov.lost > 0.5) P.push(`od startu celkem ${fmt1(ov.lost)} kg`);
+  healthPhases(s).filter(p => p.hit && p.hit >= from && p.hit <= addDays(to, 1)).forEach(p => P.push(`pokořil jsi hranici ${fmt0(p.w)} kg (${p.l})`));
+  if (R.weigh >= R.wDays - 1) P.push(`vážil ses ${R.weigh}× ze ${R.wDays} – super pravidelnost`);
+  if (R.conf >= R.n - 1) P.push(`potvrdil jsi ${R.conf} ze ${R.n} dní`);
+  if (R.walkPlan && R.walk >= R.walkPlan * 0.9) P.push(`chůze ${Math.round(R.walk / R.walkPlan * 100)} % plánu`);
+  if (R.trPlan && R.trDone >= R.trPlan) P.push(`odcvičil jsi všechny tréninky`);
+  if (R.waistDelta != null && R.waistDelta < -0.4) P.push(`pas ${signed1(R.waistDelta)} cm`);
+  return P.slice(0, 3); }
+function msgChanges(since) { const s = S(), out = []; const L = histRows().filter(r => r.data.at.slice(0, 10) >= since && !r.data.undone && !r.data.reverted);
+  const keys = new Set(); let tr = false; L.forEach(r => (r.data.ch || []).forEach(c => { if (c.t === 'training') tr = true; if (c.t === 'settings') { const a = (c.prev || {}).data || {}, b = (c.next || {}).data || {}; Object.keys(HIST_KEYS).forEach(k => { if (JSON.stringify(a[k]) !== JSON.stringify(b[k])) keys.add(k); }); } }));
+  if (['rate_pct', 'plan_bases', 'out_adj', 'goal_date', 'maintain', 'activity', 'factor_lock', 'steps_goal', 'protein_min', 'courses'].some(k => keys.has(k))) out.push(`Upravil jsem ti plán – limit jídla je teď ${fmt0(limitToday(s).planLimit)} kcal denně (ve dny s pohybem víc, appka ti to ukáže v kroužku Jídlo).`);
+  if (keys.has('plan_bases') || keys.has('goal_date')) out.push(`Cíl ${fmt0(s.goal_weight)} kg${goalTermin() ? ` do ${czDate(goalTermin())}` : ''} drží – plán jsem srovnal od dneška.`);
+  if (keys.has('walk_min')) out.push(`Chůze nově ${s.walk_min} minut denně.`);
+  if (keys.has('steps_goal')) out.push(`Cíl běžných kroků je ~${fmt0(stepsTarget(s))} denně (mimo procházku).`);
+  if (keys.has('protein_min')) out.push(`Bílkoviny aspoň ${s.protein_min} g denně.`);
+  if (keys.has('maint_weeks')) { const fut = (s.maint_weeks || []).filter(m => m >= todayISO()); if (fut.length) out.push(`Týden od ${czDateShort(fut[0])} máš přestávku – jíš víc, nehubneš, tělo si odpočine.`); }
+  if (tr) out.push('Upravil jsem ti trénink – najdeš ho v appce u každého dne.');
+  return out; }
+function robertMessage() { const t = todayISO(), g = guideWeek(), dec = LS.get('dec:' + g.from, {});
+  const P = msgPraise(addDays(t, -7), addDays(t, -1)), C = msgChanges(addDays(t, -7));
+  const todo = [...new Set(Object.keys(dec).filter(k => dec[k] === 'ok' && ROBERT_TODO[k]).map(k => ROBERT_TODO[k]))].filter(x => !C.includes(x));
+  const F = feedbackPoints(addDays(t, -7), addDays(t, -1)); const ask = F.Q.map(q => q.split('?')[0] + '?');
+  const L = ['Ahoj Roberte,'];
+  if (P.length) L.push(`${P[0].charAt(0).toUpperCase() + P[0].slice(1)}${P.length > 1 ? ', ' + P.slice(1).join(', ') : ''}. Paráda! 💪`);
+  if (C.length) L.push('', 'Co jsem upravil:', ...C.map(x => '– ' + x));
+  if (todo.length) L.push('', 'Na co se tento týden zaměř:', ...todo.slice(0, 3).map(x => '– ' + x));
+  if (ask.length) L.push('', ask.map(q => q.replace(/^Jak spí\?/, 'Jak spíš?').replace(/^Kdy má hlad\?/, 'Kdy míváš hlad?').replace(/^Co ho stresuje\?/, 'Co tě stresuje?').replace(/^Co bolí\?/, 'Bolí tě něco při pohybu?')).join(' '));
+  L.push('', 'Držím palce!');
+  return L.join('\n'); }
+A.msgSheet = () => openSheet(() => UI.sheetHtml('Zpráva pro Roberta', 'zkopíruj a pošli mu ji, jak chceš – appka nic neodesílá',
+  `<p class="small muted">Složená z toho, co jsi vyřešil v „Udělej“, co jsi změnil v plánu a co se mu povedlo. Klidně ji uprav.</p>
+   <textarea id="rmsg" class="msgta" rows="14">${esc(robertMessage())}</textarea>`,
+  `<button class="btn" onclick="A.msgCopy()">${ico('clip')} Zkopírovat</button><button class="btn ghost" onclick="UI.closeModal()">Zavřít</button>`));
+A.msgCopy = () => { const ta = $('#rmsg'); if (!ta) return; const txt = ta.value;
+  const ok = () => UI.toast('Zkopírováno – vlož ji do zprávy Robertovi.');
+  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(ok, () => { ta.select(); document.execCommand('copy'); ok(); });
+  else { ta.select(); document.execCommand('copy'); ok(); } };

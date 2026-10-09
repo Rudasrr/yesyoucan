@@ -240,7 +240,8 @@ function signaly() {
   // trénink na 14 dní dopředu: návrhy z kontroly plánu (partie, rámec týdne, volno)
   if (typeof trAdvice === 'function' && !App.ro) { const tA = trAdvice(Array.from({ length: 14 }, (_, i) => addDays(t, i)));
     if (tA.length) push(2, `${tA.map(a => a.title).slice(0, 3).join(' · ')}${tA.length > 3 ? ' …' : ''}. V Tréninku je u každého návrh s Přijmout / Upravit / Zamítnout.`, { key: 'trplan', em: '🏋️', head: `Trénink: ${tA.length} ${sklon(tA.length, 'návrh', 'návrhy', 'návrhů')} na úpravu plánu`, go: "go('trenink')", label: 'Trénink' }); }
-  const gs = rs ? null : goalSignal(); if (gs) push(gs.lv, gs.text, gs);
+  const lastPB = (s.plan_bases || []).map(b => b.date).sort().pop(); const fresh = lastPB && daysBetween(lastPB, t) < 21;   // čerstvě přeplánováno – plnění se měří až proti novému plánu
+  const gs = rs || fresh ? null : goalSignal(); if (gs) push(gs.lv, gs.text, gs);
   { const t2 = todayISO(), past = sitStats(addDays(t2, -14), addDays(t2, -1)), fut = sitStats(t2, addDays(t2, 6)); const X = past.n >= 10 ? past : fut;
     if (X.n >= 10 && X.unk >= 4 && X.share >= 0.15) push(2, `${X.unk} z ${X.n} jídel ${X === past ? 'za 14 dní' : 'v plánu na týden'} je „podle situace“ bez zápisu – appka za ně počítá cíl chodu, skutečnost bývá vyšší. Při typickém jídle venku (+50 %) je to ~${fmt0(X.targetKcal * 0.5 / (X === past ? 14 : 7))} kcal denně navíc, které nikde nejsou vidět. Ať je Robert večer jedním ťuknutím odhadne (lehké · jako plán · vydatné · hodně), nebo si je naplánuje.`, { key: 'situace', em: '🎲', head: `${Math.round(X.share * 100)} % jídel „podle situace“ bez zápisu`, kde: [] }); }
   return out.sort((a, b) => a.lv - b.lv);
@@ -591,7 +592,7 @@ function settingsAdvice() {
   if (b.planBelowBmr) A_.push({ field: 'walk_min', lv: 1, text: `S nastavenou chůzí ${s.walk_min} min by limit vyšel pod spodní hranici jídla (${fmt0(b.floor)} kcal) – hranice ho drží nahoře, takže deficit vyjde menší než cíl. Přidej chůzi nebo sniž tempo.` });
   return A_;
 }
-A.applyAdvice = (json) => commitSettings({ ...S(), ...JSON.parse(json) }, 'Nastavení podle doporučení');
+/* A.applyAdvice – s náhledem změny, viz views-coach.js (previewChange) */
 function adviceBox(field) { const list = settingsAdvice().filter(a => a.field === field); return list.map(a => `<div class="alert a${a.lv}"><div>${esc(a.text)}</div>${a.apply ? `<button class="btn sm" onclick="A.applyAdvice(${JSON.stringify(JSON.stringify(a.apply)).replace(/"/g, '&quot;')})">${a.label}</button>` : ''}</div>`).join(''); }
 
 /* ===== Nápověda (2. 10. 2026) =====
@@ -749,6 +750,7 @@ function terminPosuny() { return (S().log || []).filter(l => l.k === 'goal_date'
 function replanCheck() {
   const s = S(), t = todayISO(); if (s.maintain) return null;
   const tr = trendN(REPLAN_DAYS); if (!tr || daysBetween(s.start_date, t) < REPLAN_DAYS) return null;
+  const lastBase = (s.plan_bases || []).map(b => b.date).sort().pop(); if (lastBase && daysBetween(lastBase, t) < REPLAN_DAYS) return null;   // nový plán dostane 4 týdny
   const w = currentWeight(), from = addDays(s.start_date, tr.from), to = addDays(s.start_date, tr.at), len = Math.max(1, daysBetween(from, to));
   let pk = 0; for (let d = from; d < to; d = addDays(d, 1)) pk += w * effSettings(s, d).rate_pct / 100 / 7;
   const planWk = pk / len * 7; const adh = planWk > 0.05 ? tr.perWeek / planWk : 1;
