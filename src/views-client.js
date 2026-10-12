@@ -97,11 +97,10 @@ function resumeCard() {
   const start = resumeStart(); if (!start || App.date !== todayISO() || realCoach() && !App.preview) return '';
   if (LS.get('resumeSeen', null) === start) return '';
   const X = weekResume(start); const R = X.R; if (!R.recs.length && !R.weigh) return '';
-  return `<div class="card tint-ok stack s8"><div class="row between nowrap"><b>${ico('trophy')} Tvůj týden ${czDateShort(start)}–${czDateShort(addDays(start, 6))}</b><button class="xbtn sm" onclick="LS.set('resumeSeen','${start}');render()" aria-label="skrýt">×</button></div>
-    <div style="font-size:18px;font-weight:750;line-height:1.3">${esc(X.head)}</div>
-    <div class="stats3"><div><b>${R.potvrz.length}</b><span>potvrzených dnů</span></div><div><b class="ok">${R.delta != null && R.delta < 0 ? '−' + fmt2(-R.delta) : R.weigh + '×'} <small>${R.delta != null && R.delta < 0 ? 'kg' : ''}</small></b><span>${R.delta != null && R.delta < 0 ? 'váha za týden' : 'vážení'}</span></div><div><b>${fmt0(R.walk)} <small>min</small></b><span>chůze</span></div></div>
-    <div class="small">${ico('star')} ${esc(X.tip)}</div>
-    <div class="row">${obvodyTentoTyden() ? '' : `<button class="btn sm write" onclick="A.measSheet(todayISO(),true)">${ico('ruler')} Zapsat váhu a obvody</button>`}<button class="btn sec sm" onclick="A.resumeSheet('${start}')">Celé shrnutí</button></div></div>`;
+  /* kompaktně (12. 10. 2026): jeden řádek s tím hlavním, zbytek v listu – Dnes musí zůstat krátký */
+  return `<div class="card tint-ok resume" onclick="A.resumeSheet('${start}')"><span class="em">${ico('trophy')}</span><div class="tx"><b>Tvůj týden: ${esc(X.head)}</b>
+    <span>${R.potvrz.length} ${sklon(R.potvrz.length, 'potvrzený den', 'potvrzené dny', 'potvrzených dnů')}${R.delta != null && R.delta < 0 ? ` · váha −${fmt2(-R.delta)} kg` : ` · ${R.weigh}× vážení`}${obvodyTentoTyden() ? '' : ' · změř obvody'} · ťukni pro celé shrnutí</span></div>
+    <button class="xbtn sm" onclick="event.stopPropagation();LS.set('resumeSeen','${start}');render()" aria-label="skrýt">×</button></div>`;
 }
 A.resumeSheet = start => { App.resumeW = start || resumeStart() || addDays(mondayOf(todayISO()), -7); openSheet(() => {
   const st0 = App.resumeW; const X = weekResume(st0); const R = X.R; const t = todayISO();
@@ -130,18 +129,23 @@ A.measSheet = (date, withCirc) => {
   window._measDraw = () => UI.resheet(m, draw());
   window._measCirc = () => { withCirc = true; window._measDraw(); };
 };
-A.circSheet = () => {
-  const s = S(), meas = Meas();
-  const circ = k => meas.filter(m => m[k] != null).sort((a, b) => a.date < b.date ? -1 : 1).map(m => [daysBetween(s.start_date, m.date), m[k]]);
-  const waist = circ('waist');
-  UI.sheet('Obvody', 'od startu · vždy stejné místo',
-    `<div class="rings">${['waist,pas', 'hips,boky', 'chest,hrudník', 'thigh,stehno', 'arm,paže'].map(x => { const [k, lab] = x.split(','); const rs = meas.filter(m => m[k] != null).sort((a, b) => a.date.localeCompare(b.date)); if (!rs.length) return ''; const d = rs[rs.length - 1][k] - rs[0][k];
-      return `<div class="ring"><div style="font-size:22px;font-weight:800">${fmt1(rs[rs.length - 1][k])}<small class="muted" style="font-size:12px"> cm</small></div><div class="rlab">${lab}${rs.length > 1 ? `<br><b class="${Math.abs(d) < 0.05 ? 'muted' : (d < 0 ? 'ok' : 'bad')}">${Math.abs(d) < 0.05 ? 'beze změny' : signed1(d) + ' cm'}</b>` : ''}</div></div>`; }).join('') || '<p class="muted small">Zatím žádné obvody. Změř se v neděli.</p>'}</div>
-    <p class="small muted">Když váha týden stojí a pas jde dolů, děje se přesně to, co má – ubývá tuk a drží se svaly.</p>
-    ${waist.length ? lineChart({ series: [{ name: 'pas (cm)', color: '#1478d4', pts: waist, dots: true }], xLabel: 'dní od startu', yUnit: 'cm', hLine: { y: s.goal_waist, label: 'cíl ' + s.goal_waist + ' cm', color: '#15803d' }, h: 220 }) : ''}
-    ${lineChart({ series: [{ name: 'boky', color: '#1478d4', pts: circ('hips'), dots: true }, { name: 'hrudník', color: '#5b8c3e', pts: circ('chest'), dots: true }, { name: 'stehno', color: '#b7791f', pts: circ('thigh'), dots: true }, { name: 'paže', color: '#8a5a9e', pts: circ('arm'), dots: true }], xLabel: 'dní od startu', yUnit: 'cm', h: 220 })}`,
-    `<button class="btn write" onclick="A.measSheet(todayISO(),true)">Zapsat obvody</button>`);
-};
+A.circSheet = () => UI.sheet('Obvody', 'od startu · měř vždy na stejném místě', circRows(S(), false)
+  + '<p class="small muted">Když váha týden stojí a pas jde dolů, děje se přesně to, co má – ubývá tuk a drží se svaly.</p>',
+  `<button class="btn write" onclick="A.measSheet(todayISO(),true)">Zapsat obvody</button>`);
+/* Obvody čitelně (12. 10. 2026): řádek na míru – poslední hodnota, změna od prvního měření a malá
+   křivka. Dřív pět měr v jednom grafu přes sebe (a u trenéra graf s plánem, trendem a značkami najednou). */
+const CIRC_K = [['waist', 'Pas'], ['hips', 'Boky'], ['chest', 'Hrudník'], ['thigh', 'Stehno'], ['arm', 'Paže']];
+function circRows(s, coach) {
+  const meas = Meas(); const rows = CIRC_K.map(([k, l]) => { const rs = meas.filter(m => m[k] != null).sort((a, b) => a.date.localeCompare(b.date)); return { k, l, rs }; }).filter(x => x.rs.length);
+  if (!rows.length) return '<p class="muted small">Zatím žádné obvody. Měří se v neděli ráno.</p>';
+  const spark = rs => { if (rs.length < 2) return '<svg class="spk"></svg>'; const v = rs.map(r => r.v), mn = Math.min(...v), mx = Math.max(...v), W = 120, H = 30;
+    const pts = v.map((y, i) => `${(i / (v.length - 1) * (W - 6) + 3).toFixed(1)},${(mx === mn ? H / 2 : 4 + (mx - y) / (mx - mn) * (H - 8)).toFixed(1)}`).join(' ');
+    return `<svg class="spk" viewBox="0 0 ${W} ${H}"><polyline points="${pts}" fill="none" stroke="#2563eb" stroke-width="2" stroke-linejoin="round"/><circle cx="${pts.split(' ').pop().split(',')[0]}" cy="${pts.split(' ').pop().split(',')[1]}" r="3" fill="#2563eb"/></svg>`; };
+  return `<div class="circ">${rows.map(({ k, l, rs }) => { const f = rs[0][k], last = rs[rs.length - 1][k], d = last - f;
+    const cls = rs.length < 2 || Math.abs(d) < 0.05 ? 'muted' : d < 0 ? 'ok' : (coach ? 'bad' : 'muted');
+    return `<div class="crow"><b>${l}</b><span class="cv">${fmt1(last)} <small>cm</small></span><span class="cd ${cls}">${rs.length < 2 ? 'první měření' : Math.abs(d) < 0.05 ? 'beze změny' : `${signed1(d)} cm`}</span>${spark(rs.map(r => ({ v: r[k] })))}
+      <span class="cs">${k === 'waist' && s.goal_waist ? `cíl ${s.goal_waist} cm · zbývá ${fmt1(Math.max(0, last - s.goal_waist))}` : `${rs.length}× · od ${czDateShort(rs[0].date)}`}</span></div>`; }).join('')}</div>`;
+}
 A.historySheet = () => {
   const s = S(), ov = calcOverview(s, Meas()); const byDate = Object.fromEntries(Meas().map(m => [m.date, m])); const rowMap = Object.fromEntries(ov.rows.map(r => [r.date, r]));
   const today = todayISO(); const dates = []; for (let d = today; d >= s.start_date && dates.length < 400; d = addDays(d, -1)) dates.push(d);

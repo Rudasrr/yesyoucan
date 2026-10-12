@@ -76,8 +76,8 @@ function renderRings(d, day, s) {
   const wt = d.base.planWalk, wm = day.walk_min || 0; const mPlan = wt + trMin, mDone = Math.min(wm, wt) + trDone, mLeft = Math.max(0, mPlan - mDone);
   const isToday = App.date === todayISO();
   return `<div class="card rings2" id="hero">
-    <div class="two"><button class="rg" onclick="A.dayCheck()">${ringSvg(prog.eaten / (lim || 1), 128, left < 0 ? '#d97706' : '#2563eb', '#e0eaff', left < 0 ? '+' + fmt0(-left) : fmt0(left), left < 0 ? 'kcal nad limit' : 'kcal zbývá')}<b>${ico('fork')} Jídlo</b></button>
-      <button class="rg" onclick="A.walkSheet()">${ringSvg(mDone / (mPlan || 1), 128, '#16a34a', '#dcfce7', mLeft ? fmt0(mLeft) : ico('check').replace('class="ic"', 'class="ic" x="46" y="41" width="36" height="36"'), mLeft ? 'min zbývá' : 'pohyb splněný')}<b>${ico('walk')} Pohyb</b></button></div>
+    <div class="two"><button class="rg" onclick="A.dayCheck()">${ringSvg(prog.eaten / (lim || 1), 116, left < 0 ? '#d97706' : '#2563eb', '#e0eaff', left < 0 ? '+' + fmt0(-left) : fmt0(left), left < 0 ? 'kcal nad limit' : 'kcal zbývá')}<b>${ico('fork')} Jídlo</b></button>
+      <button class="rg" onclick="A.walkSheet()">${ringSvg(mDone / (mPlan || 1), 116, '#16a34a', '#dcfce7', mLeft ? fmt0(mLeft) : ico('check').replace('class="ic"', 'class="ic" x="40" y="35" width="36" height="36"'), mLeft ? 'min zbývá' : 'pohyb splněný')}<b>${ico('walk')} Pohyb</b></button></div>
     <div class="moves"><button onclick="A.walkSheet()"><b>${wm} / ${wt} min</b><span>chůze · ${paceTxt(d.base.kmh)} /km</span></button>
       ${trMin ? `<button onclick="A.trainSheet()"><b>${trDone} / ${trMin} min</b><span>trénink · ${items.length} ${sklon(items.length, 'cvik', 'cviky', 'cviků')}</span></button>` : `<button onclick="A.dayCheck()"><b>${fmt0(prog.eatenP)} / ${d.protTarget || s.protein_min} g</b><span>bílkoviny</span></button>`}</div>
     ${left < 0 && isToday ? `<div class="rnote">Dnes víc – nevadí. Chůze navíc to srovná: ${Math.ceil(-left / d.base.walkPerMin)} min.</div>` : ''}</div>`;
@@ -569,5 +569,5 @@ function aheadCard(tasks, s) {
   const lab = t => t.meal ? s.courses.find(c => c.key === t.meal).name : ({ walk: 'chůze', steps: 'kroky', close: 'potvrdit den', training: 'trénink', measure: 'obvody', weigh: 'váha' })[t.id] || t.tx;
   const tm = addDays(todayISO(), 1), ap = dayActivityPlan(tm), nItems = (ap.items || []).length, isSun = dayIndex(tm) === 6;
   const zitra = [`ráno váha`, nItems ? `trénink (${nItems} ${sklon(nItems, 'cvik', 'cviky', 'cviků')})` : '', `${ap.walk_min ?? s.walk_min} min chůze`, isSun ? 'obvody a plán na další týden' : ''].filter(Boolean).join(' · ');
-  return `<div class="ahead">${rest.length ? `<div><b>Dnes ještě:</b> ${rest.map(t => `<span class="ach">${t.at && !/večer/.test(t.at) ? `<em>${t.at}</em>` : ''}${esc(lab(t))}</span>`).join('')}</div>` : ''}<div><b>Zítra:</b> ${esc(zitra)}</div></div>`;
+  return `<div class="ahead">${rest.length ? `<div><b>Dnes ještě:</b> ${rest.slice(0, 4).map(t => `<span class="ach">${t.at && !/večer/.test(t.at) ? `<em>${t.at}</em>` : ''}${esc(lab(t))}</span>`).join('')}${rest.length > 4 ? `<span class="ach">+${rest.length - 4}</span>` : ''}</div>` : ''}<div><b>Zítra:</b> ${esc(zitra)}</div></div>`;
 }

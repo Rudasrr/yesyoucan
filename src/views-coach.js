@@ -25,7 +25,7 @@ VIEWS.klient = function () {
     ${weekCheckCard(s, App._shown = [])}
     ${drillCard()}
     ${todoCard(now, App._shown)}
-    <div class="g2b"><div class="card">${phasesCard(s)}</div><div class="card kchart">${chartCard(s, ov, { w: 640, h: 260 })}</div></div>`;
+    <div class="g2b"><div class="card">${phasesCard(s)}</div><div class="card stack s8"><div class="chd"><h2>Obvody</h2><span class="muted small">poslední · změna od prvního měření${hq('obvody')}</span></div>${circRows(s, true)}</div></div>`;
 };
 /* Týdenní kontrola: skóre plnění 0–100 za minulý týden a 1–3 rozhodnutí na klik.
    Skóre: potvrzené dny 30 % · dny v limitu 30 % · chůze proti plánu 20 % · vážení 20 %. */
