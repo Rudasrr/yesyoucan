@@ -915,7 +915,10 @@ function weekStory(from, to) {
   if (R.empty) return L;
   const line = (c, ic, txt) => L.push({ c, ic, txt });
   line(R.weigh >= R.wDays - 1 ? 'ok' : R.weigh >= R.wDays / 2 ? 'warn' : 'bad', 'scale', `Vážil se ${R.weigh}× ze ${R.wDays} dní.${R.weigh < R.wDays / 2 ? ' Bez vážení nejde poznat, jestli plán funguje.' : ''}`);
-  if (W.real != null) line(W.pct >= 90 ? 'ok' : W.pct >= 60 ? 'warn' : 'bad', 'trend', `Váha ${W.real >= 0 ? 'klesla' : 'stoupla'} o ${fmt1(Math.abs(W.real))} kg (cíl na týden −${fmt1(W.plan)} kg)${W.pct != null ? ` – splnil ${W.pct} % cíle` : ''}.`);
+  { const span = W.a && W.b ? daysBetween(W.a.date, W.b.date) : 0;
+    if (R.weigh < 3 || span < 4) line('warn', 'trend', `Váhu za týden nejde vyhodnotit – ${R.weigh < 3 ? `jen ${R.weigh} ${sklon(R.weigh, 'vážení', 'vážení', 'vážení')}` : 'vážení jsou moc blízko u sebe'}. Plán na týden byl −${fmt1(W.planFull)} kg.`);
+    else if (W.real != null && W.real < 0) line('bad', 'trend', `Váha stoupla o ${fmt1(-W.real)} kg (průměr 7 vážení), plán byl −${fmt1(W.plan)} kg.`);
+    else if (W.real != null) line(W.pct >= 90 ? 'ok' : W.pct >= 60 ? 'warn' : 'bad', 'trend', `Váha klesla o ${fmt1(W.real)} kg (průměr 7 vážení), plán za stejné dny −${fmt1(W.plan)} kg – splnil ${W.pct} %.`); }
   line(R.conf >= R.n - 1 ? 'ok' : R.conf >= R.n / 2 ? 'warn' : 'bad', 'check', R.conf ? `Potvrdil ${R.conf} ze ${R.n} dní – z nich ${R.inLimit}× držel limit jídla.` : `Nepotvrdil ani jeden den – appka neví, co opravdu jedl.`);
   if (R.walkPlan) line(R.walk >= R.walkPlan * 0.9 ? 'ok' : R.walk >= R.walkPlan * 0.6 ? 'warn' : 'bad', 'walk', `Chůze: ${fmt0(R.walk)} z ${fmt0(R.walkPlan)} minut (${Math.round(R.walk / R.walkPlan * 100)} %).`);
   else line('warn', 'walk', 'Chůzi nezapsal ani jednou.');
@@ -948,16 +951,17 @@ const GUIDE_OFFLINE = {
   chuze: 'Zjisti, proč chůzi nestíhá, a nastav cíl, který reálně ujde.', trenink: 'Zjisti, co mu brání cvičit (čas, bolest, chuť), a uprav plán v Tréninku na lehčí.',
   stoji: 'Váha stojí – když Robert potvrzuje dny a drží limit, zvaž přestávku v deficitu nebo korekci výdeje (Přeplánovat).',
     hlad: 'Zeptej se, kdy má hlad – zvaž víc bílkovin a zeleniny, nebo přestávku v deficitu.', spanek: 'Zeptej se na spánek – špatný spánek zvyšuje hlad a brzdí hubnutí.' };
-A.guide = step => openSheet(() => {
-  const g = guideWeek(), st = step || App._gs || 1; App._gs = st; const done = LS.get('dec:' + g.from, {});
+A.guide = step => { App._gs = step || 1; openSheet(() => {
+  /* krok drží App._gs – překreslení po „Dál“ musí číst jeho aktuální hodnotu, ne číslo z otevření (12. 10. 2026: Dál nefungoval) */
+  const g = guideWeek(), st = App._gs || 1; const done = LS.get('dec:' + g.from, {});
   const recs = guideRecs(); const nav = `<div class="gsteps">${['Co dělal', 'Proč', 'Co udělat', 'Co mu říct', 'Hotovo'].map((l, i) => `<span class="${i + 1 === st ? 'on' : i + 1 < st ? 'ok' : ''}">${i + 1 < st ? ico('check') : i + 1} ${l}</span>`).join('')}</div>`;
   let body = '', foot = '';
   if (st === 1) { const L = weekStory(g.from, g.to); const sc = weekScore(g.from, g.to);
     body = `${sc ? `<div class="gscore" style="--c:${scoreCol(sc.s)}"><b>${sc.s}</b><span>ze 100 · skóre plnění${hq('pSkore')}</span></div>` : ''}<div class="list">${L.map(x => `<div class="li static"><span class="em ${x.c}">${ico(x.ic)}</span><div class="tx"><b>${esc(x.txt)}</b></div></div>`).join('') || '<p class="muted">Za minulý týden zatím nejsou data.</p>'}</div>`;
-    foot = `<button class="btn" onclick="App._gs=2;window._sheetRedraw()">Dál: proč ›</button>`; }
+    foot = `<button class="btn" onclick="A.gs(2)">Dál: proč ›</button>`; }
   if (st === 2) { const D = diagnoza(g.from, g.to).list.slice(0, 4);
     body = D.length ? `<div class="list">${D.map(x => `<div class="li static"><span class="em ${x.lv === 1 ? 'bad' : 'warn'}">${ico('alert')}</span><div class="tx"><b>${esc(x.title)}</b><span>${esc(x.sub || '')}</span></div></div>`).join('')}</div>` : `<div class="alert a3"><div>Týden šel podle plánu – žádný problém.</div></div>`;
-    foot = `<button class="btn ghost" onclick="App._gs=1;window._sheetRedraw()">‹ Zpět</button><button class="btn" onclick="App._gs=3;window._sheetRedraw()">Dál: co udělat ›</button>`; }
+    foot = `<button class="btn ghost" onclick="A.gs(1)">‹ Zpět</button><button class="btn" onclick="A.gs(3)">Dál: co udělat ›</button>`; }
   if (st === 3) {
     body = recs.length ? recs.map((r, i) => { const d = done[r.key];
       return `<div class="grec ${d ? 'done' : ''}"><b>${i + 1}. ${esc(r.title)}</b>${r.why ? `<span>${esc(r.why)}</span>` : ''}${r.offline ? `<em>Co udělat: ${esc(r.offline)}</em>` : ''}
@@ -965,17 +969,18 @@ A.guide = step => openSheet(() => {
           : `<div class="row">${r.doIt ? `<button class="btn sm" onclick="A.guideDo(${i})">${esc(r.doIt.label)}</button>` : `<button class="btn sm" onclick="A.decide('${g.from}','${r.key}','ok');window._sheetRedraw()">Domluvím to</button>`}<button class="btn sm ghost" onclick="A.decide('${g.from}','${r.key}','keep');window._sheetRedraw()">Přeskočit</button></div>`}</div>`; }).join('')
       : `<div class="alert a3"><div>Nic nečeká na rozhodnutí. Plán nech, jak je.</div></div>`;
     App._grecs = recs;
-    foot = `<button class="btn ghost" onclick="App._gs=2;window._sheetRedraw()">‹ Zpět</button><button class="btn" onclick="App._gs=4;window._sheetRedraw()">Dál: co mu říct ›</button>`; }
+    foot = `<button class="btn ghost" onclick="A.gs(2)">‹ Zpět</button><button class="btn" onclick="A.gs(4)">Dál: co mu říct ›</button>`; }
   if (st === 4) { body = `<p class="small muted">Podklady pro tvou zpětnou vazbu. Hotovou zprávu z nich i z toho, co jsi vyřešil, zkopíruješ jedním tlačítkem.</p><button class="btn" onclick="A.msgSheet()">${ico('clip')} Zpráva pro Roberta</button>${feedbackHtml(feedbackPoints(g.from, g.to))}`;
-    foot = `<button class="btn ghost" onclick="App._gs=3;window._sheetRedraw()">‹ Zpět</button><button class="btn" onclick="App._gs=5;window._sheetRedraw()">Dál: shrnutí ›</button>`; }
+    foot = `<button class="btn ghost" onclick="A.gs(3)">‹ Zpět</button><button class="btn" onclick="A.gs(5)">Dál: shrnutí ›</button>`; }
   if (st === 5) { const ok = recs.filter(r => done[r.key] === 'ok'), skip = recs.filter(r => done[r.key] === 'keep'), open = recs.filter(r => !done[r.key]);
     body = `<div class="list">${ok.map(r => `<div class="li static"><span class="em ok">${ico('check')}</span><div class="tx"><b>${esc(r.title)}</b><span>hotovo${r.offline ? ' · ' + esc(r.offline) : ''}</span></div></div>`).join('')}
       ${skip.map(r => `<div class="li static"><span class="em">${ico('clip')}</span><div class="tx"><b>${esc(r.title)}</b><span>přeskočeno</span></div></div>`).join('')}
       ${open.map(r => `<div class="li static"><span class="em warn">${ico('alert')}</span><div class="tx"><b>${esc(r.title)}</b><span>nerozhodnuto – vrať se do kroku 3</span></div></div>`).join('')}</div>
       <p class="small muted">Změny najdeš v Historii změn a každou jde vrátit. Další kontrola v pondělí ${czDateShort(addDays(mondayOf(todayISO()), 7))}.</p>`;
-    foot = `<button class="btn ghost" onclick="App._gs=4;window._sheetRedraw()">‹ Zpět</button><button class="btn" onclick="App._gs=1;UI.closeModal();render()">Hotovo</button>`; }
+    foot = `<button class="btn ghost" onclick="A.gs(4)">‹ Zpět</button><button class="btn" onclick="App._gs=1;UI.closeModal();render()">Hotovo</button>`; }
   return UI.sheetHtml('Průvodce týdnem', `${czDateShort(g.from)}–${czDateShort(g.to)} · krok ${st} z 5`, nav + body, foot);
-});
+}); };
+A.gs = n => { App._gs = n; if (typeof window._sheetRedraw === 'function' && document.querySelector('.modal .gsteps')) window._sheetRedraw(); else A.guide(n); };
 A.guideDo = i => { const r = (App._grecs || [])[i]; if (!r || !r.doIt) { UI.toast('Doporučení se mezitím změnilo – obnovuji.'); render(); return; } const g = guideWeek();
   const defer = r.doIt.kind === 'apply' || /replanSheet|goalCheckSheet/.test(r.doIt.js);   // vyřešeno až po potvrzení v náhledu
   if (defer) App._pvDecide = { week: g.from, key: r.key }; else A.decide(g.from, r.key, 'ok');
