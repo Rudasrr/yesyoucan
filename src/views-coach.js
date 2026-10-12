@@ -872,15 +872,17 @@ function healthPhases(s) {
       return { w, l, why, hit: hit ? hit.date : null, plan: pi >= 0 ? addDays(s.start_date, pi) : null, trend: !hit && tr && tr.perWeek > 0.05 ? addDays(todayISO(), Math.round((cur - w) / tr.perWeek * 7)) : null, goal: l === 'cíl trenéra', health: l === 'zdravá váha' }; });
 }
 function phasesCard(s) {
-  /* Fáze cesty (12. 10. 2026): dvě jasné kolonky – kdy podle plánu a kdy, když Robert pojede
-     dál současným tempem – a rozdíl slovy (o kolik týdnů později / dřív). Dřív „trend + datum“ červeně bez vysvětlení. */
+  /* Fáze cesty (12. 10. 2026): kdy mezicíle podle plánu a kdy, když Robert bude dál hubnout jako
+     poslední 3 týdny – a zpoždění proti plánu. Nad tabulkou věta s oběma tempy, ať je jasné, co se srovnává. */
   const L = healthPhases(s); const nxt = L.find(p => !p.hit); const yr = d => czDateShort(d) + String(parseISO(d).getFullYear()).slice(2);
-  const diff = p => { if (!p.plan || !p.trend) return ''; const w = Math.round(daysBetween(p.plan, p.trend) / 7); return Math.abs(w) < 1 ? '<span class="ok">stíhá</span>' : w > 0 ? `<span class="${w > 2 ? 'bad' : 'warn'}">o ${w} ${sklon(w, 'týden', 'týdny', 'týdnů')} později</span>` : `<span class="ok">o ${-w} ${sklon(-w, 'týden', 'týdny', 'týdnů')} dřív</span>`; };
+  const tr = trend21(), w = currentWeight(), planWk = w * effSettings(s, todayISO()).rate_pct / 100;
+  const zp = p => { if (!p.plan || !p.trend) return ''; const t = Math.round(daysBetween(p.plan, p.trend) / 7);
+    return Math.abs(t) < 1 ? '<span class="ok">stíhá</span>' : t > 0 ? `<span class="${t > 2 ? 'bad' : 'warn'}">zpoždění ${t} ${sklon(t, 'týden', 'týdny', 'týdnů')}</span>` : `<span class="ok">náskok ${-t} ${sklon(-t, 'týden', 'týdny', 'týdnů')}</span>`; };
   return `<div class="chd"><h2>Fáze cesty</h2><span class="muted small">mezicíle cestou k cíli${hq('faze')}</span></div>
-    <div class="phs"><div class="phh"><span>Fáze</span><span>Podle plánu</span><span>Současným tempem</span><span>Rozdíl</span></div>
+    ${tr ? `<div class="small">Robert teď hubne <b>−${fmt2(tr.perWeek)} kg/týden</b>, plán počítá s <b>−${fmt2(planWk)} kg/týden</b>. Tabulka ukazuje, kdy dosáhne mezicílů, když bude dál hubnout stejně jako poslední 3 týdny.</div>` : ''}
+    <div class="phs"><div class="phh"><span>Mezicíl</span><span>Podle plánu</span><span>Když bude hubnout jako teď</span><span>Zpoždění proti plánu</span></div>
     ${L.map(p => `<div class="phr ${p === nxt ? 'next' : ''} ${p.hit ? 'hit' : ''}"><span><b>${fmt0(p.w)} kg</b> ${esc(p.l)}<em>${esc(p.why)}</em></span>
-      ${p.hit ? `<span class="ok b">dosaženo ${czDateShort(p.hit)}</span><span></span><span></span>` : `<span data-l="plán">${p.plan ? yr(p.plan) : 'po cíli'}</span><span data-l="tempem">${p.trend ? yr(p.trend) : '–'}</span><span>${p.plan ? diff(p) : '<span class="muted">dlouhodobý směr</span>'}</span>`}</div>`).join('')}</div>
-    <p class="small muted">„Současným tempem“ = kdy fáze dosáhne, když bude hubnout jako poslední 3 týdny.</p>`;
+      ${p.hit ? `<span class="ok b">dosaženo ${czDateShort(p.hit)}</span><span></span><span></span>` : `<span data-l="plán">${p.plan ? yr(p.plan) : 'po cíli'}</span><span data-l="jako teď">${p.trend ? yr(p.trend) : '–'}</span><span>${p.plan ? zp(p) : '<span class="muted">dlouhodobý směr</span>'}</span>`}</div>`).join('')}</div>`;
 }
 /* Cesta k cíli po měsících: bloky deficitu, přestávky, fáze a termín; přestávky radí appka */
 function pathCard(s) {
