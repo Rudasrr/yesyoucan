@@ -135,33 +135,56 @@ A.circSheet = () => UI.sheet('Obvody', 'od startu · měř vždy na stejném mí
 /* Obvody čitelně (12. 10. 2026): řádek na míru – poslední hodnota, změna od prvního měření a malá
    křivka. Dřív pět měr v jednom grafu přes sebe (a u trenéra graf s plánem, trendem a značkami najednou). */
 const CIRC_K = [['waist', 'Pas'], ['hips', 'Boky'], ['chest', 'Hrudník'], ['thigh', 'Stehno'], ['arm', 'Paže']];
+/* Cíle a vyhodnocení obvodů (12. 10. 2026): o kolik cm měří ubude na kilo shozené váhy (orientačně,
+   muži s obezitou). Z toho cíl při cílové váze trenéra a očekávání „kde by míra měla být teď“. */
+const CIRC_PER_KG = { waist: 1.0, hips: 0.6, chest: 0.6, thigh: 0.3, arm: 0.15 };
+function avgAt(date) { const r = calcMeasurements(S(), Meas()).filter(x => x.date <= date).pop(); return r ? r.avg : null; }
+function circGoal(s, k, rs) { if (k === 'waist' && s.goal_waist) return Number(s.goal_waist); const g = (s.circ_goals || {})[k]; if (g) return Number(g);
+  const w0 = avgAt(rs[0].date) || s.start_weight; return Math.round((rs[0][k] - CIRC_PER_KG[k] * Math.max(0, w0 - s.goal_weight)) * 2) / 2; }
+function circEval(s, k, rs, coach) {
+  const L = rs[rs.length - 1][k], f0 = rs[0][k], g = circGoal(s, k, rs), rem = L - g;
+  const w0 = avgAt(rs[0].date), w1 = avgAt(rs[rs.length - 1].date); const lost = w0 != null && w1 != null ? w0 - w1 : 0; const exp = f0 - CIRC_PER_KG[k] * lost;
+  let tw = null; if (rs.length >= 3) { const xs = rs.map(r => daysBetween(rs[0].date, r.date)), ys = rs.map(r => r[k]), n = xs.length, mx = xs.reduce((a, b) => a + b) / n, my = ys.reduce((a, b) => a + b) / n, sxx = xs.reduce((a, x) => a + (x - mx) ** 2, 0); if (sxx) tw = xs.reduce((a, x, i) => a + (x - mx) * (ys[i] - my), 0) / sxx * 7; }
+  const P = [];
+  if (tw == null) P.push('Na trend jsou potřeba aspoň 3 měření.'); else if (tw <= -0.05) P.push(`Ubývá ${fmt1(-tw)} cm týdně.`); else if (tw < 0.05) P.push('Drží se na místě.'); else P.push(coach ? `Roste ${fmt1(tw)} cm týdně.` : 'Zatím se drží.');
+  if (coach && lost > 0.5) { const d = L - exp; P.push(Math.abs(d) < 1 ? `Odpovídá shozeným ${fmt1(lost)} kg váhy.` : d < 0 ? `O ${fmt1(-d)} cm líp, než odpovídá shozeným ${fmt1(lost)} kg (čekal by ~${fmt1(exp)} cm).` : `O ${fmt1(d)} cm pomaleji, než odpovídá shozeným ${fmt1(lost)} kg (čekal by ~${fmt1(exp)} cm).${k === 'waist' && d >= 2 ? ' Zkontroluj, že měří vždy stejně – pas v úrovni pupku, ráno nalačno.' : ''}`); }
+  if (rem <= 0.2) P.push(coach ? `Cíl ${fmt1(g)} cm splněný.` : `Cíl ${fmt1(g)} cm máš splněný!`);
+  else if (tw != null && tw <= -0.05) { const wk = Math.ceil(rem / -tw); P.push(`K cíli ${fmt1(g)} cm zbývá ${fmt1(rem)} cm – tímto tempem za ~${wk} ${sklon(wk, 'týden', 'týdny', 'týdnů')}.`); }
+  else P.push(`K cíli ${fmt1(g)} cm zbývá ${fmt1(rem)} cm.`);
+  return { g, rem, tw, exp, lost, txt: P.join(' '), cls: tw == null ? '' : tw <= -0.05 ? 'ok' : tw < 0.05 ? 'warn' : (coach ? 'bad' : 'warn') };
+}
 function circRows(s, coach) {
-  /* každá míra: malý graf s body měření a hodnotami, datum osy, trend (proložená přímka) v cm/týden.
-     Klik na řádek = tabulka všech měření. (12. 10. 2026 – dřív křivka bez čísel, nebylo s čím srovnat) */
+  /* každá míra: hodnota, změna, cíl od appky a slovní vyhodnocení; malý graf s body měření, trendem a cílem.
+     Klik na řádek = všechna měření a úprava cíle. */
   const meas = Meas(); const rows = CIRC_K.map(([k, l]) => ({ k, l, rs: meas.filter(m => m[k] != null).sort((a, b) => a.date.localeCompare(b.date)) })).filter(x => x.rs.length);
   if (!rows.length) return '<p class="muted small">Zatím žádné obvody. Měří se v neděli ráno.</p>';
-  const fit = (rs, k) => { if (rs.length < 3) return null; const xs = rs.map(r => daysBetween(rs[0].date, r.date)), ys = rs.map(r => r[k]); const n = xs.length, mx = xs.reduce((a, b) => a + b) / n, my = ys.reduce((a, b) => a + b) / n;
-    const sxx = xs.reduce((a, x) => a + (x - mx) ** 2, 0); if (!sxx) return null; const sl = xs.reduce((a, x, i) => a + (x - mx) * (ys[i] - my), 0) / sxx; return { sl, a: my - sl * mx, last: xs[n - 1] }; };
-  const chart = (rs, k, goal) => { const W = 300, H = 74, L = 6, R = 6, T = 16, B = 16; const x1 = Math.max(1, daysBetween(rs[0].date, rs[rs.length - 1].date));
+  const chart = (rs, k, E) => { const W = 300, H = 78, L = 6, R = 6, T = 16, B = 16; const x1 = Math.max(1, daysBetween(rs[0].date, rs[rs.length - 1].date));
     const vs = rs.map(r => r[k]); let mn = Math.min(...vs), mx = Math.max(...vs); if (mx - mn < 1) { mn -= 0.5; mx += 0.5; }
-    const X = d => L + daysBetween(rs[0].date, d) / x1 * (W - L - R), Y = v => T + (mx - v) / (mx - mn) * (H - T - B); const f = fit(rs, k);
-    let g = `<svg class="cch" viewBox="0 0 ${W} ${H}"><line x1="${L}" x2="${W - R}" y1="${H - B}" y2="${H - B}" stroke="#eef1f5"/>`;
-    if (f) g += `<line x1="${X(rs[0].date)}" y1="${Y(f.a)}" x2="${X(rs[rs.length - 1].date)}" y2="${Y(f.a + f.sl * f.last)}" stroke="#d97706" stroke-width="1.5" stroke-dasharray="4 3"/>`;
+    const X = d => L + daysBetween(rs[0].date, d) / x1 * (W - L - R), Y = v => T + (mx - v) / (mx - mn) * (H - T - B);
+    let g = `<svg class="cch" viewBox="0 0 ${W} ${H}"><title>${esc(E.txt)}</title><line x1="${L}" x2="${W - R}" y1="${H - B}" y2="${H - B}" stroke="#eef1f5"/>`;
+    if (E.tw != null) { const fy = d => rs[rs.length - 1][k] + E.tw / 7 * (daysBetween(rs[rs.length - 1].date, d)); const m0 = rs.reduce((a, r) => a + r[k], 0) / rs.length; const c0 = m0 - E.tw / 7 * (rs.reduce((a, r) => a + daysBetween(rs[0].date, r.date), 0) / rs.length);
+      g += `<line x1="${X(rs[0].date)}" y1="${Y(c0)}" x2="${X(rs[rs.length - 1].date)}" y2="${Y(c0 + E.tw / 7 * x1)}" stroke="#d97706" stroke-width="1.5" stroke-dasharray="4 3"/>`; }
     g += `<polyline points="${rs.map(r => `${X(r.date).toFixed(1)},${Y(r[k]).toFixed(1)}`).join(' ')}" fill="none" stroke="#2563eb" stroke-width="2"/>`;
     let lx = -99; const lastX = X(rs[rs.length - 1].date);
-    rs.forEach((r, i) => { const x = X(r.date); let lab = (i === 0 || i === rs.length - 1 || r[k] === Math.min(...vs) || r[k] === Math.max(...vs)) && x - lx >= 30 && (i === rs.length - 1 || lastX - x >= 30); if (lab) lx = x; g += `<circle cx="${X(r.date)}" cy="${Y(r[k])}" r="3.2" fill="#fff" stroke="#2563eb" stroke-width="2"><title>${czDateShort(r.date)}: ${fmt1(r[k])} cm</title></circle>${lab ? `<text x="${Math.min(W - 14, Math.max(14, X(r.date)))}" y="${Y(r[k]) - 6}" font-size="11" font-weight="700" fill="#1e40af" text-anchor="middle">${fmt1(r[k])}</text>` : ''}`; });
+    rs.forEach((r, i) => { const x = X(r.date); const lab = (i === 0 || i === rs.length - 1 || r[k] === Math.min(...vs) || r[k] === Math.max(...vs)) && x - lx >= 30 && (i === rs.length - 1 || lastX - x >= 30); if (lab) lx = x;
+      g += `<circle cx="${x}" cy="${Y(r[k])}" r="3.2" fill="#fff" stroke="#2563eb" stroke-width="2"><title>${czDateShort(r.date)}: ${fmt1(r[k])} cm${i ? ` (${signed1(r[k] - rs[i - 1][k])} cm)` : ''}</title></circle>${lab ? `<text x="${Math.min(W - 14, Math.max(14, x))}" y="${Y(r[k]) - 6}" font-size="11" font-weight="700" fill="#1e40af" text-anchor="middle">${fmt1(r[k])}</text>` : ''}`; });
     g += `<text x="${L}" y="${H - 3}" font-size="11" fill="#94a3b8">${czDateShort(rs[0].date)}</text><text x="${W - R}" y="${H - 3}" font-size="11" fill="#94a3b8" text-anchor="end">${czDateShort(rs[rs.length - 1].date)}</text></svg>`;
-    return { g, f }; };
-  return `<div class="circ">${rows.map(({ k, l, rs }) => { const f0 = rs[0][k], last = rs[rs.length - 1][k], d = last - f0; const C = chart(rs, k);
+    return g; };
+  return `<div class="circ">${rows.map(({ k, l, rs }) => { const f0 = rs[0][k], last = rs[rs.length - 1][k], d = last - f0; const E = circEval(s, k, rs, coach);
     const cls = rs.length < 2 || Math.abs(d) < 0.05 ? 'muted' : d < 0 ? 'ok' : (coach ? 'bad' : 'muted');
-    const tw = C.f ? C.f.sl * 7 : null; const trend = tw == null ? `${rs.length} ${sklon(rs.length, 'měření', 'měření', 'měření')}` : Math.abs(tw) < 0.05 ? 'trend: drží se' : `trend ${tw < 0 ? '−' : '+'}${fmt1(Math.abs(tw))} cm/týden`;
-    return `<div class="crow" onclick="A.circDetail('${k}')"><div class="cl"><b>${l}</b><span class="cv">${fmt1(last)} <small>cm</small></span><span class="cd ${cls}">${rs.length < 2 ? 'první měření' : Math.abs(d) < 0.05 ? 'od startu beze změny' : `${signed1(d)} cm od ${czDateShort(rs[0].date)}`}</span>
-      <span class="cs">${trend}${k === 'waist' && s.goal_waist ? ` · cíl ${s.goal_waist} cm` : ''}</span></div>${rs.length > 1 ? C.g : ''}</div>`; }).join('')}
-    <div class="small muted">Modře měření, oranžová čárkovaná = trend. Ťukni na míru pro všechna měření.</div></div>`;
+    return `<div class="crow" onclick="A.circDetail('${k}')"><div class="cl"><b>${l} <span class="cg">cíl ${fmt1(E.g)} cm</span></b><span class="cv">${fmt1(last)} <small>cm</small></span><span class="cd ${cls}">${rs.length < 2 ? 'první měření' : Math.abs(d) < 0.05 ? 'od startu beze změny' : `${signed1(d)} cm od ${czDateShort(rs[0].date)}`}</span></div>
+      ${rs.length > 1 ? chart(rs, k, E) : ''}<div class="cev ${E.cls}">${esc(E.txt)}</div></div>`; }).join('')}
+    <div class="small muted">Modře měření, oranžová čárkovaná = trend. ${coach ? 'Cíle navrhuje appka z cílové váhy (pas ~1 cm na kilo, boky a hrudník ~0,6, stehno ~0,3, paže ~0,15). ' : ''}Ťukni na míru pro všechna měření${coach ? ' a úpravu cíle' : ''}.</div></div>`;
 }
-A.circDetail = k => { const l = (CIRC_K.find(x => x[0] === k) || [k, k])[1]; const rs = Meas().filter(m => m[k] != null).sort((a, b) => b.date.localeCompare(a.date));
-  UI.sheet(l, `${rs.length} ${sklon(rs.length, 'měření', 'měření', 'měření')} · nejnovější nahoře`, `<div class="tbl"><table class="small"><tr><th>Datum</th><th class="n">${l}</th><th class="n">Změna</th><th class="n">Od prvního</th></tr>${rs.map((r, i) => { const prev = rs[i + 1], f = rs[rs.length - 1];
+A.circDetail = k => { const s = S(), l = (CIRC_K.find(x => x[0] === k) || [k, k])[1]; const rs = Meas().filter(m => m[k] != null).sort((a, b) => b.date.localeCompare(a.date)); if (!rs.length) return;
+  const asc = rs.slice().reverse(), E = circEval(s, k, asc, isCoach()); const sug = (() => { const w0 = avgAt(asc[0].date) || s.start_weight; return Math.round((asc[0][k] - CIRC_PER_KG[k] * Math.max(0, w0 - s.goal_weight)) * 2) / 2; })();
+  UI.sheet(l, `${rs.length} ${sklon(rs.length, 'měření', 'měření', 'měření')} · cíl ${fmt1(E.g)} cm`,
+    `<div class="alert ${E.cls === 'ok' ? 'a3' : 'a2'}"><div>${esc(E.txt)}</div></div>
+    ${isCoach() ? `<div class="frow"><div class="fl"><b>Cíl ${l.toLowerCase()}</b><span>${k === 'waist' ? 'polovina výšky = ' + Math.round(s.height / 2) + ' cm' : 'appka navrhuje ' + fmt1(sug) + ' cm (při cílové váze ' + fmt0(s.goal_weight) + ' kg)'}</span></div><div class="numf"><input type="text" inputmode="decimal" value="${String(E.g).replace('.', ',')}" onchange="A.setCircGoal('${k}',this.value)"><span>cm</span></div></div>` : ''}
+    <div class="tbl"><table class="small"><tr><th>Datum</th><th class="n">${l}</th><th class="n">Změna</th><th class="n">Od prvního</th></tr>${rs.map((r, i) => { const prev = rs[i + 1], f = rs[rs.length - 1];
     return `<tr><td>${DAY_SHORT[dayIndex(r.date)]} ${czDate(r.date)}</td><td class="n b">${fmt1(r[k])} cm</td><td class="n">${prev ? signed1(r[k] - prev[k]) : '–'}</td><td class="n">${i < rs.length - 1 ? signed1(r[k] - f[k]) : 'start'}</td></tr>`; }).join('')}</table></div>`); };
+A.setCircGoal = (k, v) => { const r = omez(v, 20, 200); if (r.n == null) return; const s = S(); if (r.mimo) UI.toast('Cíl obvodu v rozmezí 20–200 cm.');
+  if (k === 'waist') commitSettings({ ...s, goal_waist: r.n }, 'Cíl pasu'); else commitSettings({ ...s, circ_goals: { ...(s.circ_goals || {}), [k]: r.n } }, 'Cíl obvodu', `Cíl ${k}: ${fmt1(r.n)} cm.`); UI.closeModal(); A.circDetail(k); };
 A.historySheet = () => {
   const s = S(), ov = calcOverview(s, Meas()); const byDate = Object.fromEntries(Meas().map(m => [m.date, m])); const rowMap = Object.fromEntries(ov.rows.map(r => [r.date, r]));
   const today = todayISO(); const dates = []; for (let d = today; d >= s.start_date && dates.length < 400; d = addDays(d, -1)) dates.push(d);

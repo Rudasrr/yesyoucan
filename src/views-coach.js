@@ -563,8 +563,8 @@ A.editFood = (id, mode, after, fromId) => {
 
 /* ---------- HISTORIE ZMĚN (6. 10. 2026) ----------
    Každá akce trenéra s tím, co změnila, a tlačítkem Vrátit. Zdroj: histAdd v Undo.run. */
-const HIST_KEYS = { ...SET_POP, plan_bases: 'nový výchozí bod plánu', steps_hist: 'kroky z Apple Health', courses: 'rozdělení jídla mezi chody', maint_weeks: 'přestávky v deficitu', start_date: 'start', start_weight: 'startovní váha' };
-function histVal(k, v) { if (v == null || v === '') return '–'; if (/_date$/.test(k) && /^\d{4}-\d\d-\d\d$/.test(String(v))) return czDate(v); if (k === 'walk_kmh') return paceTxt(v) + ' /km'; if (k === 'maint_weeks') return v.length ? v.map(czDateShort).join(', ') : 'žádné'; if (k === 'plan_bases') return v.length ? v.map(b => `${czDateShort(b.date)} od ${fmt1(b.weight)} kg`).join(', ') : 'žádný'; if (k === 'steps_hist') return v.length ? v.map(h => `${czDateShort(h.from)}–${czDateShort(h.to)} Ø ${fmt0(h.avg)}`).join(', ') : 'žádné';
+const HIST_KEYS = { ...SET_POP, circ_goals: 'cíle obvodů', plan_bases: 'nový výchozí bod plánu', steps_hist: 'kroky z Apple Health', courses: 'rozdělení jídla mezi chody', maint_weeks: 'přestávky v deficitu', start_date: 'start', start_weight: 'startovní váha' };
+function histVal(k, v) { if (v == null || v === '') return '–'; if (/_date$/.test(k) && /^\d{4}-\d\d-\d\d$/.test(String(v))) return czDate(v); if (k === 'walk_kmh') return paceTxt(v) + ' /km'; if (k === 'maint_weeks') return v.length ? v.map(czDateShort).join(', ') : 'žádné'; if (k === 'circ_goals') return Object.entries(v || {}).map(([a, b]) => `${a} ${b}`).join(', ') || '–'; if (k === 'plan_bases') return v.length ? v.map(b => `${czDateShort(b.date)} od ${fmt1(b.weight)} kg`).join(', ') : 'žádný'; if (k === 'steps_hist') return v.length ? v.map(h => `${czDateShort(h.from)}–${czDateShort(h.to)} Ø ${fmt0(h.avg)}`).join(', ') : 'žádné';
   if (typeof v === 'boolean') return v ? 'zapnuto' : 'vypnuto'; if (typeof v === 'object') return '…'; return String(v).replace('.', ','); }
 function histDesc(c) {
   const a = (c.prev && !c.prev.deleted && c.prev.data) || null, b = (c.next && !c.next.deleted && c.next.data) || null;

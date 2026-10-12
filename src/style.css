@@ -914,3 +914,4 @@ svg.pchart{width:100%;height:auto;display:block}
 .phr .ok{color:#15803d;font-weight:700}.phr .warn{color:#b45309;font-weight:700}.phr .bad{color:#dc2626;font-weight:700}
 @media (max-width:640px){ .phh{display:none}.phr{grid-template-columns:1fr 1fr;row-gap:2px}.phr>span:first-child{grid-column:1/-1} }
 @media (max-width:640px){ .phr>span[data-l]::before{content:attr(data-l) " ";color:var(--ink3);font-size:11.5px} }
+.crow{grid-template-columns:minmax(150px,1fr) minmax(0,1.6fr)!important}.crow .cev{grid-column:1/-1;font-size:12.5px;line-height:1.45;color:var(--ink2);padding:6px 10px;border-radius:10px;background:#f8fafc}.crow .cev.ok{background:#f0fdf4}.crow .cev.warn{background:#fffbeb}.crow .cev.bad{background:#fef2f2}.crow .cg{font-size:11.5px;font-weight:600;color:var(--ink3);margin-left:4px}
