@@ -162,7 +162,7 @@ function dayRows(d, day, tasks, s) {
   const timed = [];
   tasks.forEach(t => {
     if (t.id === 'weigh') out.push(row(t, { ck: t.done ? ROW_CK(true, `A.weighSheet()`) : ROW_CK(false, `A.weighSheet()`, 'ghost'), tm: t.at, em: ico('scale'), act: 'A.weighSheet()',
-      b: t.done ? `Váha ${fmt1(meas.weight)} kg` : 'Zvaž se', s: t.done ? `průměr 7 vážení ${fmt1(w)} kg` : 'ráno po WC, nalačno' }));
+      b: t.done ? `Váha ${fmt1(meas.weight)} kg` : 'Zvaž se', s: t.done ? (wa => wa ? `průměr týdne ${fmt1(wa.avg)} kg` : '')(wkAvgOf(mondayOf(App.date))) : 'ráno po WC, nalačno' }));
     else if (t.id === 'measure') out.push(row(t, { ck: ROW_CK(t.done, `A.measSheet('${App.date}',true)`, t.done ? '' : 'ghost'), tm: t.at, em: ico('ruler'), act: `A.measSheet('${App.date}',true)`, b: t.done ? 'Obvody zapsané' : 'Změř obvody', s: 'neděle · pas, boky, hrudník, stehno, paže' }));
     else if (['plan_now', 'plan', 'review', 'shop'].includes(t.id)) timed.push({ at: t.id === 'plan_now' ? '06:59' : (t.at || PLAN_TIME), html: row(t, { ck: t.done ? ROW_CK(true, '') : ROW_NOCK, tm: t.at || '', em: t.em, act: `App.week='${t.week}';go('${t.id === 'shop' ? 'nakup' : 'tyden'}')`, b: esc(t.tx), s: esc(t.sub || ''), val: '<span class="chev">›</span>', cls: 'add' }) });
     else if (t.meal) {
