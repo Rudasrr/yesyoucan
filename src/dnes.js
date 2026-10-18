@@ -101,17 +101,17 @@ function nextCard(day, tasks, s) {
 }
 /* jedna věta „jak na to“ ke každému kroku */
 function nextHow(next, day, s) {
-  if (next.id === 'close_y') return 'Ťukni a potvrď, že jsi jedl podle plánu. Co bylo jinak, oprav u jídla – trenér pak vidí, jak ti to jde.';
-  if (next.id === 'weigh') return 'Po WC, nalačno, bez oblečení. Napiš číslo z váhy – appka počítá s průměrem 7 dní, jedno číslo nic neznamená.';
+  if (next.id === 'close_y') return 'Jedl jsi podle plánu? Výjimky opravíš u jídla.';
+  if (next.id === 'weigh') return 'Po WC, nalačno. Jedno číslo nevadí – počítá se průměr týdne.';
   if (next.meal) { const i = s.courses.findIndex(c => c.key === next.meal); const c = calcDay(s, Foods(), Recipes(), day, currentWeight()).courses[i];
-    return next.chosen ? (c && c.active ? `Na talíř ${fmt0(c.gc)} g · ${fmt0(c.kcal)} kcal. Detail a suroviny po ťuknutí na jídlo v seznamu.` : 'Až sníš, ťukni Snědl jsem. Když to bylo jinak, ťukni Změnit.') : 'Ještě nemáš vybráno – appka navrhne jídlo, které se vejde do zbytku dne.'; }
-  if (next.id === 'walk') return `Svižně, tempem ${paceTxt((day.walk_kmh || s.walk_kmh))} /km. Po procházce přičti ušlé minuty – klidně po částech.`;
-  if (next.id === 'training') { const st = trStats({ walk_min: 0, items: (day.act || {}).items || [] }, currentWeight()); return `${st.exN} ${sklon(st.exN, 'cvik', 'cviky', 'cviků')}, asi ${st.trMin + st.carMin} minut. Ťukni Začít – appka tě provede sérií po sérii i pauzami.`; }
-  if (next.id === 'steps') return 'V telefonu Zdraví → Kroky → číslo za dnešek. Zapiš celé číslo, procházku si appka odečte sama.';
-  if (next.id === 'close') return 'Ťukni „Jedl jsem podle plánu“. Co bylo jinak, oprav u jídla. Pak pár ťuknutí, jak šel den.';
-  if (next.id === 'plan_now' || next.id === 'plan') return 'Appka navrhne jídla na celý týden podle tvého limitu. Pak jen vyměníš, co nechceš.';
-  if (next.id === 'shop') return 'Seznam je seřazený podle regálů. Co koupíš, odškrtni.';
-  if (next.id === 'measure') return 'Krejčovský metr, ráno, vždy na stejném místě: pas v pupku, boky v nejširším místě.';
+    return next.chosen ? (c && c.active ? `Na talíř ${fmt0(c.gc)} g · ${fmt0(c.kcal)} kcal` : 'Až sníš, ťukni Snědl jsem.') : 'Ještě nemáš vybráno – appka navrhne jídlo, které se vejde do zbytku dne.'; }
+  if (next.id === 'walk') return `Svižně, ${paceTxt((day.walk_kmh || s.walk_kmh))} /km · minuty přičti po procházce`;
+  if (next.id === 'training') { const st = trStats({ walk_min: 0, items: (day.act || {}).items || [] }, currentWeight()); return `${st.exN} ${sklon(st.exN, 'cvik', 'cviky', 'cviků')} · ~${st.trMin + st.carMin} min · appka tě provede`; }
+  if (next.id === 'steps') return 'Zdraví → Kroky → číslo za dnešek';
+  if (next.id === 'close') return 'Jedl jsi podle plánu? Výjimky opravíš u jídla.';
+  if (next.id === 'plan_now' || next.id === 'plan') return 'Appka navrhne týden, ty jen vyměníš, co nechceš.';
+  if (next.id === 'shop') return 'Podle regálů · co koupíš, odškrtni';
+  if (next.id === 'measure') return 'Metr, ráno · pas v pupku, boky v nejširším místě';
   return '';
 }
 /* ---- velké číslo: kolik ještě můžu sníst ---- */

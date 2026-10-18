@@ -16,16 +16,16 @@ VIEWS.pokrok = function () {
     <span class="lab">Od startu</span>
     <div class="k num">${lost > 0 ? '−' + fmt1(lost) : '0'} kg</div>
     <div class="s">za ${weeks} ${sklon(weeks, 'týden', 'týdny', 'týdnů')} · z ${fmt1(s.start_weight)} na ${fmt1(ov.cur)} kg</div>
-    ${lost >= 0.25 ? `<div class="tipg">${ico('star')}<span>To je ${Math.round(lost * 4)} ${sklon(Math.round(lost * 4), 'kostka', 'kostky', 'kostek')} másla. O tolik míň neseš každý krok.</span></div>` : `<div class="tipg">${ico('star')}<span>Každé ranní vážení se počítá. Průměr ukáže cestu za pár dní.</span></div>`}
+    ${lost >= 0.25 ? `<div class="tipg">${ico('star')}<span>≈ ${Math.round(lost * 4)} ${sklon(Math.round(lost * 4), 'kostka', 'kostky', 'kostek')} másla, které už neneseš</span></div>` : `<div class="tipg">${ico('star')}<span>Každé ranní vážení se počítá</span></div>`}
   </div>
   ${mi ? `<div class="card mile"><div class="row between"><b>${mi.goal ? 'Cíl' : 'Další milník'}: ${fmt1(mi.next)} kg</b><span class="small muted">zbývá ${fmt1(Math.max(0, ov.cur - mi.next))} kg</span></div><div class="bar"><i style="width:${Math.max(4, mi.prog * 100)}%"></i></div><div class="row between small muted"><span>${fmt1(mi.prev)}</span><span>${fmt1(mi.next)}</span></div></div>` : ''}
-  <div class="streaks"><div class="sk">${ico('flame')}<b class="num">${ws || wr}</b><span>${!ws ? `tvůj rekord ve vážení v řadě – nová série začne ranním vážením` : ws >= wr && ws > 1 ? 'dní vážení v řadě – tvůj rekord' : `${sklon(ws, 'den', 'dny', 'dní')} vážení v řadě · rekord ${wr}`}</span></div><div class="sk">${ico('check')}<b class="num">${cs}</b><span>${cs ? `${sklon(cs, 'potvrzený den', 'potvrzené dny', 'potvrzených dnů')} v řadě` : 'potvrzené dny – začni dnes večer'}</span></div></div>
+  <div class="streaks"><div class="sk">${ico('flame')}<b class="num">${ws || wr}</b><span>${!ws ? 'rekord vážení v řadě' : ws >= wr && ws > 1 ? 'vážení v řadě · rekord!' : `vážení v řadě · rekord ${wr}`}</span></div><div class="sk">${ico('check')}<b class="num">${cs}</b><span>${cs ? 'potvrzené dny v řadě' : 'potvrzené dny · začni večer'}</span></div></div>
   <div class="secl">Odznaky</div><div class="badges">${badges(s, ov, wr).map(b => `<div class="bd ${b.on ? 'on' : 'off'}"><i>${ico(b.i)}</i>${esc(b.t)}</div>`).join('')}</div>
   <div class="card"><div class="ch"><h2>Tvoje cesta</h2><span class="small muted">průměr každého týdne</span></div>${pathChart(s, ov, mi)}</div>
   <div class="card flush">
-    <div class="navrow" onclick="A.circSheet()"><span class="ico">${ico('ruler')}</span><div class="tx"><b>Obvody</b><span>${lw.length ? `pas ${fmt1(lw[lw.length - 1].waist)} cm${wd != null && wd < -0.05 ? ` · ${signed1(wd)} cm od prvního` : ''}` : 'změř v neděli – za měsíc uvidíš, kde ubývá'}</span></div><span class="chev">›</span></div>
+    <div class="navrow" onclick="A.circSheet()"><span class="ico">${ico('ruler')}</span><div class="tx"><b>Obvody</b><span>${lw.length ? `pas ${fmt1(lw[lw.length - 1].waist)} cm${wd != null && wd < -0.05 ? ` · ${signed1(wd)} cm` : ''}` : 'změř v neděli'}</span></div><span class="chev">›</span></div>
     <div class="navrow" onclick="A.historySheet()"><span class="ico">${ico('cal')}</span><div class="tx"><b>Historie zápisů</b><span>${ov.last ? 'poslední ' + czDateShort(ov.last.date) : 'zatím nic'}</span></div><span class="chev">›</span></div>
-    <div class="navrow" onclick="A.resumeSheet()"><span class="ico">${ico('trophy')}</span><div class="tx"><b>Týdenní shrnutí</b><span>jak se ti dařilo, týden po týdnu</span></div><span class="chev">›</span></div>
+    <div class="navrow" onclick="A.resumeSheet()"><span class="ico">${ico('trophy')}</span><div class="tx"><b>Týdenní shrnutí</b><span>týden po týdnu</span></div><span class="chev">›</span></div>
   </div>`;
 };
 /* Další milník: nejbližší násobek 5 kg pod aktuálním průměrem, nakonec cílová váha. */
@@ -172,9 +172,12 @@ function circRows(s, coach) {
     return g; };
   return `<div class="circ">${rows.map(({ k, l, rs }) => { const f0 = rs[0][k], last = rs[rs.length - 1][k], d = last - f0; const E = circEval(s, k, rs, coach);
     const cls = rs.length < 2 || Math.abs(d) < 0.05 ? 'muted' : d < 0 ? 'ok' : (coach ? 'bad' : 'muted');
-    return `<div class="crow" onclick="A.circDetail('${k}')"><div class="cl"><b>${l} <span class="cg">cíl ${fmt1(E.g)} cm</span></b><span class="cv">${fmt1(last)} <small>cm</small></span><span class="cd ${cls}">${rs.length < 2 ? 'první měření' : Math.abs(d) < 0.05 ? 'od startu beze změny' : `${signed1(d)} cm od ${czDateShort(rs[0].date)}`}</span></div>
-      ${rs.length > 1 ? chart(rs, k, E) : ''}<div class="cev ${E.cls}">${esc(E.txt)}</div></div>`; }).join('')}
-    <div class="small muted">Modře měření, oranžová čárkovaná = trend. ${coach ? 'Cíle navrhuje appka z cílové váhy (pas ~1 cm na kilo, boky a hrudník ~0,6, stehno ~0,3, paže ~0,15). ' : ''}Ťukni na míru pro všechna měření${coach ? ' a úpravu cíle' : ''}.</div></div>`;
+    const prog = f0 - E.g > 0.2 ? Math.max(0, Math.min(100, Math.round((f0 - last) / (f0 - E.g) * 100))) : 100;
+    const wk = E.tw != null && E.tw <= -0.05 && E.rem > 0.2 ? Math.ceil(E.rem / -E.tw) : null;
+    const chips = `<div class="cchips"><span class="pl ${E.cls}">${E.tw == null ? 'málo měření' : E.tw <= -0.05 ? `↓ ${fmt1(-E.tw)} cm/t` : E.tw < 0.05 ? '→ drží se' : coach ? `↑ ${fmt1(E.tw)} cm/t` : '→ drží se'}</span>
+      <div class="cgo" title="Od prvního měření k cíli ${fmt1(E.g)} cm"><div class="mtb"><i style="width:${prog}%"></i></div><span>${E.rem <= 0.2 ? 'cíl splněn' : `k cíli ${fmt1(E.rem)} cm${wk ? ` · ~${wk} t` : ''}`}</span></div></div>`;
+    return `<div class="crow" onclick="A.circDetail('${k}')" title="${esc(E.txt)}"><div class="cl"><b>${l} <span class="cg">cíl ${fmt1(E.g)} cm</span></b><span class="cv">${fmt1(last)} <small>cm</small></span><span class="cd ${cls}">${rs.length < 2 ? 'první měření' : Math.abs(d) < 0.05 ? 'od startu beze změny' : `${signed1(d)} cm od ${czDateShort(rs[0].date)}`}</span></div>
+      ${rs.length > 1 ? chart(rs, k, E) : ''}${chips}</div>`; }).join('')}</div>`;
 }
 A.circDetail = k => { const s = S(), l = (CIRC_K.find(x => x[0] === k) || [k, k])[1]; const rs = Meas().filter(m => m[k] != null).sort((a, b) => b.date.localeCompare(a.date)); if (!rs.length) return;
   const asc = rs.slice().reverse(), E = circEval(s, k, asc, isCoach()); const sug = (() => { const w0 = avgAt(asc[0].date) || s.start_weight; return Math.round((asc[0][k] - CIRC_PER_KG[k] * Math.max(0, w0 - s.goal_weight)) * 2) / 2; })();
