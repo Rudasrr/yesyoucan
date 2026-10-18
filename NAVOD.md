@@ -227,7 +227,7 @@ V **Plánu**: nech si navrhnout týden (⋯ → Naplánuj mi celý týden), dola
 
 ## Rutina (8. 10. 2026)
 
-**Trenér:** každý den otevři Přehled – **Brief na dnes** (~2 min): co appka zkontrolovala, co udělat (tlačítko) a co Robertovi říct. V pondělí **Průvodce týdnem** (5 kroků, ~5 min). Jednou za měsíc v Tréninku **Navrhnout měsíc** a v Plánu → Pohyb zadat průměr kroků z Apple Health. Každá změna je v Historii změn a jde vrátit.
+**Trenér:** každý den otevři Přehled a projdi ho shora (~2 min): **1 Stihne Robert cíl?** (kdy podle toho, jak plní, proti termínu; varianty), **2 Kde je potíž?** (výdej · limit · co opravdu jí, pohyb, zápisy, kontrola 7 dní), **3 Co udělat?** (nejvýš tři kroky s náhledem změny, zpráva pro Roberta). V pondělí **Projít týden krok za krokem** (5 kroků, ~5 min). Jednou za měsíc v Tréninku **Navrhnout měsíc** a v Plánu → Pohyb zadat průměr kroků z Apple Health. Každá změna je v Historii změn a jde vrátit.
 
 **Robert:** ráno váha (po WC, nalačno) · přes den odškrtávej jídla a ujdi chůzi · večer kroky z telefonu a **Potvrdit den** · v neděli obvody a plán jídel na další týden. Appka vždycky ukáže **Další krok** a v **Hlídám za tebe** připomene, co chybí.
 

@@ -601,7 +601,7 @@ function adviceBox(field) { const list = settingsAdvice().filter(a => a.field ==
    co to dělá · kdy to použít · doporučení. Texty jsou jen tady – Návod z nich vychází. */
 const HELP = {
   obvody: { t: 'Obvody', co: 'Robert měří v neděli ráno pas, boky, hrudník, stehno a paži. Když váha stojí a pas klesá, ubývá tuk a drží se svaly – plán funguje. Pas pod polovinu výšky je zdravotní cíl. V grafu modře měření, oranžově trend; štítek = tempo za týden, pruh = kus cesty od prvního měření k cíli (cíle navrhuje appka z cílové váhy). Najetím myší se ukáže slovní vyhodnocení, ťuknutím všechna měření.' },
-  brief: { t: 'Brief na dnes', co: 'Každý den za dvě minuty: appka za posledních 7 dní zkontroluje dvanáct věcí (vážení, zápisy, jídlo, pohyb, trénink, plán jídel, tempo, termín, pocit…), napíše, co udělat – s tlačítkem – a co Robertovi dnes říct. V pondělí k tomu projdi Průvodce týdnem.' },
+  brief: { t: 'Přehled', co: 'Tři otázky shora dolů: 1 Stihne Robert cíl? (kdy podle toho, jak plní, proti termínu, a varianty), 2 Kde je potíž? (bilance výdej · limit · co opravdu jí, pohyb, zápisy, kontrola 7 dní), 3 Co udělat? (nejvýš tři kroky s náhledem změny a zpráva pro Roberta). Pod tím Průběh, fáze a obvody jako důkaz.' },
   dSkut: { t: 'Průměr týdne', co: 'Průměr všech ranních vážení od pondělí do neděle. Jedno ranní číslo skáče o kilo podle vody, soli a jídla den předtím – průměr týdne ukáže, kam váha opravdu jde. Proto se plán porovnává s ním: týden s týdnem, měsíc po týdnech a celá cesta jako čára týdenních průměrů.' },
   pohybStupen: { t: 'Pohyb mimo trénink', co: 'Kolik se Robert hýbe mimo plánovanou chůzi a trénink, ve stupních: 1 sedavý (do 3 000 běžných kroků) · 2 lehce aktivní (3–6 tisíc) · 3 aktivní (6–9 tisíc) · 4 velmi aktivní (9–12 tisíc) · 5 fyzická práce. Appka stupeň určí z jeho kroků a výdej počítá z nich; ty nastavuješ cílový stupeň. Ručně jen když Robert kroky nezapisuje.' },
   ramec: { t: 'Cvičení týdně', co: 'Kolikrát týdně má Robert cvičit (silový trénink). Trénink to hlídá v kontrole plánu a navrhne doplnit chybějící tréninky. Pro začátek 2–3×.' },
@@ -637,7 +637,7 @@ const HELP = {
   trPauza: { t: 'Pauza', co: 'Odpočinek mezi sériemi v sekundách. Při cvičení Robertovi běží odpočet.', tip: 'Prázdné = výchozí z Nastavení.' },
   // trenér · Přehled
   pSkore: { t: 'Skóre plnění', co: 'Jedno číslo za minulý týden: potvrzené dny 30 % · dny v limitu 30 % · chůze proti plánu 20 % · vážení 20 %.', tip: 'Nad 70 jde Robert podle plánu. Pod 40 nejde o plán, ale o zapisování a kázeň – nejdřív to. Tlačítko „Vím o tom“ jen schová upozornění ze seznamu (na tomto zařízení, pro tento týden) – v plánu ani u Roberta nic nezmění; „Vrátit“ ho ukáže znovu.' },
-  pTempo: { t: 'Tempo hubnutí', co: 'Trend = sklon ranních vážení za poslední 3 týdny, v kg za týden. Srovnává se s tempem z plánu.', tip: 'Pod 80 % plánu dva týdny po sobě = je co řešit.' },
+  pTempo: { t: 'Tempo hubnutí', co: 'Trend = sklon ranních vážení za poslední 3 týdny, v kg za týden. Srovnává se s tempem z plánu.', tip: 'Pod 80 % plánu dva týdny po sobě = je třeba zasáhnout.' },
   pCil: { t: 'Kdy dosáhne cíle', co: 'Podle plánu = při nastaveném tempu od startu. Prognóza = při současném trendu. Rozdíl ukazuje, kolik se cíl posouvá.' },
   pData: { t: 'Data od Roberta', co: 'Bez potvrzených dnů, vážení a kroků appka nepozná, co ujelo. Rozbor stojí jen na tom, co Robert zapíše.' },
   gVaha: { t: 'Váha', co: 'Změna průměru vážení proti předchozímu období a kolik to mělo být podle plánu.' },
@@ -665,10 +665,10 @@ A.help = (el, key) => { const h = HELP[key]; if (!h) return;
    změnit. Simulace týden po týdnu od dnešního průměru: deficit = tempo × váha, nejvýš
    tolik, aby jídlo nekleslo pod spodní hranici; volitelně přestávka (týden na nule) po
    každých 8 týdnech deficitu; „plnění“ = jaká část plánovaného deficitu se opravdu stane. */
-function simGoal(rate, adh, brk, w0, from) {
-  const s = S(); let w = w0, d = from, dw = 0, pause = false;
+function simGoal(rate, adh, brk, w0, from, goal) {   // goal: jiná cílová váha (mezicíle fází), jinak cíl trenéra
+  const s = S(), gw = goal != null ? goal : s.goal_weight; let w = w0, d = from, dw = 0, pause = false;
   for (let k = 0; k < 520; k++) {
-    if (w <= s.goal_weight) return d;
+    if (w <= gw) return d;
     if (brk && dw > 0 && dw % 8 === 0 && !pause) { pause = true; d = addDays(d, 7); continue; }
     pause = false;
     const b = calcBase(s, w, s.walk_min, 0, s.walk_kmh, 0, 0);
@@ -716,7 +716,7 @@ function goalSignal() {
   const late = g.dTrend && g.target ? daysBetween(g.target, g.dTrend) : 0;
   if (g.adh >= 0.8 && late <= 28) return null;
   const blind = g.R.conf < g.R.n * 0.5; const E = g.energy;
-  const why = E ? (E.over > 150 ? `Pohyb sedí (${fmt0(E.steps)} kroků denně podle ${E.src}, plán ${fmt0(E.stepsPlan)}), potíž je jídlo: z výdeje a úbytku vychází příjem ~${fmt0(E.intake)} kcal denně, limit byl ${fmt0(E.limit)} – o ~${fmt0(E.over)} kcal víc.` : `Příjem podle výdeje a úbytku sedí s limitem (~${fmt0(E.intake)} kcal) – rozdíl je spíš voda nebo výdej, počkej na další týden vážení.`) : blind ? `Příčinu appka neurčí – za poslední 3 týdny ${g.R.conf} potvrzených dnů a ${g.R.stepsN}× kroky, neví, jestli jí víc, nebo se hýbe míň.` : 'Rozbor příčin je v Průběhu a v Co řešit.';
+  const why = E ? (E.over > 150 ? `Pohyb sedí (${fmt0(E.steps)} kroků denně podle ${E.src}, plán ${fmt0(E.stepsPlan)}), potíž je jídlo: z výdeje a úbytku vychází příjem ~${fmt0(E.intake)} kcal denně, limit byl ${fmt0(E.limit)} – o ~${fmt0(E.over)} kcal víc.` : `Příjem podle výdeje a úbytku sedí s limitem (~${fmt0(E.intake)} kcal) – rozdíl je spíš voda nebo výdej, počkej na další týden vážení.`) : blind ? `Příčinu appka neurčí – za poslední 3 týdny ${g.R.conf} potvrzených dnů a ${g.R.stepsN}× kroky, neví, jestli jí víc, nebo se hýbe míň.` : 'Rozbor příčin je na Přehledu v Kde je potíž.';
   const rec = !g.hasDate ? `Zadej v Plánu termín cíle – appka spočítá, jaké tempo na něj stačí.` : g.req == null ? `Termín ${czDate(g.target)} je i s tempem 1 % nereálný – rozhodni v Přeplánovat.` : g.adh < 0.8 ? `Zvyšovat tempo nepomůže, dokud plní ${Math.round(g.adh * 100)} % plánu. Tempo ${String(g.recRate).replace('.', ',')} % s přestávkou po 8 týdnech stihne ${czDate(g.target)}, když plán dodrží.` : `Na termín ${czDate(g.target)} stačí tempo ${String(g.recRate).replace('.', ',')} % s přestávkami.`;
   return { lv: g.adh < 0.6 || late > 60 ? 1 : 2, key: 'cilcheck', em: '🎯', head: `Hubne ${fmt2(g.tr.perWeek)} kg/týden místo ${fmt2(g.planWk)} – plní plán na ${Math.round(g.adh * 100)} %.`,
     text: `Chybí ~${fmt0(g.gapKcal)} kcal deficitu denně, cíl se tímhle tempem posouvá na ${g.dTrend ? czDate(g.dTrend) : 'neurčito'}${late > 0 ? ` (${ymd(g.target, g.dTrend).short} po termínu)` : ''}. ${why} ${rec}`,

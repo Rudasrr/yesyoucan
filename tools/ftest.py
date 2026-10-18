@@ -250,7 +250,7 @@ with sync_playwright() as p:
     g.evaluate("localLogin('coach');go('klient')"); g.wait_for_timeout(150)
     gs=[]
     # klikat na „Dál“ jako uživatel (12. 10. 2026: přímé volání A.guide(n) chybu nezachytilo)
-    g.click('.wcheck .btn'); g.wait_for_timeout(150)
+    g.click('.gweek'); g.wait_for_timeout(150)
     for st in [1,2,3,4,5]:
         on=g.evaluate("document.querySelector('.modal .gsteps span.on') ? document.querySelector('.modal .gsteps span.on').innerText : ''")
         gs.append(1 if on.strip().startswith(str(st)) else 0)
@@ -276,9 +276,9 @@ with sync_playwright() as p:
     print('doplnění dnů:', n0, '→', len(h.evaluate("unconfirmedDays(7)")), '· zpátky na dnešek:', h.evaluate("App.date===todayISO()"))
     if h.evaluate("unconfirmedDays(7).length") or not h.evaluate("App.date===todayISO()"): errs.append('vede: doplnění dnů nedoběhlo')
     h.evaluate("localLogin('coach');go('klient')"); h.wait_for_timeout(150)
-    br=h.evaluate("JSON.stringify({chk:document.querySelectorAll('.brief .chk2').length, tip:!!document.querySelector('.brief .bgrid')})")
+    br=h.evaluate("JSON.stringify({chk:document.querySelectorAll('.gwhy .chk2').length, cil:!!document.querySelector('.ghero .mstrip'), udelej:!!document.querySelector('.gdo .bdo')})")
     print('brief:', br)
-    if '"chk":0' in br: errs.append('vede: brief bez kontrol')
+    if '"chk":0' in br or '"udelej":false' in br: errs.append('vede: Přehled bez kontrol nebo bez Co udělat')
     steps=[]
     h.evaluate("go('__tour')"); h.wait_for_timeout(150)
     for _ in range(14):

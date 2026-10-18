@@ -20,13 +20,82 @@ VIEWS.klient = function () {
   const ch = sinceLast(); const tyden = Math.floor(daysBetween(s.start_date, t) / 7) + 1;
   return `<div class="ph"><div class="pt"><h1>${esc(name)}</h1><span class="sub">${DAY_NAMES[dayIndex(t)].toLowerCase()} ${czDate(t)} · týden ${tyden}</span></div>
       <div class="act">${chip}</div></div>
-    ${briefCard(s)}
     ${todayStrip(s)}
-    ${weekCheckCard(s, App._shown = [])}
+    ${goalHero(s)}
+    ${whyCard(s)}
+    ${doCard(s)}
     ${drillCard()}
-    ${todoCard(now, App._shown)}
     <div class="card stack s8">${phasesCard(s)}</div><div class="card stack s8 circw"><div class="chd"><h2>Obvody</h2><span class="muted small">poslední · změna od prvního měření${hq('obvody')}</span></div>${circRows(s, true)}</div>`;
 };
+/* ---------- PŘEHLED (18. 10. 2026, rozhodnutí vlastníka): tři otázky trenéra v tomhle pořadí ----------
+   1 Stihne Robert cíl? (goalHero – rozbor cíle nahoře, ne ve skrytém listu)
+   2 Kde je potíž? (whyCard – energetická bilance, pohyb, zápisy, kontroly 7 dní)
+   3 Co udělat? (doCard – doporučení s náhledem, zpráva pro Roberta, průvodce týdnem)
+   Pak důkazy: Průběh, Fáze cesty, Obvody. Čísla jsou měřidla (kpi), vysvětlení v bublinách. */
+const yr2 = d => czDateShort(d) + String(parseISO(d).getFullYear()).slice(2);
+function goalHero(s) {
+  const g = goalCheck(), t = todayISO();
+  if (!g) { const R = periodStats(addDays(t, -21), addDays(t, -1));
+    return `<div class="card ghero"><div class="gq"><span class="gn">1</span><h2>Stihne Robert cíl?</h2></div>
+      <div class="gverd none">${s.maintain ? 'Udržování – cíl je splněný.' : 'Na odhad je potřeba aspoň 5 vážení za poslední 3 týdny.'}</div>
+      ${R.empty ? '' : `<div class="mstrip">${kpi('Vážení · 3 týdny', R.weigh, R.wDays, { ic: 'scale', big: true, cnt: true })}</div>`}</div>`; }
+  const T = g.target, dNow = g.dCurAdh, late = dNow ? daysBetween(T, dNow) : 9999, c = late <= 7 ? 'ok' : late <= 42 ? 'warn' : 'bad';
+  const verd = !dNow ? `Takhle cíl ${fmt1(s.goal_weight)} kg nedosáhne.`
+    : late <= 7 ? `Ano – když bude plnit jako teď, cíl ${fmt1(s.goal_weight)} kg ${czDate(dNow)}, termín ${czDate(T)}.`
+    : `Takhle ne – když bude plnit jako teď (${Math.round(g.adh * 100)} %), cíl ${fmt1(s.goal_weight)} kg až ${czDate(dNow)}, o ${ymd(T, dNow).text} po termínu.`;
+  const planDef = g.planWk * KG_KCAL / 7, realDef = g.tr.perWeek * KG_KCAL / 7;
+  const termCell = `<div class="mt big ${c}" title="${esc(`Když bude plnit plán jako poslední 3 týdny (${Math.round(g.adh * 100)} %): ${dNow ? czDate(dNow) : 'nedosáhne'}; termín ${czDate(T)}${s.goal_date ? '' : ' (z plánu – zadej vlastní)'}.`)}"><div class="mth"><span class="mic">${ico('target')}</span><span class="mlab">Cíl ${fmt1(s.goal_weight)} kg${hq('terminCile')}</span></div><b class="mtv">${dNow ? yr2(dNow) : '–'}</b><div class="mtf"><span>termín ${yr2(T)}</span><em class="pl ${c}">${late <= 7 ? 'stihne' : dNow ? '+' + ymd(T, dNow).short : 'ne'}</em></div></div>`;
+  const cells = [termCell,
+    kpi('Tempo · 3 týdny', g.tr.perWeek, g.planWk, { ic: 'trend', big: true, f: v => (v > 0.005 ? '−' : '+') + fmt2(Math.abs(v)), fd: fmt2, u: ' kg/t', eps: 0.005, help: 'pTempo', why: 'Plnění = skutečný úbytek ÷ plánovaný za stejné dny.' }),
+    kpi('Deficit / den', Math.round(realDef), Math.round(planDef), { ic: 'flame', big: true, u: ' kcal', eps: 20, help: 'dDeficit', why: 'Skutečný deficit z úbytku váhy proti plánu.' }),
+    (R3 => kpi('Potvrzené dny · 3 t', R3.conf, R3.n, { ic: 'check', big: true, cnt: true, why: 'Bez potvrzených dnů appka neví, co Robert jedl.' }))(periodStats(addDays(t, -21), addDays(t, -1)))];
+  // varianty: kdy dosáhne cíle – osa od dneška, svislá čára = termín
+  const sc = [[`Jako teď · plní ${Math.round(g.adh * 100)} %`, g.dCurAdh, 'plnění jako poslední 3 týdny, současné tempo'], ['Splní plán na 100 %', g.dCur, `tempo ${String(s.rate_pct).replace('.', ',')} % bez přestávek`],
+    [`${g.hasDate && g.req != null ? 'Doporučeno' : 'Bezpečné maximum'} ${String(g.recRate).replace('.', ',')} %`, g.dRec, 's přestávkou po 8 týdnech, plnění 100 %']];
+  const ds = sc.map(x => x[1]).filter(Boolean).concat(T), end = addDays(ds.sort().pop(), 21), span = Math.max(30, daysBetween(t, end)), px = d => Math.max(2, Math.min(100, daysBetween(t, d) / span * 100));
+  const lane = ([l, d, tip]) => { const cc = !d ? 'bad' : daysBetween(T, d) <= 7 ? 'ok' : daysBetween(T, d) <= 42 ? 'warn' : 'bad';
+    return `<div class="gl" title="${esc(tip)}"><span class="gll">${esc(l)}</span><div class="glt">${d ? `<i class="${cc}" style="width:${px(d)}%"></i><b class="${px(d) > 82 ? 'in' : ''}" style="left:${px(d)}%">${yr2(d)}</b>` : '<b class="bad" style="left:2%">nedosáhne</b>'}<s style="left:${px(T)}%"></s></div></div>`; };
+  const yrs = []; for (let y = +t.slice(0, 4) + 1; `${y}-01-01` < end; y++) yrs.push(`${y}-01-01`);
+  const lanes = `<div class="glanes"><div class="glax"><span class="gll"></span><div class="glt"><em style="left:0">dnes</em>${yrs.map(y => `<em style="left:${px(y)}%">${y.slice(0, 4)}</em>`).join('')}<u style="left:${px(T)}%"><span>termín ${yr2(T)}</span></u></div></div>${sc.map(lane).join('')}</div>`;
+  const act = [];
+  if (!g.hasDate) act.push(`<label class="gdate">${ico('cal')} <span class="b">Termín cíle</span> <input type="date" min="${addDays(t, 1)}" onchange="A.setGoalDate(this.value)"><span class="muted">teď z plánu ${yr2(T)}</span></label>`);
+  if (g.hasDate && g.req != null && Math.abs(g.recRate - s.rate_pct) >= 0.05) act.push(`<button class="btn sm" onclick="A.applyAdvice(JSON.stringify({rate_pct:${g.recRate}}))">Nastavit tempo ${String(g.recRate).replace('.', ',')} %</button>`);
+  if (!(s.maint_weeks || []).some(m => m >= t)) act.push(`<button class="btn sm sec" onclick="A.planBreaks()">Naplánovat přestávky</button>`);
+  act.push(`<button class="btn sm ghost" onclick="A.goalCheckSheet()">Podrobný rozbor ›</button>`);
+  return `<div class="card ghero"><div class="gq"><span class="gn">1</span><h2>Stihne Robert cíl?</h2></div>
+    <div class="gverd ${c}">${esc(verd)}</div><div class="mstrip">${cells.join('')}</div>${lanes}<div class="gact">${act.join('')}</div></div>`;
+}
+function whyCard(s) {
+  const g = goalCheck(), t = todayISO(), R = periodStats(addDays(t, -21), addDays(t, -1)), C = coachChecks(), E = g && g.energy;   // zápisy vždy za posledních 21 dní
+  let bal = '', verd = '', vc = 'none';
+  if (E) { const mx = Math.max(E.out, E.intake, E.limit) * 1.04, w = v => Math.max(1, v / mx * 100), okJ = E.over <= 150, okP = E.steps >= E.stepsPlan * 0.95;
+    vc = okJ ? 'ok' : 'bad';
+    verd = okJ ? 'Bilance sedí – Robert jí zhruba podle limitu. Pomalejší úbytek je voda nebo výkyv.' : `Potíž je jídlo${okP ? ', ne pohyb' : ''}: jí odhadem o ~${fmt0(E.over)} kcal denně víc, než má limit (${E.over > 700 ? 'jedno hlavní jídlo' : E.over > 350 ? 'svačina nebo dvě piva' : 'jedna sladkost'} navíc).`;
+    bal = `<div class="ebal" title="Výdej z kroků (${esc(E.src)}) a klidového výdeje. Jí = výdej − skutečný deficit z úbytku váhy. Průměr za dny trendu.">
+      <div class="eb"><span>Výdej</span><div><i class="out" style="width:${w(E.out)}%"></i></div><b>${fmt0(E.out)}</b></div>
+      <div class="eb"><span>Limit jídla</span><div><i class="lim" style="width:${w(E.limit)}%"></i></div><b>${fmt0(E.limit)}</b></div>
+      <div class="eb"><span>Jí (odhad)</span><div><i class="${okJ ? 'ok' : 'in'}" style="width:${w(Math.min(E.intake, E.limit))}%"></i>${okJ ? '' : `<i class="over" style="width:${w(E.over)}%"></i>`}</div><b class="${okJ ? 'ok' : 'bad'}">${fmt0(E.intake)}${okJ ? '' : ` <small>+${fmt0(E.over)}</small>`}</b></div>
+      <div class="ebs">kcal denně · průměr posledních 3 týdnů</div></div>`; }
+  else verd = 'Bez kroků appka nespočítá, kolik Robert opravdu jí. Zadej průměr kroků z Apple Health nebo ať je zapisuje.';
+  const m = [];
+  if (E) m.push(kpi('Kroky / den', Math.round(E.steps), Math.round(E.stepsPlan), { ic: 'feet', why: `Zdroj: ${E.src}. Plán = chůze + běžné kroky.` }));
+  if (E && E.sit && E.sit.n) m.push(kpi('Situační jídla s odhadem', E.sit.n - E.sit.unk, E.sit.n, { ic: 'fork', cnt: true, why: 'Jídla „podle situace“ bez odhadu appka počítá jako cíl chodu – to, co nevidí.' }));
+  m.push(kpi('Potvrzené dny', R.conf, R.n, { ic: 'check', cnt: true }), kpi('Vážení', R.weigh, R.wDays, { ic: 'scale', cnt: true }), kpi('Kroky zapsané', R.stepsN, R.n, { ic: 'feet', cnt: true }));
+  return `<div class="card gwhy"><div class="gq"><span class="gn">2</span><h2>Kde je potíž?</h2>${E ? '' : `<button class="btn sm sec" style="margin-left:auto" onclick="A.stepsHistSheet()">Zadat kroky z Health</button>`}</div>
+    <div class="gverd ${vc}">${esc(verd)}</div>
+    <div class="gwg ${bal ? '' : 'one'}">${bal}<div class="gwm">${m.join('')}</div></div>
+    <div class="gchk"><span class="gchl">Kontrola 7 dní</span>${C.map(c => `<span class="chk2 ${c.c}" title="${esc(c.area + ': ' + c.txt)}">${ico(c.ic)}<b>${esc(c.area)}</b><span>${esc(c.txt)}</span></span>`).join('')}</div></div>`;
+}
+function doCard(s) {
+  const t = todayISO(), g = guideWeek(), done = LS.get('dec:' + g.from, {}); App._grecs = guideRecs(); const recs = App._grecs.filter(r => !done[r.key]).slice(0, 3);
+  const F = feedbackPoints(addDays(t, -7), addDays(t, -1)); const nAll = (App._diag || []).length;
+  return `<div class="card gdo"><div class="gq"><span class="gn">3</span><h2>Co udělat?</h2></div>
+    <div class="gdg"><div class="gdl">${recs.length ? recs.map(r => { const i = App._grecs.findIndex(x => x.key === r.key);
+      return `<div class="bdo"><b>${esc(r.title)}</b>${r.offline ? `<span title="${esc(r.offline)}">${esc(r.offline)}</span>` : ''}<div class="row">${r.doIt ? `<button class="btn sm" onclick="A.guideDo(${i})">${esc(r.doIt.label)}</button>` : `<button class="btn sm" onclick="A.decide('${g.from}','${r.key}','ok')">Domluvím to</button>`}<button class="btn ghost sm" onclick="A.decide('${g.from}','${r.key}','skip')">Přeskočit</button></div></div>`; }).join('')
+      : `<div class="bdo ok"><b>${ico('check')} Nic dalšího teď neřeš.</b><span>Doporučení na tento týden jsou vyřízená.</span></div>`}
+      <div class="row">${nAll ? `<button class="btn ghost sm" onclick="A.probAll()">Všechny signály (${nAll})</button>` : ''}<button class="btn ghost sm gweek" onclick="A.guide(1)">${ico('clip')} Projít týden krok za krokem</button></div></div>
+      <div class="gtell"><h4>Řekni Robertovi</h4><button class="btn sm" onclick="A.msgSheet()">${ico('clip')} Zpráva pro Roberta</button>${F.P[0] ? `<div class="fbk ok"><ul><li>${esc(F.P[0])}</li></ul></div>` : ''}${F.Z[0] ? `<div class="fbk b"><ul><li>${esc(F.Z[0])}</li></ul></div>` : ''}</div></div></div>`;
+}
 /* Týdenní kontrola: skóre plnění 0–100 za minulý týden a 1–3 rozhodnutí na klik.
    Skóre: potvrzené dny 30 % · dny v limitu 30 % · chůze proti plánu 20 % · vážení 20 %. */
 function weekScore(from, to) {
@@ -63,14 +132,6 @@ function heroStats(s, ov) {
     <div class="card hs"><div class="lab">${ico('target')} Cíl ${fmt1(s.goal_weight)} kg${hq('pCil')}</div><div class="hbig">${fc.date ? czDate(fc.date) : esc(fc.text)}</div>
       <div class="muted small">podle plánu ${gp ? czDate(gp) : '–'}${d ? ` · <b class="${d.sign > 0 ? 'bad' : 'ok'}">${d.sign > 0 ? '+' : '−'}${d.short}</b>` : ''}</div><div class="muted small">zbývá ${fmt1(Math.max(0, ov.cur - s.goal_weight))} kg · shozeno ${fmt1(Math.max(0, s.start_weight - ov.cur))} kg</div></div>
     <div class="card hs"><div class="lab">${ico('scale')} Poslední vážení</div><div class="hbig">${lw ? fmt1(lw.weight) : '–'} <small>kg</small></div><div class="small ${ago > 2 ? 'bad b' : 'muted'}">${lw ? `${czDateShort(lw.date)} · ${ago === 0 ? 'dnes' : ago === 1 ? 'včera' : `před ${ago} ${DEN(ago)}`}` : 'zatím žádné'}</div></div>`;
-}
-function todoCard(now, shown) {
-  const t = todayISO(), dec = LS.get('dec:' + addDays(mondayOf(t), -7), {});
-  const list = now.list.filter(x => !dec[x.key] && !(shown || []).includes(x.key)).slice(0, 3); const icn = { nepotvrz: ['alert', 'b'], vazeni: ['scale', 'b'], 'vazeni-malo': ['scale', 'o'], jidlo: ['fork', 'b'], preslimit: ['fork', 'b'], pohyb: ['walk', 'o'], chuze: ['walk', 'o'], kroky: ['feet', 'o'], krokyzap: ['feet', 'o'], trenink: ['dumbbell', 'v'], stoji: ['bolt', 'o'], hlad: ['flame', 'b'], spanek: ['moon', 'p'], psych: ['moon', 'p'], cil: ['target', 'ok'], udrz: ['cal', 'p'], tempo: ['trend', 'o'], planjidel: ['cal', 'p'], voda: ['scale', 'p'], cilcheck: ['target', 'p'], situace: ['fork', 'o'], preplan: ['trend', 'b'], trplan: ['dumbbell', 'v'] };
-  return `<div class="card"><div class="chd"><h2>Co řešit</h2><span class="muted small">nejvýš tři, seřazené podle dopadu</span>${now.list.length > 3 ? `<button class="btn ghost sm" style="margin-left:auto" onclick="A.probAll()">Všechny (${now.list.length})</button>` : ''}</div>
-    <div class="todo">${list.length ? list.map(x => { const i = App._diag.indexOf(x); const [ic, cl] = icn[x.key] || ['alert', 'o'];
-      return `<div class="td" onclick="A.probSheet(${i})"><div class="icb ${cl}">${ico(ic)}</div><b>${esc(x.title)}</b><p>${esc((x.sub || '').slice(0, 160))}</p><div class="ft">${x.kg ? `<span class="pill">≈ ${fmt2(x.kg)} kg/týden</span>` : x.kde && x.kde.length ? `<span class="pill">${x.kde.length} ${DEN(x.kde.length)}</span>` : ''}${x.apply ? `<button class="btn sm" onclick="event.stopPropagation();${x.apply}">${esc(x.label)}</button>` : x.go ? `<button class="btn sm sec" onclick="event.stopPropagation();${x.go}">${esc(x.label || 'Otevřít')}</button>` : `<span class="btn sm ghost">Proč ›</span>`}</div></div>`; }).join('')
-      : `<div class="td"><div class="icb ok">${ico('check')}</div><b>Nic nevázne</b><p>Robert drží limit, pohyb i vážení.</p></div>`}</div></div>`;
 }
 /* Plnění: 8 týdnů × dny, čtyři oblasti; tmavší zelená = líp, červená = ujelo, šedá = nezapsáno */
 function heatCard(s) {
@@ -682,11 +743,6 @@ function drStrip(dr, r, last, planLine, prevLine) {
   const cells = [
     kpi(per, W.real, W.plan != null ? W.plan : W.planFull, { ic: 'scale', big: true, f: kgS, fd: fmt1, u: ' kg', eps: 0.05, words: kw, help: 'dVaha', why: W.real != null && W.real < 0 ? 'Váha stoupla.' : '' }),
     kpi(`Průměr týdne ${czDateShort(last.mon)}`, last.v, last.pl, { ic: 'chart', big: true, f: fmt1, u: ' kg', lower: true, nopct: true, eps: 0.05, words: kw, col: gapC(last.v, last.pl), help: 'dSkut', why: `Z ${last.n} vážení.` })];
-  if (dr.lvl === 'c') { const tr = trend21(), rate = calcOverview(s, Meas()).cur * effSettings(s, t).rate_pct / 100;
-    cells.push(kpi('Tempo · 3 týdny', tr ? tr.perWeek : null, rate, { ic: 'trend', big: true, f: v => (v > 0.005 ? '−' : v < -0.005 ? '+' : '') + fmt2(Math.abs(v)), fd: fmt2, u: ' kg/t', eps: 0.005, help: 'pTempo', empty: 'málo vážení' }));
-    const gp = planGoalDate(s), fc = goalForecast(s, calcOverview(s, Meas()));
-    if (gp && fc.date) { const late = daysBetween(gp, fc.date), d = ymd(gp, fc.date), c = late <= 7 ? 'ok' : late <= 30 ? 'warn' : 'bad';
-      cells.push(`<div class="mt big ${c}" title="${esc(`Cíl ${fmt1(s.goal_weight)} kg: podle trendu ${czDate(fc.date)}, podle plánu ${czDate(gp)}.`)}"><div class="mth"><span class="mic">${ico('target')}</span><span class="mlab">Cíl ${fmt1(s.goal_weight)} kg${hq('terminCile')}</span></div><b class="mtv">${czDateShort(fc.date)}<small>${String(parseISO(fc.date).getFullYear()).slice(2)}</small></b><div class="mtf"><span>má být ${czDateShort(gp)}${String(parseISO(gp).getFullYear()).slice(2)}</span><em class="pl ${c}">${late <= 7 ? 'včas' : `+${d.short}`}</em></div></div>`); } }
   if (!R.empty && R.waist != null) cells.push(kpi('Pas', R.waistDelta != null ? -R.waistDelta : null, (W.plan != null ? W.plan : W.planFull) * CIRC_PER_KG.waist, { ic: 'ruler', big: true, f: v => (v > 0.05 ? '−' : v < -0.05 ? '+' : '') + fmt1(Math.abs(v)), fd: fmt1, u: ' cm', eps: 0.05, words: kw, why: `Teď ${fmt1(R.waist)} cm, cíl ${fmt1(s.goal_waist)} cm.`, empty: `${fmt1(R.waist)} cm` }));
   if (!R.empty) cells.push(kpi('Vážení', R.weigh, R.wDays, { ic: 'scale', big: true, cnt: true }));
   return `<div class="mstrip">${cells.join('')}</div>`;
@@ -847,7 +903,7 @@ A.goalCheckSheet = () => openSheet(() => {
   const mwFut = (s.maint_weeks || []).filter(m => m >= todayISO()).length;
   if (!mwFut) steps.push(`<li><b>Přestávka v deficitu po každých 8 týdnech.</b> Týden na nule sníží hlad a únavu a plán se dá vydržet do cíle. V simulaci už je započítaná. <button class="btn sm sec" onclick="UI.closeModal();A.planBreaks()">Naplánovat přestávky</button></li>`);
   if (g.factorRisk > 0) steps.push(`<li><b>Výdej je odhad, kroky ho neověřily.</b> Faktor ${String(s.activity).replace('.', ',')} počítá s ~5 000 běžnými kroky denně. Kdyby Robert většinu dne seděl, limit je o ~${fmt0(g.factorRisk)} kcal vyšší, než má být – to samo vysvětlí ${Math.min(100, Math.round(g.factorRisk / Math.max(1, g.gapKcal) * 100))} % rozdílu. Až zapíše kroky, appka výdej spočítá z nich sama.</li>`);
-  steps.push(`<li><b>Za 2 týdny zkontroluj znovu.</b> S potvrzenými dny ukáže Průběh přesně, kde rozdíl vzniká (jídlo, chůze, kroky), a Co řešit nabídne konkrétní úpravu.</li>`);
+  steps.push(`<li><b>Za 2 týdny zkontroluj znovu.</b> S potvrzenými dny ukáže Průběh přesně, kde rozdíl vzniká (jídlo, chůze, kroky), a Co udělat nabídne konkrétní úpravu.</li>`);
   return UI.sheetHtml('Rozbor cíle', `cíl ${fmt1(s.goal_weight)} kg · termín ${czDate(T)}${s.goal_date ? '' : ' (podle plánu)'}`,
     `<div class="stats3"><div><b class="${g.adh >= 0.8 ? 'ok' : 'bad'}">−${fmt2(g.tr.perWeek)}</b><span>kg/týden · trend 3 týdnů</span></div><div><b>−${fmt2(g.planWk)}</b><span>kg/týden · plán za ty dny</span></div><div><b class="${g.adh >= 0.8 ? 'ok' : 'bad'}">${Math.round(g.adh * 100)} %</b><span>plnění · chybí ~${fmt0(g.gapKcal)} kcal/den</span></div></div>
     ${verdict}
@@ -931,10 +987,12 @@ function healthPhases(s) {
   [[35, 'BMI pod 35', 'z obezity 2. stupně do 1.'], [30, 'BMI pod 30', 'konec obezity']].forEach(([b, l, w]) => { if (bmiW(s, b) < st) P.push([bmiW(s, b), l, w]); });
   P.push([s.goal_weight, 'cíl trenéra', `BMI ${fmt1(s.goal_weight / Math.pow(s.height / 100, 2))}`]);
   const zdr = bmiW(s, 25); P.push([zdr, 'zdravá váha', 'BMI 25 – dlouhodobý směr']);
-  const rows = calcMeasurements(s, Meas()), pp = planPath(), tr = trend21(), cur = currentWeight();
+  const rows = calcMeasurements(s, Meas()), pp = planPath(), tr = trend21(), cur = currentWeight(), t = todayISO();
+  // „jako teď“ stejným výpočtem jako Stihne Robert cíl? – simulace s plněním posledních 3 týdnů (18. 10. 2026)
+  const g = goalCheck(), adh = g ? Math.min(1, g.adh) : null;
   return P.filter(p => p[0] < st).sort((a, b) => b[0] - a[0]).filter((p, i, a) => !i || Math.abs(a[i - 1][0] - p[0]) > 1.5 || p[1] === 'cíl trenéra')
     .map(([w, l, why]) => { const hit = rows.find(r => r.avg <= w); const pi = pp.findIndex(x => x <= w + 0.001);
-      return { w, l, why, hit: hit ? hit.date : null, plan: pi >= 0 ? addDays(s.start_date, pi) : null, trend: !hit && tr && tr.perWeek > 0.05 ? addDays(todayISO(), Math.round((cur - w) / tr.perWeek * 7)) : null, goal: l === 'cíl trenéra', health: l === 'zdravá váha' }; });
+      return { w, l, why, hit: hit ? hit.date : null, plan: pi >= 0 ? addDays(s.start_date, pi) : null, trend: hit ? null : adh != null ? (adh > 0.05 ? simGoal(s.rate_pct, adh, false, cur, t, w) : null) : tr && tr.perWeek > 0.05 ? addDays(t, Math.round((cur - w) / tr.perWeek * 7)) : null, goal: l === 'cíl trenéra', health: l === 'zdravá váha' }; });
 }
 function phasesCard(s) {
   /* Fáze cesty (18. 10. 2026, grafika místo tabulky): osa mezicílů od startu k cíli. U každého
@@ -951,7 +1009,7 @@ function phasesCard(s) {
     <div class="phx"><div class="phtr"><i style="width:${fill}%"></i></div><div class="phns" style="grid-template-columns:repeat(${L.length},1fr)">
     ${L.map(p => `<div class="phn ${p === nxt ? 'next' : ''} ${p.hit ? 'hit' : ''}" title="${esc(p.l + ' – ' + p.why)}"><span class="pdot">${p.hit ? ico('check') : ''}</span><b>${fmt0(p.w)}<small> kg</small></b><span class="phl">${esc(p.l)}</span>
       ${p.hit ? `<span class="pl ok">${czDateShort(p.hit)}</span>` : `<span class="phd">${p.plan ? yr(p.plan) : 'po cíli'}</span>${tag(p)}`}</div>`).join('')}</div></div>
-    <div class="phleg"><span>datum = podle plánu</span><span>štítek = zpoždění, když bude hubnout jako teď</span></div>`;
+    <div class="phleg"><span>datum = podle plánu</span><span>štítek = zpoždění, když bude plnit jako teď${(() => { const g = goalCheck(); return g ? ` (${Math.round(Math.min(1, g.adh) * 100)} %)` : ''; })()}</span></div>`;
 }
 /* Cesta k cíli po měsících: bloky deficitu, přestávky, fáze a termín; přestávky radí appka */
 function pathCard(s) {
@@ -1054,7 +1112,7 @@ A.guideDo = i => { const r = (App._grecs || [])[i]; if (!r || !r.doIt) { UI.toas
   const defer = r.doIt.kind === 'apply' || /replanSheet|goalCheckSheet/.test(r.doIt.js);   // vyřešeno až po potvrzení v náhledu
   if (defer) App._pvDecide = { week: g.from, key: r.key }; else A.decide(g.from, r.key, 'ok');
   if (r.doIt.kind === 'apply') { try { (new Function(r.doIt.js))(); } catch (e) { console.error(e); } if (window._sheetRedraw) window._sheetRedraw(); }
-  else { UI.closeModal(); (new Function(r.doIt.js))(); if (!defer) UI.toast('Až to vyřešíš, průvodce najdeš na Přehledu v Týdenní kontrole.'); } };
+  else { UI.closeModal(); (new Function(r.doIt.js))(); if (!defer) UI.toast('Až to vyřešíš, průvodce najdeš na Přehledu v Co udělat → Projít týden.'); } };
 
 /* ---------- Co Robertovi říct (7. 10. 2026) ----------
    Zpětnou vazbu dává trenér osobně; appka mu připraví podklady z dat týdne: konkrétní

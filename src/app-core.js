@@ -372,17 +372,17 @@ document.addEventListener('DOMContentLoaded', boot);
 const TOUR = {
   coach: [
     { t: 'Appka je Robertův trenér', x: 'Každý den hlídá, co Robert dělá, a připraví ti, co udělat a co mu říct. Ty jen rozhodneš a tlumočíš. Tvoje rutina: denně 2 minuty, v pondělí 5 minut.' },
-    { v: 'klient', sel: '.brief', t: 'Brief na dnes', x: 'Začni tady každý den. Appka za tebe zkontrolovala posledních 7 dní – zelená sedí, oranžová pohlídat, červená řešit.' },
-    { v: 'klient', sel: '.brief .bgrid > div:nth-child(2)', t: 'Udělej', x: 'Co má smysl udělat. Tlačítko změnu rovnou provede (vše jde vrátit v Historii změn). „Domluvím to“ = věc, kterou řešíš s Robertem.' },
-    { v: 'klient', sel: '.brief .bgrid > div:nth-child(3)', t: 'Řekni Robertovi', x: 'Pochvala s konkrétním číslem, co zlepšit a na co se zeptat. Řekneš mu to osobně – v appce mu nic neodchází.' },
-    { v: 'klient', sel: '.tstrip', t: 'Robert dnes', x: 'Co má dnes hotové a co ho čeká. Klik otevře celý den: jídla, pohyb, trénink a jak se cítil.' },
-    { v: 'klient', sel: '.wcheck', t: 'Pondělí: Průvodce týdnem', x: 'Jednou týdně projdeš týden v pěti krocích: co dělal, proč, co udělat, co mu říct, shrnutí.' },
+    { v: 'klient', sel: '.ghero', t: '1 · Stihne Robert cíl?', x: 'Začni tady. Kdy cíle dosáhne podle trendu, proti termínu – a varianty: jako teď, když splní plán, s doporučeným tempem.' },
+    { v: 'klient', sel: '.gwhy', t: '2 · Kde je potíž?', x: 'Bilance: kolik vydá, jaký má limit a kolik podle úbytku opravdu jí. Pod tím pohyb, zápisy a kontrola posledních 7 dní.' },
+    { v: 'klient', sel: '.gdo', t: '3 · Co udělat?', x: 'Nejvýš tři kroky. Tlačítko ukáže náhled změny, teprve pak ji potvrdíš (jde vrátit v Historii změn). „Domluvím to“ = řekneš Robertovi.' },
+    { v: 'klient', sel: '.gtell', t: 'Řekni Robertovi', x: 'Appka složí zprávu: pochvala, co jsi upravil, na co se zaměřit. Zkopíruješ ji a pošleš sám. Jednou týdně projdi týden krok za krokem.' },
+    { v: 'klient', sel: '.tstrip', t: 'Robert dnes', x: 'Co má dnes hotové a co ho čeká. Klik otevře celý den.' },
     { v: 'klient', sel: '.drill', t: 'Průběh', x: 'Celá cesta po měsících až k cíli. Klik na měsíc, týden nebo den jde hlouběji. Barva čáry: zelená podle plánu, oranžová pozadu, červená hodně pozadu.' },
     { v: 'nastaveni', sel: '.pblk', t: 'Plán: cíl a termín', x: 'Cílová váha, termín a tempo. Appka hlídá, jestli Robert termín stihne – když ne, nabídne přeplánování tak, aby termín držel.' },
     { v: 'nastaveni', sel: '.ptl2', t: 'Cesta k cíli', x: 'Týdny do cíle, fáze a přestávky v deficitu. Doporučené přestávky zařadíš jedním tlačítkem.' },
     { v: 'trenink', sel: '.tmgrid', t: 'Trénink', x: 'Robertův kalendář. Ťukni na den a uprav ho. Jednou za měsíc „Navrhnout měsíc“ – appka sestaví vyvážený plán podle toho, jak Robert cvičí.' },
     { v: 'trenink', sel: '.tradv', t: 'Kontrola plánu', x: 'Appka hlídá partie těla, dny volna a rámec týdne. U každého návrhu Přijmout, Upravit, nebo Zamítnout.' },
-    { t: 'Tvoje rutina', x: 'Každý den: Brief (2 min). Pondělí: Průvodce týdnem (5 min). Jednou za měsíc: Navrhnout měsíc tréninku a zadat průměr kroků z Apple Health (Plán → Pohyb). Tutoriál najdeš kdykoli v menu → Průvodce appkou.' }],
+    { t: 'Tvoje rutina', x: 'Každý den: Přehled shora dolů – 1 Stihne cíl? 2 Kde je potíž? 3 Co udělat? (2 min). Pondělí: Projít týden krok za krokem (5 min). Jednou za měsíc: Navrhnout měsíc tréninku a zadat průměr kroků z Apple Health (Plán → Pohyb). Tutoriál najdeš kdykoli v menu → Průvodce appkou.' }],
   client: [
     { t: 'Ahoj Roberte', x: 'Appka tě povede celý den – vždycky ti řekne, co dál a jak na to. Tady je tvoje rutina, zabere to minutu.' },
     { v: 'dnes', sel: '.rings2', t: 'Jídlo a pohyb', x: 'Levý kroužek: kolik ještě můžeš dnes sníst. Pravý: kolik minut ještě ujít a odcvičit. Pohyb je stejně důležitý jako jídlo – každá minuta chůze ti přidá jídlo.' },
