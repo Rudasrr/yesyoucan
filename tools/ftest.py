@@ -266,7 +266,7 @@ with sync_playwright() as p:
     h=b.new_page(); h.on('pageerror', lambda e: errs.append('vede: '+str(e))); h.goto(URL); h.wait_for_timeout(200)
     h.evaluate("localStorage.clear()"); h.goto(URL); h.wait_for_timeout(200)
     h.evaluate("""localLogin("client"); const s=S(); s.start_date=addDays(todayISO(),-20); saveSettings(s); for(let k=20;k>=4;k--){ saveMeas({date:addDays(todayISO(),-k), weight:132-(20-k)*0.05}); }
-      for(let k=1;k<=4;k++){ const d=getDay(addDays(todayISO(),-k)); d.walk_min=30; saveDay(d);} go('dnes')""")
+      for(let k=1;k<=4;k++){ const d=getDay(addDays(todayISO(),-k)); d.walk_min=30; saveDay(d);} if (resumeStart()) LS.set('resumeSeen', resumeStart()); go('dnes')""")   # s týdenním shrnutím je připomínka jen jedna
     h.wait_for_timeout(150)
     nud=h.evaluate("document.querySelector('.nudge') ? document.querySelector('.nudge').innerText : ''")
     print('hlídám za tebe:', nud.replace('\n',' | ')[:200])

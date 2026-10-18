@@ -361,9 +361,10 @@ function periodStats(from, to) {
   const s = S(), t = todayISO(); if (from < s.start_date) from = s.start_date;
   if (from > to) return { empty: true };
   const end = to < t ? to : addDays(t, -1); const uid = Store.ownerId(); const by = Object.fromEntries(Store.rows('days', uid).map(r => [r.data.date, r.data]));
-  const R = { from, to, n: 0, conf: 0, inLimit: 0, over: 0, def: 0, defPlan: 0, walk: 0, walkPlan: 0, steps: 0, stepsN: 0, trPlan: 0, trDone: 0, weigh: 0, wDays: 0, intake: 0, lim: 0, cheat: 0, protOk: 0, logged: 0 };
+  const R = { from, to, n: 0, conf: 0, inLimit: 0, over: 0, def: 0, defPlan: 0, walk: 0, walkPlan: 0, steps: 0, stepsN: 0, trPlan: 0, trDone: 0, weigh: 0, wDays: 0, intake: 0, lim: 0, cheat: 0, protOk: 0, logged: 0, walkPlanAll: 0 };
   for (let dt = from; dt <= end; dt = addDays(dt, 1)) { R.n++;
     const ap = dayActivityPlan(dt); if ((ap.items || []).length) R.trPlan++;
+    R.walkPlanAll += evaluateDay(dt).d.base.planWalk || 0;   // má být: plán chůze za všechny dny, i nezapsané
     if (!by[dt]) continue;   // nezapsaný den: chůze se neví, ne „neušel“
     const ev = evaluateDay(dt), B = ev.d.base; if (ev.logged) { R.walkPlan += B.planWalk; R.walk += ev.day.walk_min || 0; }
     if (B.planKcal > 0 && B.doneKcal >= B.planKcal * 0.5) R.trDone++;

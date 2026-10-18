@@ -55,10 +55,10 @@ VIEWS.dnes = function () {
     <div class="pt"><h1>${isToday ? 'Dnes' : dn}</h1><span class="sub">${isToday ? dn.toLowerCase() + ' ' : ''}${czDateShort(App.date)}</span></div>${isToday ? `<span class="chip2 acc">${ico('flame')} ${Math.max(st, weighStreak()) >= 1 ? `${Math.max(st, weighStreak())} ${sklon(Math.max(st, weighStreak()), 'den', 'dny', 'dní')} v řadě` : 'nová série'}</span>` : ''}
     <div class="act">${isToday ? '' : `<button class="btn sec sm" onclick="App.date=todayISO();render()">Dnes</button>`}<button class="iconbtn" onclick="A.dayShift(1)" ${isToday ? 'disabled' : ''} aria-label="další den">›</button><button class="iconbtn" onclick="A.dayMenu()" aria-label="další akce">⋯</button></div></div>
   ${s.maintain ? `<div class="notice">🏁 Udržování – cíl dosažen, deficit je nula. Jíš na celkový výdej.</div>` : isMaintWeek(s, App.date) ? `<div class="notice">Přestávka v deficitu – tento týden deficit nula, limit na celkovém výdeji. Jídlo, chůze i trénink jedou dál.</div>` : ''}
-  ${resumeCard()}
+  ${(App._rc = resumeCard())}
   ${renderRings(d, day, s)}
   ${nextCard(day, tasks, s)}
-  ${isToday ? robertNudges(s) : ''}
+  ${isToday ? robertNudges(s, App._rc ? 1 : 2) : ''}
   ${dayNotes(day, tasks)}
   <div class="card flush"><div class="list" id="timeline">${dayRows(d, day, tasks, s).join('')}</div></div>`;
 };
@@ -540,7 +540,7 @@ A.eatenMany = keys => { const ks = keys.split(','); Undo.run('Snědeno', () => {
    Appka vede jako trenér: nevážil se, nepotvrdil dny, nemá jídla na zítřek, utekl trénink,
    chybí včerejší kroky. Nejvýš tři věci, nejdůležitější první. Žádná červená. */
 function unconfirmedDays(n) { const s = S(), t = todayISO(), out = []; for (let k = n; k >= 1; k--) { const d = addDays(t, -k); if (d < s.start_date) continue; const r = Store.rows('days', Store.ownerId()).find(x => x.data.date === d); if (!(r && (r.data.reviewed || dayConfirmed(r.data)))) out.push(d); } return out; }
-function robertNudges(s) {
+function robertNudges(s, max = 2) {   // s týdenním shrnutím nahoře jen jedna, ať Dnes nebobtná
   if (App.ro) return ''; const t = todayISO(), y = addDays(t, -1), out = [];
   const ms = Meas().filter(m => m.weight != null).map(m => m.date).sort(); const last = ms[ms.length - 1]; const gap = last ? daysBetween(last, t) : 99;
   const weighedToday = last === t;
@@ -557,7 +557,7 @@ function robertNudges(s) {
     out.push({ ic: 'feet', t: 'Chybí včerejší kroky.', sub: 'Zdraví → Kroky → včerejší číslo.', btn: `<input type="text" inputmode="numeric" placeholder="kroky" class="ninp" onchange="A.fillSteps('${y}',this.value)">` });
   if (!out.length) return '';
   return `<div class="card nudge"><div class="nh">${ico('alert')} Hlídám za tebe${out.length > 2 ? ` · ${out.length - 2} další po vyřešení` : ''}</div>
-    ${out.slice(0, 2).map(n => `<div class="nrow"><span class="em">${ico(n.ic)}</span><div class="tx"><b>${esc(n.t)}</b><span>${esc(n.sub)}</span></div>${n.btn || ''}</div>`).join('')}</div>`;
+    ${out.slice(0, max).map(n => `<div class="nrow"><span class="em">${ico(n.ic)}</span><div class="tx"><b>${esc(n.t)}</b><span>${esc(n.sub)}</span></div>${n.btn || ''}</div>`).join('')}</div>`;
 }
 A.catchUp = () => { const L = unconfirmedDays(7); if (!L.length) return; App._catchup = L.slice(1); App._backToday = true; App.date = L[0]; render(); A.closeDay();
   UI.toast(`Potvrdíš ${L.length} ${sklon(L.length, 'den', 'dny', 'dní')} – nejdřív ${czDateShort(L[0])}.`); };
