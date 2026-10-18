@@ -671,6 +671,28 @@ function drKids(dr, r) { const s = S(), t = todayISO(), out = [];
    jako jedna vodorovná čára (proti plánu a minulému týdnu). Měsíc: bod za týden. Cesta: průměry
    všech týdnů po datech přes měsíce, plán a trend k cíli. Barva = odchylka průměru týdne od plánu
    téhož týdne: zelená do +0,5 kg nebo líp, oranžová do +1,5 kg, červená víc. */
+/* proužek nad grafem (18. 10. 2026): JE · MÁ BÝT · ROZDÍL · PLNĚNÍ za vybrané období –
+   cesta = od startu, měsíc = za měsíc, týden = za týden; vždy i poslední průměr týdne a vážení */
+function drStrip(dr, r, last, planLine, prevLine) {
+  const s = S(), t = todayISO(), W = drWeight(r.from, r.to), R = periodStats(r.from, r.to);
+  if (!last) return dr.lvl === 'w' && prevLine ? `<div class="dverd warn"><b>Tento týden zatím žádné vážení.</b> Má být ${fmt1(planLine.v)} kg, minulý týden byl průměr ${fmt1(prevLine.v)} kg.</div>` : '';
+  const cl = p => p == null ? '' : p >= 90 ? 'ok' : p >= 60 ? 'warn' : 'bad';
+  const cell = (lab, je, sub, c) => `<div><span>${lab}</span><b class="${c || ''}">${je}</b>${sub ? `<em>${sub}</em>` : ''}</div>`;
+  const gapW = last.pl - last.v, cW = gapW >= -0.5 ? 'ok' : gapW >= -1.5 ? 'warn' : 'bad';
+  const per = dr.lvl === 'c' ? 'Od startu' : dr.lvl === 'm' ? 'Za měsíc' : 'Za týden';
+  const pct = W.pct != null ? Math.max(0, W.pct) : null;
+  const title = dr.lvl === 'c' ? `Celá cesta · start ${czDateShort(s.start_date)}` : dr.lvl === 'm' ? monthName(r.from) : `Týden ${czDateShort(r.from)}–${czDateShort(r.to)}`;
+  const cells = [
+    cell(`${per} shodil`, W.real != null ? `${kgS(W.real)} kg` : '–', W.real != null ? `má být ${kgS(W.plan)} kg · <b>${dGap(W.diff)}</b>` : `má být ${kgS(W.planFull)} kg`, cl(pct)),
+    cell('Plní', pct != null ? `${pct} %` : '–', W.real != null ? `úbytku podle plánu` : 'málo vážení', cl(pct)),
+    cell(`Průměr týdne ${czDateShort(last.mon)}`, `${fmt1(last.v)} kg`, `má být ${fmt1(last.pl)} kg · <b>${Math.abs(gapW) < 0.05 ? 'přesně' : gapW < 0 ? `chybí ${fmt1(-gapW)} kg` : `náskok ${fmt1(gapW)} kg`}</b>`, cW)];
+  if (dr.lvl === 'c') { const tr = trend21(), rate = calcOverview(s, Meas()).cur * effSettings(s, t).rate_pct / 100;
+    if (tr) { const p = Math.max(0, Math.round(tr.perWeek / rate * 100)); cells.push(cell('Tempo teď (3 týdny)', `${tr.perWeek >= 0 ? '−' : '+'}${fmt2(Math.abs(tr.perWeek))} kg/t`, `má být −${fmt2(rate)} · <b>${p} %</b>`, cl(p))); }
+    const gp = planGoalDate(s), fc = goalForecast(s, calcOverview(s, Meas()));
+    if (gp && fc.date) { const late = daysBetween(gp, fc.date), d = ymd(gp, fc.date); cells.push(cell(`Cíl ${fmt1(s.goal_weight)} kg`, czDate(fc.date), `má být ${czDate(gp)} · <b>${late <= 7 ? 'včas' : `o ${d.short} později`}</b>`, late <= 7 ? 'ok' : late <= 30 ? 'warn' : 'bad')); } }
+  if (!R.empty) { const p = R.wDays ? Math.round(R.weigh / R.wDays * 100) : 0; cells.push(cell('Vážení', `${R.weigh}<small>/${R.wDays}</small>`, `${R.wDays - R.weigh > 0 ? `chybí ${R.wDays - R.weigh}` : 'všechna'} · <b>${p} %</b>`, cl(p))); }
+  return `<div class="dkpi ${cl(pct) || cW}"><div class="dk0"><b>${esc(title)}</b></div>${cells.join('')}</div>`;
+}
 function drChart(dr, r) {
   const s = S(), t = todayISO(), kids = drKids(dr, r), wa = wkAvgs();
   const W = 900, H = 260, L = 44, R_ = 16, T = 18, B = 26; const n = kids.length, cw = (W - L - R_) / n;
@@ -735,14 +757,7 @@ function drChart(dr, r) {
   g += `<g class="tipg" style="display:none"><line y1="${T}" y2="${H - B}" stroke="#2563eb" stroke-width="1" stroke-dasharray="2 3"/><circle r="5.5" fill="#fff" stroke="#2563eb" stroke-width="2.5"/></g></svg>`;
   /* jedna věta nad grafem: poslední průměr týdne proti plánu a proti minulému týdnu */
   const last = dr.lvl === 'w' ? (wkLine ? { v: wkLine.v, pl: wkLine.pl, n: wkLine.n, mon: r.from } : null) : ser[ser.length - 1];
-  const verdikt = !last && dr.lvl === 'w' && prevLine ? `<div class="dverd warn"><b>Tento týden zatím žádné vážení.</b> Má být ${fmt1(planLine.v)} kg, minulý týden byl průměr ${fmt1(prevLine.v)} kg.</div>` : last ? (() => { const gap = last.pl - last.v, c = devC(last.v, last.pl), pv = wkAvgOf(addDays(last.mon, -7));
-    const pl0 = pv ? planWeek(addDays(last.mon, -7)) : null, dReal = pv ? pv.avg - last.v : null, dPlan = pv ? pl0 - last.pl : null, pct = dReal != null && dPlan > 0.05 ? Math.max(0, Math.round(dReal / dPlan * 100)) : null;
-    const nw = Math.min(7, daysBetween(last.mon, todayISO() < addDays(last.mon, 6) ? todayISO() : addDays(last.mon, 6)) + 1);
-    return `<div class="dkpi ${c}"><div class="dk0"><b>Týden ${czDateShort(last.mon)}–${czDateShort(addDays(last.mon, 6))}</b></div>
-      <div><span>Průměr váhy je</span><b>${fmt1(last.v)} kg</b></div><div><span>Má být</span><b>${fmt1(last.pl)} kg</b></div>
-      <div><span>Rozdíl</span><b class="${c}">${Math.abs(gap) < 0.05 ? 'přesně' : gap < 0 ? `chybí ${fmt1(-gap)} kg` : `náskok ${fmt1(gap)} kg`}</b></div>
-      ${pv ? `<div><span>Změna za týden</span><b class="${pct == null ? '' : pct >= 90 ? 'ok' : pct >= 60 ? 'warn' : 'bad'}">${dReal >= 0 ? '−' : '+'}${fmt1(Math.abs(dReal))} kg</b><em>má být −${fmt1(dPlan)} kg · ${pct != null ? `${pct} %` : '–'}</em></div>` : ''}
-      <div><span>Vážení</span><b class="${last.n >= nw * 0.85 ? 'ok' : last.n >= nw * 0.5 ? 'warn' : 'bad'}">${last.n}<small>/${nw}</small></b><em>${nw - last.n > 0 ? `chybí ${nw - last.n}` : 'všechna'} · ${Math.round(last.n / nw * 100)} %</em></div></div>`; })() : '';
+  const verdikt = drStrip(dr, r, last, planLine, prevLine);
   return `${verdikt}<div class="legend kleg"><span><i class="lsk"></i>průměr týdne${hq('dSkut')}</span>${dr.lvl === 'w' ? '<span><i class="ldot"></i>váha ráno</span><span><i style="background:#94a3b8"></i>minulý týden</span>' : ''}<span><i class="lpl"></i>${dr.lvl === 'w' ? 'má být (plán týdne)' : 'plán'}</span>${p0 ? '<span><i style="background:#c4b5fd"></i>první plán</span>' : ''}${dr.lvl === 'c' ? '<span><i class="ltr"></i>kam to vede (trend)</span>' : ''}</div><div class="chartw" data-tip="${id}">${g}<div class="ctip" hidden></div></div>
     <div class="lbar">Barva průměru týdne: <span class="ok">zelená = podle plánu nebo líp</span> · <span class="warn">oranžová = do 1,5 kg pozadu</span> · <span class="bad">červená = víc pozadu</span></div>`;
 }

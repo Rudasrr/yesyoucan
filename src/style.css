@@ -921,3 +921,4 @@ svg.pchart{width:100%;height:auto;display:block}
 .dkpi .dk0 b{font-size:14px}.dkpi b.ok{color:#15803d}.dkpi b.warn{color:#b45309}.dkpi b.bad{color:#dc2626}
 .resume .tx b,.resume .tx span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .resume{padding:8px 14px}
+.dkpi em b{font-size:inherit;font-weight:750;color:var(--ink)}.dkpi .dk0{flex-basis:100%}

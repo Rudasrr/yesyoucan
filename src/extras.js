@@ -379,7 +379,7 @@ function periodStats(from, to) {
   R.wPlan = (R.wAvg || currentWeight()) * effSettings(s, from).rate_pct / 100 * len / 7;
   R.defAvg = R.conf ? R.def / R.conf : null; R.defPlanAvg = R.conf ? R.defPlan / R.conf : null; R.stepsAvg = R.stepsN ? R.steps / R.stepsN : null;
   const wm = Meas().filter(m => m.waist != null && m.date <= to).sort((a, b) => a.date.localeCompare(b.date)); const wIn = wm.filter(m => m.date >= from); const wBefore = wm.filter(m => m.date < from);
-  R.waist = wIn.length ? wIn[wIn.length - 1].waist : null; R.waistDelta = R.waist != null && wBefore.length ? R.waist - wBefore[wBefore.length - 1].waist : null;
+  R.waist = wIn.length ? wIn[wIn.length - 1].waist : null; R.waistDelta = R.waist != null && wBefore.length ? R.waist - wBefore[wBefore.length - 1].waist : R.waist != null && wIn.length > 1 ? R.waist - wIn[0].waist : null;   // bez měření před obdobím: od prvního v období
   return R;
 }
 /* Trend: sklon přímky přes vážení za posledních 21 dní (kg/týden, kladné = hubne) */
